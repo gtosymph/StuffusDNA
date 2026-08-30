@@ -794,6 +794,11 @@ function brancher() {
       onAjouter: (sort) => setEtat({
         sorts: [...etat.sorts.filter((s) => s.id !== sort.id), sort],
       }),
+      // Ajout en masse : un seul rendu pour toute la liste.
+      onAjouterPlusieurs: (nouveaux) => {
+        const ids = new Set(nouveaux.map((s) => s.id));
+        setEtat({ sorts: [...etat.sorts.filter((s) => !ids.has(s.id)), ...nouveaux] });
+      },
       onEnlever: (id) => setEtat({ sorts: etat.sorts.filter((s) => s.id !== id) }),
     });
   });

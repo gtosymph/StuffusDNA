@@ -151,6 +151,21 @@ export function derive(stats, level) {
 }
 
 /**
+ * Nombre de bonus de panoplie actifs d'un build.
+ * Chaque panoplie apporte (pieces - 1) bonus : c'est la valeur que les
+ * trophees comparent, par exemple "Bonus de panoplie < 3".
+ * @param {any[]} items
+ * @returns {number}
+ */
+export function setBonusCount(items) {
+  let total = 0;
+  for (const pieces of countSetPieces(items).values()) {
+    total += Math.max(0, pieces - 1);
+  }
+  return total;
+}
+
+/**
  * Liste les items dont les conditions d'equipement ne sont pas remplies.
  *
  * Le jeu evalue ces conditions sur les statistiques finales, l'item compris.
@@ -163,9 +178,10 @@ export function derive(stats, level) {
  */
 export function unequipableItems(items, stats, profile = {}) {
   const invalid = [];
+  const bonusPanoplie = setBonusCount(items);
   for (const item of items) {
     if (!item?.criteriaTree) continue;
-    if (!evaluateCriteria(item.criteriaTree, { stats, ...profile })) invalid.push(item);
+    if (!evaluateCriteria(item.criteriaTree, { stats, bonusPanoplie, ...profile })) invalid.push(item);
   }
   return invalid;
 }

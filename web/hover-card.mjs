@@ -9,6 +9,7 @@ import { el, ligneArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 import { passifDe } from '../src/data/passives-defaults.mjs';
+import { libelleCriteria } from '../src/data/criteria.mjs';
 
 /** Distance entre le pointeur et le coin de l'infobulle. */
 const ECART = 16;
@@ -43,7 +44,7 @@ function garnir(noeud, item) {
         el('div', { class: 'bulle-sous', text: `${item.typeFr} — niveau ${item.level}` }))),
 
     item.criteria
-      ? el('div', { class: 'bulle-condition', text: `Condition : ${item.criteria}` })
+      ? el('div', { class: 'bulle-condition', text: `Condition : ${libelleCriteria(item.criteria)}` })
       : null,
 
     Array.isArray(item.weapon) && item.weapon.length > 0

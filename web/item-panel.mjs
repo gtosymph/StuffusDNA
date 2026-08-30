@@ -6,6 +6,7 @@ import { el, ligneArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 import { passifDe } from '../src/data/passives-defaults.mjs';
+import { libelleCriteria } from '../src/data/criteria.mjs';
 
 /** Racine de la fiche, creee une seule fois. */
 let racine = null;
@@ -72,7 +73,7 @@ export function ouvrirFiche(item, actions = {}) {
     item.criteria
       ? el('div', { class: 'fiche-condition' },
           el('span', { class: 'cle', text: 'Condition' }),
-          el('code', { text: item.criteria }))
+          el('code', { text: libelleCriteria(item.criteria) }))
       : null,
 
     Array.isArray(item.weapon) && item.weapon.length > 0

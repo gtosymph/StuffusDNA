@@ -125,3 +125,35 @@ test('le moteur signale les items non equipables', async (t) => {
     assert.equal(invalid[0].fr, 'Arme exigeante');
   });
 });
+
+test('le critere Pk compte les bonus de panoplie', async (t) => {
+  const { parseCriteria, evaluateCriteria, libelleCriteria } = await import('../src/data/criteria.mjs');
+  const arbre = parseCriteria('Pk<3');
+
+  await t.test('deux bonus laissent le trophee equipable', () => {
+    assert.equal(evaluateCriteria(arbre, { stats: {}, bonusPanoplie: 2 }), true);
+  });
+
+  await t.test('quatre bonus ecartent le trophee', () => {
+    assert.equal(evaluateCriteria(arbre, { stats: {}, bonusPanoplie: 4 }), false);
+  });
+
+  await t.test('sans compte fourni, la condition reste satisfaite', () => {
+    assert.equal(evaluateCriteria(arbre, { stats: {} }), true);
+  });
+
+  await t.test('le libelle devient lisible', () => {
+    assert.equal(libelleCriteria('Pk<3'), 'Bonus de panoplie < 3');
+  });
+});
+
+test('setBonusCount compte (pieces - 1) par panoplie', async () => {
+  const { setBonusCount } = await import('../src/engine/build.mjs');
+  const items = [
+    { setId: 1 }, { setId: 1 }, { setId: 1 },
+    { setId: 2 }, { setId: 2 }, { setId: 2 },
+    { setId: 3 },
+  ];
+  // Deux panoplies de trois pieces : 2 + 2 ; une piece isolee : 0.
+  assert.equal(setBonusCount(items), 4);
+});

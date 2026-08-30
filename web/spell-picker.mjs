@@ -112,7 +112,8 @@ export function ouvrirPicker({ classe, niveau, pris, onAjouter, onEnlever }) {
 
     const nbSortsVisibles = couples.reduce((n, c) => n + c.length, 0);
 
-    const liste = couples.map((membres) => el('div', { class: 'couple-sorts' },
+    const liste = couples.map((membres) => el('div', {
+      class: `couple-sorts ${membres.length > 1 ? 'duo' : ''}`.trim() },
       membres.flatMap((m, rang) => [
         rang > 0 ? el('div', { class: 'lien-couple', text: 'ou' }) : null,
         carteSort(m.sort, m.variantes),

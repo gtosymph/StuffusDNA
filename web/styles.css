@@ -501,7 +501,7 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .picker-fond[hidden] { display: none; }
 
 .picker {
-  width: min(680px, 100%); max-height: 86vh;
+  width: min(880px, 100%); max-height: 86vh;
   display: flex; flex-direction: column;
   background: var(--carte-haute); border: 1px solid var(--bord-clair);
   border-radius: 10px; box-shadow: 0 20px 56px rgba(0, 0, 0, .6);
@@ -520,12 +520,19 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .picker-liste { overflow-y: auto; padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 7px; }
 
 .couple-sorts {
-  display: grid; gap: 4px; padding: 5px; border-radius: 5px;
+  display: grid; gap: 4px; padding: 5px; border-radius: 5px; align-items: stretch;
   background: rgba(124, 108, 246, 0.04); border: 1px solid var(--bord);
 }
+/* Un duo se lit a l'horizontale : les deux variantes cote a cote. */
+.couple-sorts.duo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.couple-sorts .carte-sort { min-width: 0; }
 .lien-couple {
-  text-align: center; font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--faible);
+  display: grid; place-items: center; font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faible); padding: 0 2px;
+}
+@media (max-width: 700px) {
+  .couple-sorts.duo { grid-template-columns: minmax(0, 1fr); }
+  .couple-sorts.duo .lien-couple { padding: 2px 0; }
 }
 .carte-sort { border: 1px solid var(--bord); border-radius: 7px; padding: 8px 10px; background: var(--champ); }
 .carte-sort.prise { border-color: var(--accent); background: var(--mine-soft, #1e1b3a); }

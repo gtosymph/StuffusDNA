@@ -32,6 +32,14 @@ export const PROFILE_CRITERIA = Object.freeze({
   PS: 'sexe',
 });
 
+/**
+ * Code du nombre de bonus de panoplie actifs.
+ * Chaque panoplie equipee apporte (pieces - 1) bonus : deux panoplies de
+ * trois pieces donnent quatre bonus. Les trophees majeurs s'en servent,
+ * par exemple "Pk<3".
+ */
+export const SET_BONUS_CRITERION = 'Pk';
+
 /** Operateurs acceptes par le mini langage. */
 const OPERATORS = Object.freeze({
   '>': (left, right) => left > right,
@@ -149,6 +157,11 @@ export function evaluateCriteria(node, context) {
     return compare(context.stats?.[statKey] ?? 0, node.value);
   }
 
+  // Nombre de bonus de panoplie actifs, fourni par le calcul de build.
+  if (node.code === SET_BONUS_CRITERION && Number.isFinite(context.bonusPanoplie)) {
+    return compare(context.bonusPanoplie, node.value);
+  }
+
   const profileKey = PROFILE_CRITERIA[node.code];
   if (profileKey) {
     const actual = context[profileKey];
@@ -185,6 +198,33 @@ export function estObtenable(item) {
     if (new RegExp(`${code}[<>=!]`).test(source)) return false;
   }
   return true;
+}
+
+/** Libelles humains des codes de condition, pour l'affichage. */
+const LIBELLES_CODES = Object.freeze({
+  CP: 'PA', CM: 'PM', CS: 'Force', CI: 'Intelligence', CA: 'Agilite',
+  CC: 'Chance', CV: 'Vitalite', CW: 'Sagesse',
+  Pk: 'Bonus de panoplie', PG: 'Classe', PS: 'Sexe', PJ: 'Metier', PO: 'Objet possede',
+  Qa: 'Quete achevee', Qo: 'Quete en cours', Qf: 'Quete terminee',
+  PZ: 'Abonnement', BI: 'Bonus', OS: 'Alignement', Sc: 'Statistique', PL: 'Niveau',
+});
+
+/**
+ * Traduit une condition brute en texte lisible.
+ * Les codes inconnus restent tels quels.
+ * @param {string} source
+ * @returns {string}
+ */
+export function libelleCriteria(source) {
+  if (typeof source !== 'string' || source === '') return '';
+  return source
+    .replace(/([A-Za-z]{2,3})(?=[<>=!])/g, (code) => LIBELLES_CODES[code] ?? code)
+    .replace(/&/g, ' et ')
+    .replace(/\|/g, ' ou ')
+    .replace(/</g, ' < ')
+    .replace(/>/g, ' > ')
+    .replace(/=/g, ' = ')
+    .replace(/!/g, ' ≠ ');
 }
 
 /**

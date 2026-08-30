@@ -510,6 +510,9 @@ function render() {
     }),
   });
 
+  // Le compte que les trophees verifient : (pieces − 1) par panoplie.
+  $('compte-bonus').textContent = String((build?.sets ?? [])
+    .reduce((n, s) => n + Math.max(0, s.pieces - 1), 0));
   vue.renderPanoplies($('panoplies'), build?.sets ?? [], catalogue?.setById ?? new Map(), STAT_LABELS, {
     itemById: catalogue?.itemById ?? new Map(),
     equippedIds: new Set([...etat.equipped.values()].map((p) => p.id)),

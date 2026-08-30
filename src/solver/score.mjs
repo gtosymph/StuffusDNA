@@ -23,6 +23,7 @@
  * signalee au solveur par maxViolations.
  */
 import { computeSpell } from '../engine/damage.mjs';
+import { optimiserCombo } from './combo.mjs';
 import { conditionValue } from './condition-value.mjs';
 
 /** Modes de recherche proposes par le solveur. */
@@ -107,7 +108,8 @@ export function damageValue(spells, stats) {
  * @param {string} [objective.mode]
  * @returns {{score: number, penalty: number, damage: number, satisfied: boolean, unmet: any[], details: any[]}}
  */
-export function scoreBuild(stats, { conditions, spells = [], mode = SEARCH_MODES.DAMAGE }) {
+export function scoreBuild(stats, objective) {
+  const { conditions, spells = [], mode = SEARCH_MODES.DAMAGE } = objective;
   let penalty = 0;
   const unmet = [];
   const details = [];
@@ -139,16 +141,39 @@ export function scoreBuild(stats, { conditions, spells = [], mode = SEARCH_MODES
     return { score: somme, penalty, damage: 0, weighted: somme, satisfied, unmet, details };
   }
 
-  const damage = damageValue(spells, stats).total;
+  // Combo actif : le score retient le meilleur enchainement sous le budget
+  // de PA du build, moins la reserve demandee. Sinon, somme simple des sorts.
+  const combo = objectiveCombo(objective, stats, spells);
+  const damage = combo ? combo.total : damageValue(spells, stats).total;
 
   return {
     score: satisfied ? damage : -penalty,
     penalty,
     damage,
+    ...(combo ? { combo } : {}),
     satisfied,
     unmet,
     details,
   };
+}
+
+/**
+ * Optimise le combo si l'objectif le demande.
+ * @param {object} objective
+ * @param {Record<string, number>} stats
+ * @param {any[]} spells
+ * @returns {ReturnType<typeof optimiserCombo> | null}
+ */
+function objectiveCombo(objective, stats, spells) {
+  const reglage = objective?.combo;
+  if (!reglage?.actif) return null;
+
+  const reserve = Number.isFinite(reglage.reserve) ? Math.max(0, reglage.reserve) : 0;
+
+  return optimiserCombo(spells, stats, {
+    paBudget: (stats.pa ?? 0) - reserve,
+    telefrag: reglage.telefrag !== false,
+  });
 }
 
 /**

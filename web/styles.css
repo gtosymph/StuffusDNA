@@ -583,3 +583,35 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .bulle-aide { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--bord); font-size: 9px; color: var(--faible); }
 
 @media (hover: none) { .bulle { display: none; } }
+
+/* ---------- Combo optimise ---------- */
+
+.option.nombre { justify-content: space-between; }
+.option.nombre.off { opacity: 0.45; }
+.option.nombre input {
+  width: 52px; padding: 2px 5px; border-radius: 4px;
+  border: 1px solid var(--bord); background: var(--champ); color: var(--texte);
+  font-family: var(--chiffre); font-size: 11px; text-align: right;
+}
+
+.carte-combo {
+  border: 1px solid var(--bord); border-left: 2px solid var(--accent);
+  border-radius: var(--r); padding: 6px 8px; margin-bottom: 6px; background: var(--champ);
+}
+.tete-combo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tete-combo .titre { font-weight: 600; font-size: 12px; }
+.tete-combo .pa { font-family: var(--chiffre); font-size: 10px; color: var(--faible); }
+.ligne-combo {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; margin-top: 4px;
+}
+.ligne-combo img { width: 18px; height: 18px; border-radius: 3px; }
+.ligne-combo .nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ligne-combo .pa { font-family: var(--chiffre); font-size: 10px; color: var(--ambre); }
+.ligne-combo .deg { font-family: var(--chiffre); font-size: 11px; color: var(--positif); }
+.total-combo {
+  display: flex; justify-content: space-between; gap: 8px;
+  border-top: 1px dashed var(--bord); margin-top: 6px; padding-top: 5px;
+  font-size: 10px; color: var(--faible);
+}
+.total-combo .deg { font-family: var(--chiffre); font-size: 12px; color: var(--positif); font-weight: 600; }

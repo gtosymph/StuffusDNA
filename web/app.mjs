@@ -48,6 +48,12 @@ const OPTIONS = [
     aide: 'Ajoute les degats de l\'arme equipee au total optimise' },
   { cle: 'passifs', libelle: 'Passifs Dofus & Legendaires',
     aide: 'Compte les passifs en combat des Dofus et objets legendaires' },
+  { cle: 'combo', libelle: 'Optimisateur de combo de sorts',
+    aide: 'Choisit le meilleur enchainement de lancers sous le budget de PA du build.\n'
+      + 'Le premier lancer d\'un sort qui genere un telefrag rend 2 PA.' },
+  { cle: 'paReserves', libelle: 'PA a enlever', type: 'nombre', min: 0, max: 11,
+    aide: 'PA gardes hors du combo (deplacement, sorts utilitaires).\n'
+      + 'Exemple : 12 PA et 2 PA enleves donnent un budget de 10 PA.' },
 ];
 
 let etat = {
@@ -60,7 +66,7 @@ let etat = {
   filtreStat: { stat: '', op: '>=', valeur: 0 },
   conditions: CONDITIONS_DEPART,
   sorts: [],
-  options: { distance: false, arme: false, passifs: true },
+  options: { distance: false, arme: false, passifs: true, combo: false, paReserves: 0 },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
 };
@@ -251,6 +257,9 @@ function objectif() {
     spells: sortsCalcules(),
     // Le solveur ajoute lui-meme l'attaque de l'arme de chaque build essaye.
     useWeapon: etat.options.arme,
+    combo: etat.options.combo
+      ? { actif: true, reserve: Math.max(0, Number(etat.options.paReserves) || 0) }
+      : null,
     mode: enDegats ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS,
   };
 }
@@ -525,7 +534,12 @@ function render() {
     }),
   });
 
-  vue.renderOptions($('options'), OPTIONS.map((o) => ({ ...o, actif: etat.options[o.cle] })),
+  vue.renderOptions($('options'), OPTIONS.map((o) => ({
+    ...o,
+    actif: etat.options[o.cle],
+    // Le champ des PA reserves ne sert que quand le combo est actif.
+    ...(o.cle === 'paReserves' ? { inactif: !etat.options.combo } : {}),
+  })),
     (cle, actif) => setEtat({ options: { ...etat.options, [cle]: actif } }));
 
   remplirListesSets();
@@ -560,6 +574,8 @@ function montrerScore(detail, build) {
   $('score-note').textContent = detail.satisfied
     ? `Toutes les conditions sont tenues.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
     : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
+
+  vue.renderCombo($('carte-combo'), detail.combo ?? null);
 }
 
 /**

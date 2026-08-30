@@ -487,9 +487,53 @@ export function renderPanoplies(root, panoplies, setById, libelles, contexte = {
 
 /** Remplit la liste des options. */
 export function renderOptions(root, options, onToggle) {
-  fill(root, options.map(({ cle, libelle, actif, aide }) => el('label', { class: 'option', title: aide ?? '' },
-    el('input', { type: 'checkbox', ...(actif ? { checked: true } : {}),
-      onChange: (ev) => onToggle(cle, ev.target.checked) }),
-    el('span', { text: libelle }),
-  )));
+  fill(root, options.map(({ cle, libelle, actif, aide, type, min, max, inactif }) => {
+    // Une option numerique montre un champ au lieu d'une case a cocher.
+    if (type === 'nombre') {
+      return el('label', { class: `option nombre ${inactif ? 'off' : ''}`.trim(), title: aide ?? '' },
+        el('span', { text: libelle }),
+        el('input', { type: 'number', min: min ?? 0, max: max ?? 99, value: Number(actif) || 0,
+          ...(inactif ? { disabled: true } : {}),
+          onChange: (ev) => onToggle(cle, Math.max(min ?? 0, Number(ev.target.value) || 0)) }),
+      );
+    }
+
+    return el('label', { class: 'option', title: aide ?? '' },
+      el('input', { type: 'checkbox', ...(actif ? { checked: true } : {}),
+        onChange: (ev) => onToggle(cle, ev.target.checked) }),
+      el('span', { text: libelle }),
+    );
+  }));
+}
+
+/**
+ * Montre le combo optimise : lancers retenus, PA depenses et total.
+ * @param {HTMLElement} root
+ * @param {{total:number, budget:number, paUtilises:number, lancers:any[]} | null} combo
+ */
+export function renderCombo(root, combo) {
+  if (!combo) {
+    fill(root, []);
+    return;
+  }
+
+  const lignes = combo.lancers.map((l) => el('div', { class: 'ligne-combo' },
+    l.icon ? el('img', { src: l.icon, alt: '', decoding: 'async' }) : null,
+    el('span', { class: 'nom', text: `${l.lancers} × ${l.name}` }),
+    el('span', { class: 'pa', text: `${l.coutTotal} PA`
+      + (l.rend > 0 ? ` (TF +${l.rend})` : '') }),
+    el('span', { class: 'deg', text: entier(l.total) }),
+  ));
+
+  fill(root, [el('div', { class: 'carte-combo' },
+    el('div', { class: 'tete-combo' },
+      el('span', { class: 'titre', text: 'Combo optimise' }),
+      el('span', { class: 'pa', text: `${combo.paUtilises}/${combo.budget} PA` })),
+    combo.lancers.length > 0
+      ? lignes
+      : el('p', { class: 'note', text: 'Aucun lancer ne tient dans le budget de PA.' }),
+    el('div', { class: 'total-combo' },
+      el('span', { text: 'Degats du combo' }),
+      el('span', { class: 'deg', text: entier(combo.total) })),
+  )]);
 }

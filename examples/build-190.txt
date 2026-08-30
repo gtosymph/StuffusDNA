@@ -1,0 +1,46 @@
+#LEVEL
+190
+#MIN_CRIT
+31
+#TARGETED_SLOTS
+amulet 1
+hat 1
+ring 2
+weapon 1
+shield 1
+belt 1
+back 1
+boots 1
+dofus 6
+prysmaradite 1
+pet 1
+#DMG_LINES
+terre 15 20 22 24 26
+terre 15 20 22 24 26
+feu 15 29 32 35 38
+air 15 33 36 40 43
+terre 10 22 24 26 29
+feu 5 10 12 13 15
+terre 10 22 24 26 29
+feu 15 29 32 35 38
+air 5 10 12 13 15
+air 5 10 12 13 15
+#CONSTRAINTS
+pa <= 12
+pm <= 5
+#LOCK_ITEMS
+-dolmanax
+-dofus ocre
+-dofus vulbis
+-sakochere
++dofus pourpre
++dofus turquoise
+-sac-cawotte
++dofus cawotte
+-kougnard albatre
+-chacha angora
+-dofus sylvestre
+-chienchien tigre
+-feanor
+-microsmoglob
+-tanuk

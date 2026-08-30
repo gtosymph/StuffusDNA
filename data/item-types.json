@@ -1,0 +1,1436 @@
+[
+  {
+    "id": 1,
+    "superTypeId": 1,
+    "categoryId": 0,
+    "fr": "Amulette"
+  },
+  {
+    "id": 2,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Arc"
+  },
+  {
+    "id": 3,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Baguette"
+  },
+  {
+    "id": 4,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Bâton"
+  },
+  {
+    "id": 5,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Dague"
+  },
+  {
+    "id": 6,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Épée"
+  },
+  {
+    "id": 7,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Marteau"
+  },
+  {
+    "id": 8,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Pelle"
+  },
+  {
+    "id": 9,
+    "superTypeId": 3,
+    "categoryId": 0,
+    "fr": "Anneau"
+  },
+  {
+    "id": 10,
+    "superTypeId": 4,
+    "categoryId": 0,
+    "fr": "Ceinture"
+  },
+  {
+    "id": 11,
+    "superTypeId": 5,
+    "categoryId": 0,
+    "fr": "Bottes"
+  },
+  {
+    "id": 12,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Potion"
+  },
+  {
+    "id": 13,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin d'expérience"
+  },
+  {
+    "id": 14,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Objet de dons"
+  },
+  {
+    "id": 15,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource diverse"
+  },
+  {
+    "id": 16,
+    "superTypeId": 10,
+    "categoryId": 0,
+    "fr": "Chapeau"
+  },
+  {
+    "id": 17,
+    "superTypeId": 11,
+    "categoryId": 0,
+    "fr": "Cape"
+  },
+  {
+    "id": 18,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Familier"
+  },
+  {
+    "id": 19,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Hache"
+  },
+  {
+    "id": 20,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Outil"
+  },
+  {
+    "id": 21,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Pioche"
+  },
+  {
+    "id": 22,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Faux"
+  },
+  {
+    "id": 23,
+    "superTypeId": 13,
+    "categoryId": 0,
+    "fr": "Dofus"
+  },
+  {
+    "id": 24,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Divers"
+  },
+  {
+    "id": 25,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Document"
+  },
+  {
+    "id": 26,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Potion de forgemagie"
+  },
+  {
+    "id": 27,
+    "superTypeId": 15,
+    "categoryId": 4,
+    "fr": "Objet de Mutation"
+  },
+  {
+    "id": 28,
+    "superTypeId": 16,
+    "categoryId": 4,
+    "fr": "Nourriture boost"
+  },
+  {
+    "id": 29,
+    "superTypeId": 17,
+    "categoryId": 4,
+    "fr": "Bénédiction"
+  },
+  {
+    "id": 30,
+    "superTypeId": 18,
+    "categoryId": 4,
+    "fr": "Malédiction"
+  },
+  {
+    "id": 31,
+    "superTypeId": 19,
+    "categoryId": 4,
+    "fr": "Roleplay Buffs"
+  },
+  {
+    "id": 32,
+    "superTypeId": 20,
+    "categoryId": 4,
+    "fr": "Personnage suiveur"
+  },
+  {
+    "id": 33,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Pain"
+  },
+  {
+    "id": 34,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Céréale"
+  },
+  {
+    "id": 35,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Fleur"
+  },
+  {
+    "id": 36,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Plante"
+  },
+  {
+    "id": 37,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Bière"
+  },
+  {
+    "id": 38,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Bois"
+  },
+  {
+    "id": 39,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Minerai"
+  },
+  {
+    "id": 40,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Alliage"
+  },
+  {
+    "id": 41,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Poisson"
+  },
+  {
+    "id": 42,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Friandise"
+  },
+  {
+    "id": 43,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Potion de téléportation"
+  },
+  {
+    "id": 46,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Fruit"
+  },
+  {
+    "id": 47,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Os"
+  },
+  {
+    "id": 48,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Poudre"
+  },
+  {
+    "id": 49,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Poisson comestible"
+  },
+  {
+    "id": 50,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Pierre précieuse"
+  },
+  {
+    "id": 51,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Pierre brute"
+  },
+  {
+    "id": 53,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Plume"
+  },
+  {
+    "id": 54,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Poil"
+  },
+  {
+    "id": 55,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Étoffe"
+  },
+  {
+    "id": 56,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Cuir"
+  },
+  {
+    "id": 57,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Laine"
+  },
+  {
+    "id": 58,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Graine"
+  },
+  {
+    "id": 59,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Peau"
+  },
+  {
+    "id": 60,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Huile"
+  },
+  {
+    "id": 61,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Peluche"
+  },
+  {
+    "id": 63,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Viande"
+  },
+  {
+    "id": 65,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Queue"
+  },
+  {
+    "id": 66,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Métaria"
+  },
+  {
+    "id": 68,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Légume"
+  },
+  {
+    "id": 69,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Viande comestible"
+  },
+  {
+    "id": 70,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Teinture"
+  },
+  {
+    "id": 71,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Matériel d'alchimie"
+  },
+  {
+    "id": 74,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Fée d'artifice"
+  },
+  {
+    "id": 75,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin de sortilège"
+  },
+  {
+    "id": 76,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin de caractéristique"
+  },
+  {
+    "id": 78,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Rune de forgemagie"
+  },
+  {
+    "id": 79,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Boisson"
+  },
+  {
+    "id": 80,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Objet de mission"
+  },
+  {
+    "id": 82,
+    "superTypeId": 7,
+    "categoryId": 0,
+    "fr": "Bouclier"
+  },
+  {
+    "id": 83,
+    "superTypeId": 70,
+    "categoryId": 1,
+    "fr": "Pierre d'âme"
+  },
+  {
+    "id": 84,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Clef"
+  },
+  {
+    "id": 85,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Pierre d'âme pleine"
+  },
+  {
+    "id": 87,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin de recherche"
+  },
+  {
+    "id": 88,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Pierre magique"
+  },
+  {
+    "id": 89,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Cadeau"
+  },
+  {
+    "id": 94,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Objet utilisable"
+  },
+  {
+    "id": 95,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Planche"
+  },
+  {
+    "id": 96,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Écorce"
+  },
+  {
+    "id": 97,
+    "superTypeId": 27,
+    "categoryId": 0,
+    "fr": "Certificat de Dragodinde"
+  },
+  {
+    "id": 98,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Racine"
+  },
+  {
+    "id": 99,
+    "superTypeId": 70,
+    "categoryId": 1,
+    "fr": "Filet de capture"
+  },
+  {
+    "id": 100,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Sac de ressources"
+  },
+  {
+    "id": 103,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Patte"
+  },
+  {
+    "id": 104,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Aile"
+  },
+  {
+    "id": 105,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Œuf"
+  },
+  {
+    "id": 106,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Oreille"
+  },
+  {
+    "id": 107,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Carapace"
+  },
+  {
+    "id": 108,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Bourgeon"
+  },
+  {
+    "id": 109,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Œil"
+  },
+  {
+    "id": 110,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Gelée"
+  },
+  {
+    "id": 111,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Coquille"
+  },
+  {
+    "id": 112,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Prisme"
+  },
+  {
+    "id": 113,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Objet vivant"
+  },
+  {
+    "id": 114,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Arme magique"
+  },
+  {
+    "id": 119,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Champignon"
+  },
+  {
+    "id": 121,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Montilier"
+  },
+  {
+    "id": 125,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Souvenir"
+  },
+  {
+    "id": 126,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Quêtes principales"
+  },
+  {
+    "id": 127,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Quêtes de temple"
+  },
+  {
+    "id": 128,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Avis de recherche"
+  },
+  {
+    "id": 129,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Alignement"
+  },
+  {
+    "id": 131,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Événements"
+  },
+  {
+    "id": 132,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Archipel de Vulkania"
+  },
+  {
+    "id": 133,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Astrub"
+  },
+  {
+    "id": 136,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Camps des Bworks et des Gobelins"
+  },
+  {
+    "id": 137,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Cania"
+  },
+  {
+    "id": 139,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Île de Frigost"
+  },
+  {
+    "id": 140,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Île d'Otomaï"
+  },
+  {
+    "id": 141,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Île de Nowel"
+  },
+  {
+    "id": 142,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Incarnam"
+  },
+  {
+    "id": 143,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Montagne des Koalaks"
+  },
+  {
+    "id": 144,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Pandala"
+  },
+  {
+    "id": 146,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Royaume d'Amakna"
+  },
+  {
+    "id": 147,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Krosmoz"
+  },
+  {
+    "id": 148,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Jetons"
+  },
+  {
+    "id": 149,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Île de Moon"
+  },
+  {
+    "id": 150,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Îles des Wabbits"
+  },
+  {
+    "id": 151,
+    "superTypeId": 13,
+    "categoryId": 0,
+    "fr": "Trophée"
+  },
+  {
+    "id": 152,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Galet"
+  },
+  {
+    "id": 153,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Nowel"
+  },
+  {
+    "id": 154,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Emballage"
+  },
+  {
+    "id": 155,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Sufokia"
+  },
+  {
+    "id": 156,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Almanax"
+  },
+  {
+    "id": 157,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Figurine"
+  },
+  {
+    "id": 164,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Vêtement"
+  },
+  {
+    "id": 165,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Potion de conquête"
+  },
+  {
+    "id": 166,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Mimibiote"
+  },
+  {
+    "id": 167,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Essence de gardien de donjon"
+  },
+  {
+    "id": 168,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Justiciers"
+  },
+  {
+    "id": 169,
+    "superTypeId": 23,
+    "categoryId": 0,
+    "fr": "Compagnon"
+  },
+  {
+    "id": 171,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Dimensions Divines"
+  },
+  {
+    "id": 172,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Coffre"
+  },
+  {
+    "id": 173,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin d'attitude"
+  },
+  {
+    "id": 174,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Carte"
+  },
+  {
+    "id": 175,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Fragment de carte"
+  },
+  {
+    "id": 176,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Boîte de fragments"
+  },
+  {
+    "id": 179,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Préparation"
+  },
+  {
+    "id": 183,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Substrat"
+  },
+  {
+    "id": 184,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Conteneur"
+  },
+  {
+    "id": 185,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Sève"
+  },
+  {
+    "id": 187,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Viande primitive"
+  },
+  {
+    "id": 188,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin d'émoticônes"
+  },
+  {
+    "id": 189,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Orbe de forgemagie"
+  },
+  {
+    "id": 195,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Matériel d'exploration"
+  },
+  {
+    "id": 196,
+    "superTypeId": 27,
+    "categoryId": 0,
+    "fr": "Certificat de Muldo"
+  },
+  {
+    "id": 197,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Caution"
+  },
+  {
+    "id": 198,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Saharach"
+  },
+  {
+    "id": 199,
+    "superTypeId": 25,
+    "categoryId": 5,
+    "fr": "Costume"
+  },
+  {
+    "id": 200,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin de titre"
+  },
+  {
+    "id": 201,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Nimotopia"
+  },
+  {
+    "id": 202,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Sidimote"
+  },
+  {
+    "id": 203,
+    "superTypeId": 26,
+    "categoryId": 4,
+    "fr": "Objet invisible"
+  },
+  {
+    "id": 205,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Tours de la Fratrie"
+  },
+  {
+    "id": 206,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Potion de monture"
+  },
+  {
+    "id": 207,
+    "superTypeId": 27,
+    "categoryId": 0,
+    "fr": "Certificat de Volkorne"
+  },
+  {
+    "id": 209,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Nourriture pour familier"
+  },
+  {
+    "id": 211,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Rune de transcendance"
+  },
+  {
+    "id": 213,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Île de Pwâk"
+  },
+  {
+    "id": 214,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Potion d'attitude"
+  },
+  {
+    "id": 215,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Archipel des Écailles"
+  },
+  {
+    "id": 216,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Bourse"
+  },
+  {
+    "id": 217,
+    "superTypeId": 13,
+    "categoryId": 0,
+    "fr": "Prysmaradite"
+  },
+  {
+    "id": 218,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Popoche de Havre-Sac"
+  },
+  {
+    "id": 219,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource des Songes"
+  },
+  {
+    "id": 220,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Eliocalypse"
+  },
+  {
+    "id": 222,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Parchemin d'ornement"
+  },
+  {
+    "id": 225,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Temporis"
+  },
+  {
+    "id": 226,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Objet utilisable de Temporis"
+  },
+  {
+    "id": 228,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Liquide"
+  },
+  {
+    "id": 229,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource de combat"
+  },
+  {
+    "id": 230,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Obsolète"
+  },
+  {
+    "id": 231,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Rabmablague"
+  },
+  {
+    "id": 232,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Haïku"
+  },
+  {
+    "id": 233,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Rune astrale"
+  },
+  {
+    "id": 236,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Mots de haïku"
+  },
+  {
+    "id": 241,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource de Temporis"
+  },
+  {
+    "id": 242,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Atoll des Possédés"
+  },
+  {
+    "id": 245,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Ressource obsolète"
+  },
+  {
+    "id": 246,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Chapeau d'apparat"
+  },
+  {
+    "id": 247,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Cape d'apparat"
+  },
+  {
+    "id": 248,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Bouclier d'apparat"
+  },
+  {
+    "id": 249,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Familier d'apparat"
+  },
+  {
+    "id": 250,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Montilier d'apparat"
+  },
+  {
+    "id": 251,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Arme d'apparat"
+  },
+  {
+    "id": 252,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Objet divers d'apparat"
+  },
+  {
+    "id": 253,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Cauchemar des Ravageurs"
+  },
+  {
+    "id": 254,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Bonta & Brakmar"
+  },
+  {
+    "id": 258,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Gravure de forgemagie"
+  },
+  {
+    "id": 259,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Bouataklône"
+  },
+  {
+    "id": 260,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Forêt Maléfique"
+  },
+  {
+    "id": 262,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Matériel de mégaltération"
+  },
+  {
+    "id": 266,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource des Anomalies Temporelles"
+  },
+  {
+    "id": 268,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Expéditions"
+  },
+  {
+    "id": 271,
+    "superTypeId": 2,
+    "categoryId": 0,
+    "fr": "Lance"
+  },
+  {
+    "id": 272,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Archipel de Valonia"
+  },
+  {
+    "id": 273,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Fers de Percepteur"
+  },
+  {
+    "id": 274,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Cuirasses de Percepteur"
+  },
+  {
+    "id": 275,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Bannière de Percepteur"
+  },
+  {
+    "id": 276,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Poignards de Percepteur"
+  },
+  {
+    "id": 277,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Tunique de Percepteur"
+  },
+  {
+    "id": 278,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource de Percepteur"
+  },
+  {
+    "id": 279,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Coffres de Percepteur"
+  },
+  {
+    "id": 280,
+    "superTypeId": 69,
+    "categoryId": 0,
+    "fr": "Sacoches de Percepteur"
+  },
+  {
+    "id": 284,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Relique d'Incarnation"
+  },
+  {
+    "id": 287,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Porte-signe de Compagnon"
+  },
+  {
+    "id": 289,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Idoles de Quêtes"
+  },
+  {
+    "id": 297,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Globe de lumière"
+  },
+  {
+    "id": 299,
+    "superTypeId": 25,
+    "categoryId": 5,
+    "fr": "Épaulière"
+  },
+  {
+    "id": 300,
+    "superTypeId": 25,
+    "categoryId": 5,
+    "fr": "Ailes"
+  },
+  {
+    "id": 301,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Monture domptée"
+  },
+  {
+    "id": 302,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Tatouage de la Foire du Trool"
+  },
+  {
+    "id": 303,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Ballon"
+  },
+  {
+    "id": 304,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Panoplie d'apparat"
+  },
+  {
+    "id": 305,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Foire du Trool"
+  },
+  {
+    "id": 306,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Visage"
+  },
+  {
+    "id": 307,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Pierre d'âme spéciale"
+  },
+  {
+    "id": 308,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Pierre d'âme spéciale pleine"
+  },
+  {
+    "id": 309,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Pierre d'âme spéciale non transformée"
+  },
+  {
+    "id": 310,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Éklâme"
+  },
+  {
+    "id": 311,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Monture"
+  },
+  {
+    "id": 312,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource de quête"
+  },
+  {
+    "id": 314,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Consommable obsolète des Songes"
+  },
+  {
+    "id": 315,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Ressource de raid"
+  },
+  {
+    "id": 322,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Éclats"
+  },
+  {
+    "id": 323,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Makina"
+  },
+  {
+    "id": 324,
+    "superTypeId": 22,
+    "categoryId": 5,
+    "fr": "Monture d'apparat"
+  },
+  {
+    "id": 325,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "La source - l'héritage des Dofus"
+  },
+  {
+    "id": 326,
+    "superTypeId": 9,
+    "categoryId": 2,
+    "fr": "Carburant d'enclos"
+  },
+  {
+    "id": 327,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Âme de gardien de donjon"
+  },
+  {
+    "id": 328,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Âme d'archimonstre"
+  },
+  {
+    "id": 329,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Corps"
+  },
+  {
+    "id": 330,
+    "superTypeId": 6,
+    "categoryId": 1,
+    "fr": "Poses"
+  },
+  {
+    "id": 331,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Dragodinde"
+  },
+  {
+    "id": 332,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Muldo"
+  },
+  {
+    "id": 333,
+    "superTypeId": 12,
+    "categoryId": 0,
+    "fr": "Volkorne"
+  },
+  {
+    "id": 334,
+    "superTypeId": 14,
+    "categoryId": 3,
+    "fr": "Jetons événementiels"
+  }
+]

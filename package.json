@@ -1,0 +1,19 @@
+{
+  "name": "copyroxx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Moteur de calcul et solveur genetique de stuff Dofus",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "data:effects": "node scripts/fetch-effects.mjs",
+    "data:items": "node scripts/fetch-items.mjs",
+    "data:sets": "node scripts/fetch-sets.mjs",
+    "data:all": "npm run data:effects && npm run data:sets && npm run data:items",
+    "test": "node --test test/*.test.mjs",
+    "serve": "node scripts/serve.mjs",
+    "solve": "node scripts/solve-parallel-demo.mjs"
+  }
+}

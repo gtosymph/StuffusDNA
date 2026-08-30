@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copyroxx — solveur de stuff</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="barre">
+  <div class="logo"><span class="losange"></span> Copyroxx</div>
+  <div class="barre-info" id="barre-info">Solveur de stuff — moteur local</div>
+  <div class="barre-actions">
+    <span class="etiquette" id="etiquette-items">—</span>
+    <span class="etiquette accent">v2</span>
+  </div>
+</header>
+
+<div class="atelier">
+
+  <!-- ===== Colonne 1 : catalogue ===== -->
+  <aside class="colonne colonne-catalogue">
+    <section class="bloc bloc-plein">
+      <h2>Catalogue</h2>
+      <div class="onglets" id="onglets-slot"></div>
+      <div class="champ-recherche">
+        <input id="recherche" type="search" placeholder="Rechercher…" autocomplete="off">
+      </div>
+      <div class="rangee-filtre">
+        <select id="filtre-stat" title="Filtrer par statistique"></select>
+        <select id="filtre-op" title="Sens du filtre">
+          <option value=">=">≥</option>
+          <option value="<=">≤</option>
+        </select>
+        <input id="filtre-valeur" type="number" value="0" title="Valeur du filtre">
+      </div>
+      <div class="rangee-masse">
+        <button id="bannir-resultats" class="danger" type="button"
+          title="Bannir toutes les pieces qui passent les filtres">Bannir les resultats</button>
+        <button id="autoriser-resultats" type="button"
+          title="Autoriser de nouveau les pieces bannies qui passent les filtres">Autoriser</button>
+      </div>
+      <div class="grille-items" id="grille-items"></div>
+      <p class="note" id="compte-items"></p>
+    </section>
+
+    <section class="bloc">
+      <h2>Pieces bannies <span class="compteur" id="compte-bannis">0</span></h2>
+      <div class="bannis" id="bannis"></div>
+    </section>
+  </aside>
+
+  <!-- ===== Colonne 2 : statistiques, conditions, sorts ===== -->
+  <div class="colonne colonne-stats">
+    <section class="bloc">
+      <h2>Principales</h2>
+      <dl class="paires" id="stats-principales"></dl>
+    </section>
+
+    <section class="bloc">
+      <h2>Caracteristiques</h2>
+      <div class="rangee-points">
+        <span id="points-utilises" class="note">—</span>
+        <span id="points-restants" class="jeton">—</span>
+      </div>
+      <dl class="paires" id="stats-caracteristiques"></dl>
+    </section>
+
+    <section class="bloc">
+      <h2>Points de caracteristique</h2>
+      <div class="points" id="points"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Secondaires</h2>
+      <dl class="paires" id="stats-secondaires"></dl>
+    </section>
+
+    <section class="bloc">
+      <h2>Conditions <span class="compteur" id="compte-conditions">0</span></h2>
+      <div class="defilable">
+        <table class="conditions">
+          <tbody id="corps-conditions"></tbody>
+        </table>
+      </div>
+      <div class="rangee-ajout">
+        <select id="nouvelle-condition"></select>
+        <button id="ajouter-condition" type="button">Ajouter</button>
+      </div>
+      <div class="rangee-sets">
+        <select id="sets-conditions"></select>
+        <button id="charger-conditions" type="button" title="Reprendre ce jeu">Charger</button>
+        <button id="garder-conditions" type="button" title="Enregistrer les conditions">Garder</button>
+        <button id="oublier-conditions" class="mini" type="button" title="Enlever ce jeu">×</button>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>Sorts <span class="compteur" id="compte-sorts">0</span></h2>
+      <div class="rangee-ajout">
+        <button id="choisir-sorts" class="primaire" type="button">Choisir des sorts…</button>
+      </div>
+      <div class="rangee-sets">
+        <select id="sets-sorts"></select>
+        <button id="charger-sorts" type="button" title="Reprendre ce jeu">Charger</button>
+        <button id="garder-sorts" type="button" title="Enregistrer les sorts retenus">Garder</button>
+        <button id="oublier-sorts" class="mini" type="button" title="Enlever ce jeu">×</button>
+      </div>
+      <div class="grille-sorts" id="grille-sorts"></div>
+      <div id="liste-sorts"></div>
+      <div id="carte-arme"></div>
+    </section>
+  </div>
+
+  <!-- ===== Colonne 3 : personnage, recherche, panoplies ===== -->
+  <div class="colonne colonne-perso">
+    <section class="bloc">
+      <div class="rangee-perso">
+        <label for="niveau" class="etiquette-champ">Niveau</label>
+        <input id="niveau" type="number" min="1" max="200" value="190">
+        <select id="classe"></select>
+        <select id="sexe">
+          <option value="0">♂</option>
+          <option value="1">♀</option>
+        </select>
+        <button id="vider" class="danger" type="button">Vider</button>
+      </div>
+
+      <div class="scene">
+        <div class="colonne-slots" id="slots-gauche"></div>
+        <div class="avatar" id="avatar">
+          <div class="avatar-cadre" id="avatar-cadre">
+            <img id="avatar-image" alt="" hidden>
+            <span id="avatar-note"></span>
+          </div>
+          <div class="legende">
+            <span><i class="pastille pose"></i>Pose</span>
+            <span><i class="pastille solveur"></i>Solveur</span>
+            <span><i class="pastille verrou"></i>Verrouille</span>
+          </div>
+        </div>
+        <div class="colonne-slots" id="slots-droite"></div>
+      </div>
+
+      <div class="rangee-artefacts" id="slots-artefacts"></div>
+    </section>
+
+    <section class="bloc bloc-recherche">
+      <div class="score-zone">
+        <div class="score-libelle" id="score-libelle">Score actuel</div>
+        <div class="score" id="score">—</div>
+        <div class="note" id="score-note">Aucun calcul lance.</div>
+      </div>
+      <canvas id="graphe" class="graphe" height="130"></canvas>
+      <div class="rangee-reglages">
+        <div><label for="fils">Fils</label><input id="fils" type="number" min="1" max="8" value="4"></div>
+        <div class="compteur-generations note" id="compteur-generations">La recherche continue jusqu'a la pause.</div>
+        <button class="primaire" id="lancer" type="button">Lancer</button>
+        <button id="recommencer" type="button"
+          title="Repart de zero : population neuve, sans le build courant en graine">Recommencer</button>
+        <button id="arreter" type="button" disabled>Pause</button>
+      </div>
+      <div class="fils" id="etat-fils"></div>
+      <div id="message"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Bonus de panoplie</h2>
+      <div class="panoplies" id="panoplies"></div>
+    </section>
+  </div>
+
+  <!-- ===== Colonne 4 : dommages, resistances, options ===== -->
+  <div class="colonne colonne-detail">
+    <section class="bloc">
+      <h2>Dommages</h2>
+      <dl class="paires" id="stats-dommages"></dl>
+    </section>
+
+    <section class="bloc">
+      <h2>Resistances</h2>
+      <dl class="paires" id="stats-resistances"></dl>
+    </section>
+
+    <section class="bloc">
+      <h2>Options</h2>
+      <div class="options" id="options"></div>
+    </section>
+  </div>
+
+</div>
+
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

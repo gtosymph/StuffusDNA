@@ -1,0 +1,112 @@
+/**
+ * Pilotage des fils de calcul cote navigateur.
+ *
+ * Le client lance plusieurs fils qui cherchent sans limite de generations.
+ * Il fait circuler les meilleurs genomes entre les fils apres chaque vague,
+ * et rend le meilleur build quand l'utilisateur met la recherche en pause.
+ */
+
+/** Nombre de fils propose par defaut, selon le processeur. */
+export function defaultThreadCount() {
+  const cores = Math.max(1, navigator.hardwareConcurrency || 2);
+  return Math.min(8, Math.max(1, Math.floor(cores / 2)));
+}
+
+/** Delai accorde aux fils pour rendre leur resultat apres l'ordre d'arret. */
+const DELAI_ARRET_MS = 5000;
+
+/**
+ * Lance une recherche continue sur plusieurs fils.
+ *
+ * @param {object} request Donnees transmises a chaque fil.
+ * @param {object} options
+ * @param {number} options.threads Nombre de fils.
+ * @param {(info: {seed: number, generation: number, best: number}) => void} [options.onProgress]
+ * @param {(vague: {seed: number, generation: number, best: number, history: number[], resume: any}) => void} [options.onWave]
+ * @returns {{promise: Promise<any>, stop: () => void}}
+ */
+export function runSearch(request, { threads, onProgress, onWave }) {
+  const fils = [];
+  let arretEnvoye = false;
+  let stopper = null;
+
+  const promise = new Promise((resolve, reject) => {
+    const resultats = [];
+    let vivants = threads;
+    let minuteur = null;
+
+    const conclure = () => {
+      clearTimeout(minuteur);
+      for (const { worker } of fils) worker.terminate();
+
+      if (resultats.length === 0) {
+        reject(new Error('Aucun fil n\'a rendu de resultat.'));
+        return;
+      }
+      resultats.sort((a, b) => b.score - a.score);
+      resolve({ best: resultats[0], runs: resultats });
+    };
+
+    const terminerFil = () => {
+      vivants -= 1;
+      if (vivants === 0) conclure();
+    };
+
+    for (let i = 0; i < threads; i += 1) {
+      const seed = 1 + i * 7919;
+      const worker = new Worker(new URL('./solver-worker.mjs', import.meta.url), { type: 'module' });
+      fils.push({ worker, seed });
+
+      worker.addEventListener('message', (event) => {
+        const message = event.data;
+
+        if (message.type === 'progress') {
+          onProgress?.(message);
+          return;
+        }
+
+        if (message.type === 'vague') {
+          onWave?.(message);
+          // Les meilleurs genomes du fil partent chez les autres.
+          if (Array.isArray(message.topGenomes) && message.topGenomes.length > 0) {
+            for (const autre of fils) {
+              if (autre.seed === message.seed) continue;
+              autre.worker.postMessage({ type: 'migrants', genomes: message.topGenomes });
+            }
+          }
+          return;
+        }
+
+        if (message.type === 'done') {
+          if (Number.isFinite(message.score)) resultats.push(message);
+          terminerFil();
+          return;
+        }
+
+        if (message.type === 'error') {
+          // Un fil en echec ne doit pas arreter les autres.
+          onProgress?.({ seed: message.seed, failed: true, message: message.message });
+          terminerFil();
+        }
+      });
+
+      worker.addEventListener('error', (event) => {
+        worker.terminate();
+        onProgress?.({ seed, failed: true, message: event.message });
+        terminerFil();
+      });
+
+      worker.postMessage({ type: 'start', request: { ...request, seed } });
+    }
+
+    stopper = () => {
+      if (arretEnvoye) return;
+      arretEnvoye = true;
+      for (const { worker } of fils) worker.postMessage({ type: 'stop' });
+      // Un fil qui ne repond pas dans le delai n'empeche pas la conclusion.
+      minuteur = setTimeout(conclure, DELAI_ARRET_MS);
+    };
+  });
+
+  return { promise, stop: () => stopper?.() };
+}

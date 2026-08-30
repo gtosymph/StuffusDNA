@@ -52,7 +52,9 @@ body { margin: 0; background: var(--fond); color: var(--texte); font: 12px/1.45 
 
 .atelier {
   display: grid;
-  grid-template-columns: 204px 300px minmax(270px, 1fr) 286px;
+  /* Les colonnes stats et detail absorbent la largeur libre ; la colonne du
+     personnage reste bornee : elle n'a pas besoin de plus. */
+  grid-template-columns: 204px minmax(300px, 1.2fr) minmax(280px, 470px) minmax(286px, 1fr);
   gap: 8px; padding: 8px; align-items: start;
 }
 
@@ -222,10 +224,10 @@ button.pleine-largeur { width: 100%; margin-top: 6px; }
 
 .defilable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 /* Le tableau garde des champs lisibles et defile dans son cadre si besoin. */
-table.conditions { width: 100%; border-collapse: collapse; min-width: 286px; }
+table.conditions { width: 100%; border-collapse: collapse; min-width: 262px; }
 table.conditions td { padding: 1px 2px; }
 table.conditions .nom-stat { font-size: 11px; color: var(--texte); white-space: nowrap; padding-right: 4px; }
-table.conditions input[type="number"] { width: 100%; min-width: 44px; padding: 4px 3px; text-align: right; }
+table.conditions input[type="number"] { width: 100%; min-width: 36px; padding: 4px 2px; text-align: right; }
 table.conditions .etat { font-family: var(--chiffre); font-size: 10px; text-align: right; white-space: nowrap; }
 table.conditions .mini {
   background: none; border: none; color: var(--faible); padding: 2px 4px; font-size: 12px; line-height: 1;

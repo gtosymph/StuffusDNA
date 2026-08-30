@@ -571,17 +571,27 @@ async function lancer(choix = {}) {
   $('arreter').disabled = false;
   message(deZero ? 'Nouvelle recherche, population neuve.' : '');
   $('etat-fils').replaceChildren();
-  $('compteur-generations').textContent = 'demarrage…';
 
   rechercheEnCours = true;
-  historiques = [];
 
   const suivi = new Map();
-  // Chaque fil accumule sa courbe, vague apres vague.
+  // Chaque fil accumule sa courbe, vague apres vague. Une reprise repart des
+  // courbes existantes : le graphe continue au lieu de se remettre a zero.
   const courbes = new Map();
+  let decalage = 0;
+  if (deZero) {
+    historiques = [];
+  } else {
+    for (const { seed, history } of historiques) courbes.set(seed, [...history]);
+    for (const { history } of historiques) decalage = Math.max(decalage, history.length - 1);
+  }
+
   // Meilleur score deja applique a l'interface : le build ne bouge que s'il monte.
   let meilleurApplique = Number.NEGATIVE_INFINITY;
-  let generationMax = 0;
+  let generationMax = decalage;
+  $('compteur-generations').textContent = decalage > 0
+    ? `reprise a la generation ${decalage.toLocaleString('fr-FR')}…`
+    : 'demarrage…';
 
   const montrerFils = () => {
     $('etat-fils').replaceChildren(...[...suivi.values()].map((p) => vue.el('div', { class: 'fil' },
@@ -612,7 +622,7 @@ async function lancer(choix = {}) {
       },
       onWave: (vague) => {
         suivi.set(vague.seed, { seed: vague.seed, best: vague.best });
-        generationMax = Math.max(generationMax, vague.generation);
+        generationMax = Math.max(generationMax, decalage + vague.generation);
         $('compteur-generations').textContent =
           `generation ${generationMax.toLocaleString('fr-FR')} — en cours`;
 

@@ -387,10 +387,13 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
   }
 
   fill(root, sorts.map((sort, index) => {
-    const ligne = sort.lines[0] ?? {};
-    const champ = (cle, titre, source = sort) => el('input', {
-      type: 'number', value: String(source[cle] ?? 0), title: titre, placeholder: titre,
-      onChange: (ev) => onChange(index, source === sort ? cle : `line.${cle}`, Number(ev.target.value)),
+    const champ = (cle, titre) => el('input', {
+      type: 'number', value: String(sort[cle] ?? 0), title: titre, placeholder: titre,
+      onChange: (ev) => onChange(index, cle, Number(ev.target.value)),
+    });
+    const champLigne = (rang, ligne, cle, titre) => el('input', {
+      type: 'number', value: String(ligne[cle] ?? 0), title: titre, placeholder: titre,
+      onChange: (ev) => onChange(index, `line.${rang}.${cle}`, Number(ev.target.value)),
     });
 
     const detail = degats?.[index];
@@ -407,9 +410,6 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
               title: sort.telefrag.bonusSousTelefrag
                 ? 'Ce sort consomme un telefrag et gagne un bonus'
                 : 'Ce sort consomme un telefrag', text: 'TF−' }) : null,
-        el('select', { title: 'Element', onChange: (ev) => onChange(index, 'line.element', ev.target.value) },
-          ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
-            value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
         el('button', { class: 'mini', type: 'button', text: '×', title: 'Enlever',
           onClick: () => onRemove(index) }),
       ),
@@ -417,10 +417,15 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
         champ('apCost', 'PA'), champ('castsPerTurn', 'Lancers'), champ('baseCrit', 'Crit +'),
         el('span', {}),
       ),
-      el('div', { class: 'sort-grille' },
-        champ('min', 'Min', ligne), champ('max', 'Max', ligne),
-        champ('critMin', 'CC min', ligne), champ('critMax', 'CC max', ligne),
-      ),
+      // Une rangee editable par ligne de degats : element, plage, plage critique.
+      sort.lines.map((ligne, rang) => el('div', { class: 'sort-grille ligne-sort' },
+        el('select', { title: 'Element',
+          onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
+          ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
+            value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
+        champLigne(rang, ligne, 'min', 'Min'), champLigne(rang, ligne, 'max', 'Max'),
+        champLigne(rang, ligne, 'critMin', 'CC min'), champLigne(rang, ligne, 'critMax', 'CC max'),
+      )),
       detail ? detailSort(detail) : null,
     );
   }));

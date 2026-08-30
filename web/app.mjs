@@ -413,8 +413,12 @@ function changerSort(index, cle, valeur) {
   const sorts = etat.sorts.map((sort, i) => {
     if (i !== index) return sort;
     if (!cle.startsWith('line.')) return { ...sort, [cle]: valeur };
-    const champ = cle.slice(5);
-    return { ...sort, lines: sort.lines.map((l, j) => (j === 0 ? { ...l, [champ]: valeur } : l)) };
+    // "line.<rang>.<champ>" modifie une ligne de degats precise.
+    const [, rang, champ] = cle.split('.');
+    return {
+      ...sort,
+      lines: sort.lines.map((l, j) => (j === Number(rang) ? { ...l, [champ]: valeur } : l)),
+    };
   });
   setEtat({ sorts });
 }

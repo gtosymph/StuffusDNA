@@ -58,48 +58,71 @@ export function ouvrirPicker({ classe, niveau, pris, onAjouter, onEnlever }) {
 
   const etat = { recherche: '', masquerHauts: true };
 
+  /** Carte d'un sort : identite, marques telefrag et pastilles de paliers. */
+  function carteSort(sort, variantes) {
+    const choisi = pris.has(sort.id);
+    return el('div', { class: `carte-sort ${choisi ? 'prise' : ''}`.trim() },
+      el('div', { class: 'tete-sort' },
+        sort.icon ? el('img', { src: sort.icon, alt: '', decoding: 'async' }) : null,
+        el('div', { class: 'ident' },
+          el('div', { class: 'nom', text: sort.fr }),
+          el('div', { class: 'meta', text: `${sort.apCost} PA · portee ${sort.minRange}–${sort.range}`
+            + (sort.maxCast > 0 ? ` · ${sort.maxCast}/tour` : '') })),
+        sort.generatesTelefrag ? el('span', { class: 'marque-tf', text: 'TF+' }) : null,
+        sort.consumesTelefrag ? el('span', { class: 'marque-tf consomme', text: 'TF−' }) : null,
+        choisi
+          ? el('button', { class: 'mini', type: 'button', text: '×', title: 'Enlever ce sort',
+              onClick: () => { onEnlever(sort.id); dessiner(); } })
+          : null),
+
+      el('div', { class: 'variantes' },
+        variantes.map((v) => pastilleVariante(sort, v, choisi, (s, variante) => {
+          onAjouter(versSortMoteur({ ...s, ...variante, critRate: variante.critRate }));
+          dessiner();
+        }))),
+    );
+  }
+
   function dessiner() {
     const terme = etat.recherche.trim().toLowerCase();
 
-    const visibles = sorts
-      .filter((s) => !terme || s.fr.toLowerCase().includes(terme))
+    const entrees = sorts
       .map((s) => ({
         sort: s,
         // Une variante au-dessus du niveau du personnage reste inaccessible.
         variantes: (s.variants ?? []).filter((v) => !etat.masquerHauts || v.level <= niveau),
       }))
-      .filter((e) => e.variantes.length > 0)
-      .sort((a, b) => a.sort.fr.localeCompare(b.sort.fr, 'fr'));
+      .filter((e) => e.variantes.length > 0);
 
-    const liste = visibles.map(({ sort, variantes }) => {
-      const choisi = pris.has(sort.id);
-      return el('div', { class: `carte-sort ${choisi ? 'prise' : ''}`.trim() },
-        el('div', { class: 'tete-sort' },
-          sort.icon ? el('img', { src: sort.icon, alt: '', decoding: 'async' }) : null,
-          el('div', { class: 'ident' },
-            el('div', { class: 'nom', text: sort.fr }),
-            el('div', { class: 'meta', text: `${sort.apCost} PA · portee ${sort.minRange}–${sort.range}`
-              + (sort.maxCast > 0 ? ` · ${sort.maxCast}/tour` : '') })),
-          sort.generatesTelefrag ? el('span', { class: 'marque-tf', text: 'TF+' }) : null,
-          sort.consumesTelefrag ? el('span', { class: 'marque-tf consomme', text: 'TF−' }) : null,
-          choisi
-            ? el('button', { class: 'mini', type: 'button', text: '×', title: 'Enlever ce sort',
-                onClick: () => { onEnlever(sort.id); dessiner(); } })
-            : null),
+    // Les sorts se presentent par couple de variantes : deux sorts du meme
+    // groupe s'excluent en jeu, le joueur choisit l'un ou l'autre.
+    const groupes = new Map();
+    for (const entree of entrees) {
+      const cle = entree.sort.exclusiveGroup ?? `seul:${entree.sort.id}`;
+      if (!groupes.has(cle)) groupes.set(cle, []);
+      groupes.get(cle).push(entree);
+    }
 
-        el('div', { class: 'variantes' },
-          variantes.map((v) => pastilleVariante(sort, v, choisi, (s, variante) => {
-            onAjouter(versSortMoteur({ ...s, ...variante, critRate: variante.critRate }));
-            dessiner();
-          }))),
-      );
-    });
+    const couples = [...groupes.values()]
+      // Le terme de recherche garde le couple entier des qu'un membre repond.
+      .filter((membres) => !terme || membres.some((m) => m.sort.fr.toLowerCase().includes(terme)))
+      .map((membres) => membres.sort((a, b) => a.variantes[0].level - b.variantes[0].level))
+      .sort((a, b) => a[0].variantes[0].level - b[0].variantes[0].level
+        || a[0].sort.fr.localeCompare(b[0].sort.fr, 'fr'));
+
+    const nbSortsVisibles = couples.reduce((n, c) => n + c.length, 0);
+
+    const liste = couples.map((membres) => el('div', { class: 'couple-sorts' },
+      membres.flatMap((m, rang) => [
+        rang > 0 ? el('div', { class: 'lien-couple', text: 'ou' }) : null,
+        carteSort(m.sort, m.variantes),
+      ])));
 
     fond.replaceChildren(el('div', { class: 'picker', role: 'dialog', 'aria-label': 'Choix des sorts' },
       el('div', { class: 'picker-tete' },
         el('div', {},
           el('div', { class: 'picker-titre', text: `Sorts — ${classe?.fr ?? ''}` }),
-          el('div', { class: 'picker-sous', text: `${visibles.length} sorts · ${pris.size} retenus` })),
+          el('div', { class: 'picker-sous', text: `${nbSortsVisibles} sorts · ${pris.size} retenus` })),
         el('button', { class: 'mini', type: 'button', text: '×', title: 'Fermer', onClick: fermerPicker })),
 
       el('div', { class: 'picker-filtres' },

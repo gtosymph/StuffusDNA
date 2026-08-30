@@ -16,13 +16,20 @@ function icone(chemin, dossier) {
 }
 
 /**
- * Normalise les variantes d'un sort, de la plus basse a la plus haute.
- * Un sort gagne en puissance avec le niveau : chaque variante est un choix.
+ * Normalise les paliers d'un sort, du plus bas au plus haut.
+ *
+ * Les entrees de meme niveau sont les LIGNES DE DEGATS d'un meme palier :
+ * Pendule frappe deux fois en air, d'autres sorts frappent dans plusieurs
+ * elements. Chaque palier garde donc toutes ses lignes, et porte en plus
+ * les totaux sommes pour l'affichage.
  */
 function variantes(levels) {
-  return (levels ?? [])
-    .map((l) => ({
-      level: Number(l.level ?? 0),
+  const parNiveau = new Map();
+
+  for (const l of levels ?? []) {
+    const niveau = Number(l.level ?? 0);
+    if (!parNiveau.has(niveau)) parNiveau.set(niveau, []);
+    parNiveau.get(niveau).push({
       element: l.element ?? 'neutre',
       bestElement: Boolean(l.best_element),
       critRate: Number(l.crit_rate ?? 0),
@@ -30,10 +37,24 @@ function variantes(levels) {
       max: Number(l.max ?? 0),
       critMin: Number(l.min_crit ?? 0),
       critMax: Number(l.max_crit ?? 0),
+    });
+  }
+
+  const somme = (lignes, cle) => lignes.reduce((n, l) => n + l[cle], 0);
+
+  return [...parNiveau.entries()]
+    .map(([level, lines]) => ({
+      level,
+      lines,
+      element: lines[0].element,
+      bestElement: lines.some((l) => l.bestElement),
+      critRate: Math.max(...lines.map((l) => l.critRate)),
+      min: somme(lines, 'min'),
+      max: somme(lines, 'max'),
+      critMin: somme(lines, 'critMin'),
+      critMax: somme(lines, 'critMax'),
     }))
-    .sort((a, b) => a.level - b.level)
-    // La source repete parfois un meme palier : un seul exemplaire suffit.
-    .filter((v, i, tous) => i === 0 || JSON.stringify(v) !== JSON.stringify(tous[i - 1]));
+    .sort((a, b) => a.level - b.level);
 }
 
 async function main() {
@@ -75,6 +96,7 @@ async function main() {
         max: Number(niveau?.max ?? 0),
         critMin: Number(niveau?.critMin ?? 0),
         critMax: Number(niveau?.critMax ?? 0),
+        lines: niveau?.lines ?? [],
       };
     }).filter((s) => s.max > 0 || s.min > 0),
   }));

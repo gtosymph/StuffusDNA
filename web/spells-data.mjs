@@ -36,12 +36,16 @@ export function versSortMoteur(sort, contexte = {}) {
       consomme: sort.consumesTelefrag,
       bonusSousTelefrag: sort.bonusNeedsTelefrag,
     },
-    lines: [{
-      element: sort.element,
-      min: sort.min, max: sort.max,
-      critMin: sort.critMin, critMax: sort.critMax,
+    // Un palier peut porter plusieurs lignes : Pendule frappe deux fois.
+    lines: (Array.isArray(sort.lines) && sort.lines.length > 0
+      ? sort.lines
+      : [{ element: sort.element, min: sort.min, max: sort.max, critMin: sort.critMin, critMax: sort.critMax }]
+    ).map((ligne) => ({
+      element: ligne.element,
+      min: ligne.min, max: ligne.max,
+      critMin: ligne.critMin, critMax: ligne.critMax,
       source: contexte.source ?? 'sort',
       range: contexte.range ?? null,
-    }],
+    })),
   };
 }

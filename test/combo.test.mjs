@@ -111,3 +111,35 @@ test('scoreBuild optimise le combo sous le budget PA moins la reserve', () => {
   assert.equal(sans.combo, undefined);
   assert.equal(sans.score, 180);
 });
+
+test('le combo garde au plus un sort par couple de variantes', () => {
+  // Sans la regle, 8 PA prendraient Perturbation ET Rouage (190).
+  // Avec la regle, une seule variante : 1 x Perturbation (100).
+  const perturbation = { ...sort({ id: 1, nom: 'Perturbation', base: 100, pa: 4, max: 1 }), exclusiveGroup: 328 };
+  const rouage = { ...sort({ id: 2, nom: 'Rouage', base: 90, pa: 4, max: 1 }), exclusiveGroup: 328 };
+
+  const combo = optimiserCombo([perturbation, rouage], STATS_NULLES, { paBudget: 8 });
+
+  assert.equal(combo.total, 100);
+  assert.deepEqual(combo.lancers.map((l) => l.name), ['Perturbation']);
+});
+
+test('la variante la plus faible gagne si elle rentre mieux dans le budget', () => {
+  // 6 PA : A (4 PA, 1 lancer, 100) contre B (3 PA, 2 lancers, 2 x 60 = 120).
+  const a = { ...sort({ id: 1, nom: 'A', base: 100, pa: 4, max: 1 }), exclusiveGroup: 1 };
+  const b = { ...sort({ id: 2, nom: 'B', base: 60, pa: 3, max: 2 }), exclusiveGroup: 1 };
+
+  const combo = optimiserCombo([a, b], STATS_NULLES, { paBudget: 6 });
+
+  assert.equal(combo.total, 120);
+  assert.deepEqual(combo.lancers.map((l) => l.name), ['B']);
+});
+
+test('des sorts sans couple restent libres ensemble', () => {
+  const a = sort({ id: 1, nom: 'A', base: 100, pa: 3, max: 1 });
+  const b = sort({ id: 2, nom: 'B', base: 100, pa: 3, max: 1 });
+
+  const combo = optimiserCombo([a, b], STATS_NULLES, { paBudget: 6 });
+
+  assert.equal(combo.total, 200);
+});

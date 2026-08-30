@@ -48,6 +48,9 @@ const OPTIONS = [
     aide: 'Ajoute les degats de l\'arme equipee au total optimise' },
   { cle: 'passifs', libelle: 'Passifs Dofus & Legendaires',
     aide: 'Compte les passifs en combat des Dofus et objets legendaires' },
+  { cle: 'toursSuivants', libelle: 'Sorts des tours suivants',
+    aide: 'Compte les degats qui touchent aux tours suivants (Gousset, Sablier de Xelor,\n'
+      + 'Fleche Devorante…). Decoche : seuls les degats du tour courant comptent.' },
   { cle: 'combo', libelle: 'Optimisateur de combo de sorts',
     aide: 'Choisit le meilleur enchainement de lancers sous le budget de PA du build.\n'
       + 'Le premier lancer d\'un sort qui genere un telefrag rend 2 PA.' },
@@ -66,7 +69,7 @@ let etat = {
   filtreStat: { stat: '', op: '>=', valeur: 0 },
   conditions: CONDITIONS_DEPART,
   sorts: [],
-  options: { distance: false, arme: false, passifs: true, combo: false, paReserves: 0 },
+  options: { distance: false, arme: false, passifs: true, toursSuivants: false, combo: false, paReserves: 0 },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
 };
@@ -187,7 +190,11 @@ function sortsCalcules() {
   const range = etat.options.distance ? 'distance' : 'melee';
   return etat.sorts.map((sort) => ({
     ...sort,
-    lines: sort.lines.map((ligne) => ({ ...ligne, range, source: 'sort' })),
+    lines: sort.lines
+      // Une ligne differee touche aux tours suivants : elle ne compte que
+      // si l'option la prend en compte.
+      .filter((ligne) => etat.options.toursSuivants || !(ligne.differe > 0))
+      .map((ligne) => ({ ...ligne, range, source: 'sort' })),
   }));
 }
 
@@ -215,6 +222,43 @@ function attaqueArme() {
 function attaquesAffichees() {
   const attaque = attaqueArme();
   return attaque ? [...sortsCalcules(), attaque] : sortsCalcules();
+}
+
+/**
+ * Rafraichit les sorts enregistres avant la refonte des donnees.
+ *
+ * Ces sorts se reconnaissent a l'absence du champ exclusiveGroup. Leurs
+ * lignes de degats venaient de l'ancienne source, qui doublait certaines
+ * lignes : le catalogue corrige fait foi. Un sort deja a jour reste intact,
+ * modifications de l'utilisateur comprises.
+ */
+function enrichirSorts() {
+  if (etat.sorts.every((s) => s.exclusiveGroup !== undefined)) return;
+  refreshSortsAnciens();
+  sauverEtat();
+}
+
+/** Reconstruit chaque sort d'avant la refonte depuis le catalogue corrige. */
+function refreshSortsAnciens() {
+  const parId = new Map();
+  for (const classe of classesSorts ?? []) {
+    for (const s of classe.spells ?? []) parId.set(s.id, s);
+  }
+
+  etat.sorts = etat.sorts.map((ancien) => {
+    if (ancien.exclusiveGroup !== undefined) return ancien;
+
+    const catalogue = parId.get(ancien.id);
+    if (!catalogue) return { ...ancien, exclusiveGroup: null };
+
+    // Variante la plus haute accessible au niveau du personnage.
+    const accessibles = (catalogue.variants ?? []).filter((v) => v.level <= etat.niveau);
+    const variante = accessibles[accessibles.length - 1]
+      ?? (catalogue.variants ?? [])[0];
+    if (!variante) return { ...ancien, exclusiveGroup: catalogue.exclusiveGroup ?? null };
+
+    return versSortMoteur({ ...catalogue, ...variante, critRate: variante.critRate });
+  });
 }
 
 /** Classe choisie dans le catalogue de sorts. */
@@ -828,6 +872,7 @@ async function main() {
     [catalogue, classesSorts] = await Promise.all([loadCatalog(), loadSpells()]);
     reprendreEtat();
     reprendreResultat();
+    enrichirSorts();
     const nbSorts = classesSorts.reduce((n, c) => n + c.spells.length, 0);
     $('etiquette-items').textContent =
       `${catalogue.items.length.toLocaleString('fr-FR')} items · ${nbSorts} sorts`;

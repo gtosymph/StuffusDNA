@@ -418,13 +418,17 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
         el('span', {}),
       ),
       // Une rangee editable par ligne de degats : element, plage, plage critique.
-      sort.lines.map((ligne, rang) => el('div', { class: 'sort-grille ligne-sort' },
+      sort.lines.map((ligne, rang) => el('div', {
+        class: `sort-grille ligne-sort ${ligne.differe > 0 ? 'differee' : ''}`.trim(),
+        title: ligne.differe > 0
+          ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer` : '' },
         el('select', { title: 'Element',
           onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
           ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
             value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
         champLigne(rang, ligne, 'min', 'Min'), champLigne(rang, ligne, 'max', 'Max'),
         champLigne(rang, ligne, 'critMin', 'CC min'), champLigne(rang, ligne, 'critMax', 'CC max'),
+        ligne.differe > 0 ? el('span', { class: 'marque-differe', text: `T+${ligne.differe}` }) : null,
       )),
       detail ? detailSort(detail) : null,
     );

@@ -37,7 +37,10 @@ function coutLancers(k, cout, rend) {
 export function optimiserCombo(spells, stats, { paBudget, telefrag = true }) {
   const budget = Math.max(0, Math.floor(paBudget ?? 0));
 
-  const entrees = [];
+  // Deux variantes d'un meme couple s'excluent en jeu : les entrees se
+  // regroupent par couple, et le sac a dos devient a choix multiple — au
+  // plus un membre par groupe, avec son nombre de lancers.
+  const groupes = new Map();
   for (const spell of spells) {
     const cout = Number.isFinite(spell.apCost) && spell.apCost > 0 ? spell.apCost : null;
     if (cout == null) continue;
@@ -46,62 +49,72 @@ export function optimiserCombo(spells, stats, { paBudget, telefrag = true }) {
     if (resultat.average <= 0) continue;
 
     const rend = telefrag && spell.telefrag?.genere ? PA_TELEFRAG : 0;
-    entrees.push({ spell, moyenne: resultat.average, cout, max: Math.max(1, resultat.casts), rend });
+    const entree = { spell, moyenne: resultat.average, cout, max: Math.max(1, resultat.casts), rend };
+
+    const cle = spell.exclusiveGroup ?? `seul:${spell.id}`;
+    if (!groupes.has(cle)) groupes.set(cle, []);
+    groupes.get(cle).push(entree);
   }
 
-  // dp[pa] : meilleurs degats avec au plus pa PA. choix[i][pa] memorise le
-  // nombre de lancers retenu pour l'entree i, afin de reconstruire le combo.
+  const parGroupe = [...groupes.values()];
+
+  // dp[pa] : meilleurs degats avec au plus pa PA. choix[g][pa] memorise le
+  // membre retenu et son nombre de lancers, pour reconstruire le combo.
   let dp = new Float64Array(budget + 1);
   const choix = [];
 
-  for (const { moyenne, cout, max, rend } of entrees) {
+  for (const membres of parGroupe) {
     const suivant = new Float64Array(budget + 1);
-    const pris = new Uint8Array(budget + 1);
+    const pris = [];
 
     for (let pa = 0; pa <= budget; pa += 1) {
       let meilleur = dp[pa];
-      let retenu = 0;
+      let retenu = null;
 
-      for (let k = 1; k <= max; k += 1) {
-        const coutTotal = coutLancers(k, cout, rend);
-        if (coutTotal > pa) break;
+      for (let m = 0; m < membres.length; m += 1) {
+        const { moyenne, cout, max, rend } = membres[m];
 
-        const valeur = dp[pa - coutTotal] + k * moyenne;
-        if (valeur > meilleur) {
-          meilleur = valeur;
-          retenu = k;
+        for (let k = 1; k <= max; k += 1) {
+          const coutTotal = coutLancers(k, cout, rend);
+          if (coutTotal > pa) break;
+
+          const valeur = dp[pa - coutTotal] + k * moyenne;
+          if (valeur > meilleur) {
+            meilleur = valeur;
+            retenu = { membre: m, k };
+          }
         }
       }
 
       suivant[pa] = meilleur;
-      pris[pa] = retenu;
+      pris.push(retenu);
     }
 
     dp = suivant;
     choix.push(pris);
   }
 
-  // Reconstruction du combo, du dernier sort vers le premier.
+  // Reconstruction du combo, du dernier groupe vers le premier.
   const lancers = [];
   let pa = budget;
 
-  for (let i = entrees.length - 1; i >= 0; i -= 1) {
-    const k = choix[i][pa];
-    if (k === 0) continue;
+  for (let g = parGroupe.length - 1; g >= 0; g -= 1) {
+    const retenu = choix[g][pa];
+    if (!retenu) continue;
 
-    const { spell, moyenne, cout, rend } = entrees[i];
-    const coutTotal = coutLancers(k, cout, rend);
+    const { spell, moyenne, cout, rend } = parGroupe[g][retenu.membre];
+    const coutTotal = coutLancers(retenu.k, cout, rend);
 
     lancers.push({
       id: spell.id,
       name: spell.name ?? '',
       icon: spell.icon ?? null,
-      lancers: k,
+      lancers: retenu.k,
       cout,
       rend,
       coutTotal,
       moyenne,
-      total: k * moyenne,
+      total: retenu.k * moyenne,
     });
     pa -= coutTotal;
   }

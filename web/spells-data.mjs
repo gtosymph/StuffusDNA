@@ -31,6 +31,8 @@ export function versSortMoteur(sort, contexte = {}) {
     apCost: sort.apCost,
     castsPerTurn: sort.maxCast > 0 ? sort.maxCast : 1,
     baseCrit: sort.critRate,
+    // Deux variantes d'un meme couple s'excluent dans le combo.
+    exclusiveGroup: sort.exclusiveGroup ?? null,
     telefrag: {
       genere: sort.generatesTelefrag,
       consomme: sort.consumesTelefrag,
@@ -44,6 +46,8 @@ export function versSortMoteur(sort, contexte = {}) {
       element: ligne.element,
       min: ligne.min, max: ligne.max,
       critMin: ligne.critMin, critMax: ligne.critMax,
+      // Une ligne differee touche N tours apres le lancer.
+      ...(ligne.differe > 0 ? { differe: ligne.differe } : {}),
       source: contexte.source ?? 'sort',
       range: contexte.range ?? null,
     })),

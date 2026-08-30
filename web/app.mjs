@@ -636,7 +636,44 @@ function montrerScore(detail, build) {
     ? `Toutes les conditions sont tenues.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
     : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
 
-  vue.renderCombo($('carte-combo'), detail.combo ?? null);
+  vue.renderCombo($('carte-combo'), detail.combo ?? null, {
+    onAppliquer: (combo) => {
+      const sorts = sortsDuCombo(combo);
+      if (sorts.length === 0) return;
+      setEtat({ sorts });
+      message(`La liste des sorts reprend le combo : ${sorts.length} sort(s).`, 'info');
+    },
+    onGarder: (combo) => {
+      const sorts = sortsDuCombo(combo);
+      if (sorts.length === 0) return;
+      const nom = window.prompt('Nom du jeu de sorts :', 'combo');
+      if (nom === null) return;
+      try {
+        enregistrerSet('sorts', nom, sorts);
+        remplirListesSets();
+        $('sets-sorts').value = nom.trim();
+        message(`Jeu de sorts « ${nom.trim()} » enregistre depuis le combo.`, 'info');
+      } catch (error) {
+        message(error.message, 'erreur');
+      }
+    },
+  });
+}
+
+/**
+ * Sorts retenus par le combo, au format de la liste : chaque sort garde sa
+ * definition et prend le nombre de lancers du combo. L'attaque de l'arme
+ * ne se transpose pas, elle n'est pas un sort.
+ */
+function sortsDuCombo(combo) {
+  const parId = new Map(etat.sorts.map((s) => [s.id, s]));
+
+  return combo.lancers
+    .map((lancer) => {
+      const base = parId.get(lancer.id);
+      return base ? { ...base, castsPerTurn: lancer.lancers } : null;
+    })
+    .filter(Boolean);
 }
 
 /**

@@ -152,53 +152,84 @@ function optimiserSimple(parGroupe, budget) {
 
 /**
  * Sac a dos avec condition d'elements : l'etat porte le masque des elements
- * couverts. dp[masque][pa] = meilleurs degats en depensant exactement pa.
+ * couverts. dp[masque * (budget+1) + pa] = meilleurs degats en depensant
+ * exactement pa.
+ *
+ * Le calcul tourne pour CHAQUE build essaye par le solveur : tout reste en
+ * tableaux plats. Les bits se compactent sur les elements reellement
+ * presents dans les sorts (souvent 3 ou 4, jamais plus de 5), ce qui divise
+ * le nombre de masques et le cout d'autant.
  */
 function optimiserAvecElements(parGroupe, budget, elementsMin) {
-  const NB_MASQUES = 1 << ELEMENTS_COMPTES.length;
-  const creer = () => {
-    const table = [];
-    for (let m = 0; m < NB_MASQUES; m += 1) {
-      table.push(new Float64Array(budget + 1).fill(Number.NEGATIVE_INFINITY));
+  // Compactage : un bit par element present, dans l'ordre de decouverte.
+  let union = 0;
+  for (const membres of parGroupe) for (const m of membres) union |= m.masque;
+
+  const bitsPresents = [];
+  for (let bit = 0; bit < ELEMENTS_COMPTES.length; bit += 1) {
+    if (union & (1 << bit)) bitsPresents.push(bit);
+  }
+
+  const compact = (masque) => {
+    let sortie = 0;
+    for (let i = 0; i < bitsPresents.length; i += 1) {
+      if (masque & (1 << bitsPresents[i])) sortie |= 1 << i;
     }
-    return table;
+    return sortie;
+  };
+  const etendre = (masque) => {
+    let sortie = 0;
+    for (let i = 0; i < bitsPresents.length; i += 1) {
+      if (masque & (1 << i)) sortie |= 1 << bitsPresents[i];
+    }
+    return sortie;
   };
 
-  let dp = creer();
-  dp[0][0] = 0;
+  const nbMasques = 1 << bitsPresents.length;
+  const largeur = budget + 1;
+  const taille = nbMasques * largeur;
+
+  let dp = new Float64Array(taille).fill(Number.NEGATIVE_INFINITY);
+  let suivant = new Float64Array(taille);
+  dp[0] = 0;
+
+  // Choix encodes en entiers : membre, lancers, masque et pa precedents.
   const choix = [];
 
   for (const membres of parGroupe) {
-    const suivant = creer();
-    const pris = Array.from({ length: NB_MASQUES }, () => new Array(budget + 1).fill(null));
+    suivant.set(dp);
+    const pris = new Int32Array(taille).fill(-1);
+    const masquesMembres = membres.map((m) => compact(m.masque));
 
-    for (let masque = 0; masque < NB_MASQUES; masque += 1) {
+    for (let masque = 0; masque < nbMasques; masque += 1) {
+      const rang = masque * largeur;
+
       for (let pa = 0; pa <= budget; pa += 1) {
-        const base = dp[masque][pa];
+        const base = dp[rang + pa];
         if (base === Number.NEGATIVE_INFINITY) continue;
-
-        // Le groupe peut etre saute : l'etat se recopie tel quel.
-        if (base > suivant[masque][pa]) suivant[masque][pa] = base;
 
         for (let m = 0; m < membres.length; m += 1) {
           const membre = membres[m];
+          const masqueSuivant = masque | masquesMembres[m];
+          const rangSuivant = masqueSuivant * largeur;
 
           for (let k = 1; k <= membre.max; k += 1) {
             const paSuivant = pa + coutLancers(k, membre.cout, membre.rend);
             if (paSuivant > budget) break;
 
-            const masqueSuivant = masque | membre.masque;
             const valeur = base + k * membre.moyenne;
-            if (valeur > suivant[masqueSuivant][paSuivant]) {
-              suivant[masqueSuivant][paSuivant] = valeur;
-              pris[masqueSuivant][paSuivant] = { membre: m, k, masquePrec: masque, paPrec: pa };
+            if (valeur > suivant[rangSuivant + paSuivant]) {
+              suivant[rangSuivant + paSuivant] = valeur;
+              pris[rangSuivant + paSuivant] = (((m << 4) | k) << 14) | (masque << 8) | pa;
             }
           }
         }
       }
     }
 
+    const echange = dp;
     dp = suivant;
+    suivant = echange;
     choix.push(pris);
   }
 
@@ -206,20 +237,20 @@ function optimiserAvecElements(parGroupe, budget, elementsMin) {
   //   1. les degats les plus hauts parmi les masques qui atteignent le minimum ;
   //   2. sinon, couvrir le maximum d'elements possible, puis les degats.
   let retenu = null;
-  for (let masque = 0; masque < NB_MASQUES; masque += 1) {
+  for (let masque = 0; masque < nbMasques; masque += 1) {
     if (compterBits(masque) < elementsMin) continue;
     for (let pa = 0; pa <= budget; pa += 1) {
-      const valeur = dp[masque][pa];
+      const valeur = dp[masque * largeur + pa];
       if (valeur === Number.NEGATIVE_INFINITY) continue;
       if (!retenu || valeur > retenu.valeur) retenu = { masque, pa, valeur };
     }
   }
 
   if (!retenu) {
-    for (let masque = 0; masque < NB_MASQUES; masque += 1) {
+    for (let masque = 0; masque < nbMasques; masque += 1) {
       const bits = compterBits(masque);
       for (let pa = 0; pa <= budget; pa += 1) {
-        const valeur = dp[masque][pa];
+        const valeur = dp[masque * largeur + pa];
         if (valeur === Number.NEGATIVE_INFINITY) continue;
         if (!retenu || bits > retenu.bits
           || (bits === retenu.bits && valeur > retenu.valeur)) {
@@ -236,16 +267,23 @@ function optimiserAvecElements(parGroupe, budget, elementsMin) {
   let { masque, pa } = retenu;
 
   for (let g = parGroupe.length - 1; g >= 0; g -= 1) {
-    const entree = choix[g][masque][pa];
-    if (!entree) continue;
+    const code = choix[g][masque * largeur + pa];
+    if (code < 0) continue;
 
-    lancers.push(ligneLancer(parGroupe[g][entree.membre], entree.k));
-    masque = entree.masquePrec;
-    pa = entree.paPrec;
+    const k = (code >> 14) & 0xf;
+    const membre = code >> 18;
+    lancers.push(ligneLancer(parGroupe[g][membre], k));
+    masque = (code >> 8) & 0x3f;
+    pa = code & 0xff;
   }
 
   lancers.reverse();
-  return { total: retenu.valeur, paUtilises: retenu.pa, lancers, masque: retenu.masque };
+  return {
+    total: retenu.valeur,
+    paUtilises: retenu.pa,
+    lancers,
+    masque: etendre(retenu.masque),
+  };
 }
 
 /**

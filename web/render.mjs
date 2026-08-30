@@ -528,7 +528,7 @@ export function renderOptions(root, options, onToggle) {
  * @param {HTMLElement} root
  * @param {{total:number, budget:number, paUtilises:number, lancers:any[]} | null} combo
  */
-export function renderCombo(root, combo) {
+export function renderCombo(root, combo, actions = {}) {
   if (!combo) {
     fill(root, []);
     return;
@@ -571,5 +571,17 @@ export function renderCombo(root, combo) {
     el('div', { class: 'total-combo' },
       el('span', { text: 'Degats du combo' }),
       el('span', { class: 'deg', text: entier(combo.total) })),
+    combo.lancers.length > 0 && (actions.onAppliquer || actions.onGarder)
+      ? el('div', { class: 'actions-combo' },
+          actions.onAppliquer ? el('button', { class: 'mini large', type: 'button',
+            text: 'Appliquer aux sorts',
+            title: 'Remplace la liste des sorts par ceux du combo,\n'
+              + 'avec leur nombre de lancers retenu',
+            onClick: () => actions.onAppliquer(combo) }) : null,
+          actions.onGarder ? el('button', { class: 'mini large', type: 'button',
+            text: 'Garder en jeu de sorts',
+            title: 'Enregistre les sorts du combo comme un jeu nomme',
+            onClick: () => actions.onGarder(combo) }) : null)
+      : null,
   )]);
 }

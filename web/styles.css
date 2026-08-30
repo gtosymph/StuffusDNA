@@ -658,3 +658,5 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .elements-combo img { width: 15px; height: 15px; }
 .elements-combo .note-elements { font-size: 10px; color: var(--faible); margin-left: 4px; }
 .elements-combo.manque .note-elements { color: var(--ambre); }
+
+.actions-combo { display: flex; gap: 6px; margin-top: 6px; }

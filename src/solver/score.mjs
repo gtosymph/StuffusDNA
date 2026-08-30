@@ -175,6 +175,7 @@ function objectiveCombo(objective, stats, spells) {
     telefrag: reglage.telefrag !== false,
     elementsMin: Number(reglage.elementsMin) || 0,
     unLancer: Boolean(reglage.unLancer),
+    cibleTelefrag: Boolean(reglage.cibleTelefrag),
   });
 }
 

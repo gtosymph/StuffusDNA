@@ -16,6 +16,21 @@ const SOURCE = join(homedir(), 'projects/Perso/dofopti-web/data/classes.json');
 const SOURCE_ROXX = 'data/raw/class_spells.json';
 const URL_ROXX = 'https://roxxsolver.com/get/class_spells?v=3.6.2.1';
 
+/**
+ * Bonus « cible telefrag » du Xelor, extraits par scripts/fetch-telefrag.mjs.
+ * Cle "<idSort>:<niveau>", valeur { bonusImmediat, bonusParLancer, gainPa }.
+ */
+const SOURCE_TELEFRAG = 'data/raw/telefrag-xelor.json';
+
+async function chargerTelefrag() {
+  try {
+    return JSON.parse(await readFile(SOURCE_TELEFRAG, 'utf8'));
+  } catch {
+    process.stdout.write('Bonus telefrag absents (lancez scripts/fetch-telefrag.mjs).\n');
+    return {};
+  }
+}
+
 /** Element de chaque effet de degats (vol de vie compris). */
 const ELEMENT_EFFET = Object.freeze({
   97: 'terre', 92: 'terre',
@@ -231,6 +246,7 @@ function variantes(levels) {
 async function main() {
   const brut = JSON.parse(await readFile(SOURCE, 'utf8'));
   const { parId: roxxParId, parNom: roxxParNom } = indexerRoxx(await chargerRoxx());
+  const telefragParCle = await chargerTelefrag();
   let enrichis = 0;
 
   const classes = brut.classes.map((classe) => ({
@@ -245,7 +261,11 @@ async function main() {
         ?? null;
       if (sortRoxx) enrichis += 1;
       const paliers = variantes(sort.levels)
-        .map((v) => (sortRoxx ? enrichirVariante(v, sortRoxx) : v));
+        .map((v) => (sortRoxx ? enrichirVariante(v, sortRoxx) : v))
+        .map((v) => {
+          const bonus = telefragParCle[`${sort.id}:${v.level}`];
+          return bonus ? { ...v, telefragCible: bonus } : v;
+        });
       const niveau = paliers[paliers.length - 1] ?? null;
       return {
         id: sort.id,

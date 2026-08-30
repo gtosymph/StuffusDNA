@@ -33,6 +33,8 @@ export function versSortMoteur(sort, contexte = {}) {
     baseCrit: sort.critRate,
     // Deux variantes d'un meme couple s'excluent dans le combo.
     exclusiveGroup: sort.exclusiveGroup ?? null,
+    // Bonus du sort quand la cible est telefrag (Xelor), ou null.
+    telefragCible: sort.telefragCible ?? null,
     telefrag: {
       genere: sort.generatesTelefrag,
       consomme: sort.consumesTelefrag,

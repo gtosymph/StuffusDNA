@@ -220,3 +220,44 @@ test('la condition d\'elements respecte aussi les couples de variantes', () => {
   assert.equal(combo.elementsCouverts.length, 1);
   assert.equal(combo.elementsManquants, 1);
 });
+
+test('cible telefrag : le gain de PA reduit le cout de chaque lancer', () => {
+  // Ralentissement : 2 PA, rend 1 PA par lancer sur cible telefrag.
+  const ralentissement = {
+    ...sort({ id: 1, nom: 'Ralentissement', base: 20, pa: 2, max: 4 }),
+    telefragCible: { bonusImmediat: 0, bonusParLancer: 0, gainPa: 1 },
+  };
+
+  const sans = optimiserCombo([ralentissement], STATS_NULLES, { paBudget: 4 });
+  const avec = optimiserCombo([ralentissement], STATS_NULLES, { paBudget: 4, cibleTelefrag: true });
+
+  assert.equal(sans.total, 40);
+  assert.equal(avec.total, 80);
+  assert.equal(avec.lancers[0].lancers, 4);
+});
+
+test('cible telefrag : le cumul augmente les lancers suivants', () => {
+  // Fletrissement : +5 degats de base par lancer precedent.
+  // 3 lancers : 10, 15, 20 -> 45 au lieu de 30.
+  const fletrissement = {
+    ...sort({ id: 1, nom: 'Fletrissement', base: 10, pa: 3, max: 3 }),
+    telefragCible: { bonusImmediat: 0, bonusParLancer: 5, gainPa: 0 },
+  };
+
+  const sans = optimiserCombo([fletrissement], STATS_NULLES, { paBudget: 9 });
+  const avec = optimiserCombo([fletrissement], STATS_NULLES, { paBudget: 9, cibleTelefrag: true });
+
+  assert.equal(sans.total, 30);
+  assert.equal(avec.total, 45);
+});
+
+test('sans l\'option, les bonus telefrag ne changent rien', () => {
+  const horloge = {
+    ...sort({ id: 1, nom: 'Horloge', base: 23, pa: 4, max: 1 }),
+    telefragCible: { bonusImmediat: 24, bonusParLancer: 0, gainPa: 0 },
+  };
+
+  const combo = optimiserCombo([horloge], STATS_NULLES, { paBudget: 4 });
+
+  assert.equal(combo.total, 23);
+});

@@ -48,6 +48,10 @@ const OPTIONS = [
     aide: 'Ajoute les degats de l\'arme equipee au total optimise' },
   { cle: 'passifs', libelle: 'Passifs Dofus & Legendaires',
     aide: 'Compte les passifs en combat des Dofus et objets legendaires' },
+  { cle: 'cibleTelefrag', libelle: 'Cible telefrag (Xelor)',
+    aide: 'Compte les bonus des sorts quand la cible est telefrag :\n'
+      + 'Horloge et Rayon Obscur frappent plus fort, Fletrissement monte a chaque\n'
+      + 'lancer, Ralentissement vole 1 PA (dans le combo).' },
   { cle: 'toursSuivants', libelle: 'Sorts des tours suivants',
     aide: 'Compte les degats qui touchent aux tours suivants (Gousset, Sablier de Xelor,\n'
       + 'Fleche Devorante…). Decoche : seuls les degats du tour courant comptent.' },
@@ -80,6 +84,7 @@ let etat = {
   sorts: [],
   options: {
     distance: false, arme: false, passifs: true, toursSuivants: false,
+    cibleTelefrag: false,
     combo: false, paReserves: 0, comboElements: 0, comboUnLancer: false,
   },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
@@ -200,14 +205,30 @@ function message(texte, type = 'info') {
  */
 function sortsCalcules() {
   const range = etat.options.distance ? 'distance' : 'melee';
-  return etat.sorts.map((sort) => ({
-    ...sort,
-    lines: sort.lines
-      // Une ligne differee touche aux tours suivants : elle ne compte que
-      // si l'option la prend en compte.
-      .filter((ligne) => etat.options.toursSuivants || !(ligne.differe > 0))
-      .map((ligne) => ({ ...ligne, range, source: 'sort' })),
-  }));
+  return etat.sorts.map((sort) => {
+    // Cible telefrag : le bonus immediat (Horloge, Rayon Obscur) s'ajoute
+    // aux degats de base de la premiere ligne.
+    const bonus = etat.options.cibleTelefrag ? sort.telefragCible?.bonusImmediat ?? 0 : 0;
+
+    return {
+      ...sort,
+      lines: sort.lines
+        // Une ligne differee touche aux tours suivants : elle ne compte que
+        // si l'option la prend en compte.
+        .filter((ligne) => etat.options.toursSuivants || !(ligne.differe > 0))
+        .map((ligne, rang) => ({
+          ...ligne,
+          ...(bonus > 0 && rang === 0 ? {
+            min: ligne.min + bonus,
+            max: ligne.max + bonus,
+            critMin: (ligne.critMin ?? ligne.min) + bonus,
+            critMax: (ligne.critMax ?? ligne.max) + bonus,
+          } : {}),
+          range,
+          source: 'sort',
+        })),
+    };
+  });
 }
 
 /** Passifs actifs selon l'option, prepares une seule fois. */
@@ -245,9 +266,32 @@ function attaquesAffichees() {
  * modifications de l'utilisateur comprises.
  */
 function enrichirSorts() {
-  if (etat.sorts.every((s) => s.exclusiveGroup !== undefined)) return;
+  const complet = (s) => s.exclusiveGroup !== undefined && s.telefragCible !== undefined;
+  if (etat.sorts.every(complet)) return;
   refreshSortsAnciens();
+  completerTelefrag();
   sauverEtat();
+}
+
+/**
+ * Complete les bonus « cible telefrag » des sorts enregistres avant leur
+ * extraction, sans toucher au reste de leur definition.
+ */
+function completerTelefrag() {
+  const parId = new Map();
+  for (const classe of classesSorts ?? []) {
+    for (const s of classe.spells ?? []) parId.set(s.id, s);
+  }
+
+  etat.sorts = etat.sorts.map((sort) => {
+    if (sort.telefragCible !== undefined) return sort;
+
+    const catalogue = parId.get(sort.id);
+    const accessibles = (catalogue?.variants ?? []).filter((v) => v.level <= etat.niveau);
+    const variante = accessibles[accessibles.length - 1];
+
+    return { ...sort, telefragCible: variante?.telefragCible ?? null };
+  });
 }
 
 /** Reconstruit chaque sort d'avant la refonte depuis le catalogue corrige. */
@@ -319,6 +363,7 @@ function objectif() {
         reserve: Math.max(0, Number(etat.options.paReserves) || 0),
         elementsMin: Math.max(0, Number(etat.options.comboElements) || 0),
         unLancer: Boolean(etat.options.comboUnLancer),
+        cibleTelefrag: Boolean(etat.options.cibleTelefrag),
       }
       : null,
     mode: enDegats ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS,

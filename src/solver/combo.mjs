@@ -53,8 +53,25 @@ function compterBits(masque) {
   return n;
 }
 
+/** Copie d'un sort avec un supplement de degats de base sur sa premiere ligne. */
+function sortBonifie(spell, supplement) {
+  if (supplement <= 0) return spell;
+  return {
+    ...spell,
+    lines: (spell.lines ?? []).map((ligne, rang) => (rang === 0
+      ? {
+        ...ligne,
+        min: ligne.min + supplement,
+        max: ligne.max + supplement,
+        critMin: (ligne.critMin ?? ligne.min) + supplement,
+        critMax: (ligne.critMax ?? ligne.max) + supplement,
+      }
+      : ligne)),
+  };
+}
+
 /** Prepare les entrees et les regroupe par couple de variantes. */
-function preparerGroupes(spells, stats, { telefrag, unLancer }) {
+function preparerGroupes(spells, stats, { telefrag, unLancer, cibleTelefrag }) {
   const groupes = new Map();
 
   for (const spell of spells) {
@@ -64,13 +81,30 @@ function preparerGroupes(spells, stats, { telefrag, unLancer }) {
     const resultat = computeSpell(spell, stats);
     if (resultat.average <= 0) continue;
 
+    const tf = cibleTelefrag ? spell.telefragCible ?? null : null;
     const rend = telefrag && spell.telefrag?.genere ? PA_TELEFRAG : 0;
     // L'option globale ou la case du sort limitent a un seul lancer.
     const max = unLancer || spell.unParTour ? 1 : Math.max(1, resultat.casts);
 
+    // Valeur cumulee de k lancers. Avec un cumul telefrag (Fletrissement),
+    // chaque lancer part d'une base augmentee par les lancers precedents.
+    const valeurs = new Float64Array(max + 1);
+    let cumul = 0;
+    for (let k = 1; k <= max; k += 1) {
+      cumul += tf && tf.bonusParLancer > 0
+        ? computeSpell(sortBonifie(spell, (k - 1) * tf.bonusParLancer), stats).average
+        : resultat.average;
+      valeurs[k] = cumul;
+    }
+
     const entree = {
-      spell, cout, rend, max,
+      spell,
+      // Le vol de PA sur cible telefrag (Ralentissement) reduit le cout.
+      cout: Math.max(0, cout - (tf?.gainPa ?? 0)),
+      rend,
+      max,
       moyenne: resultat.average,
+      valeurs,
       masque: masqueElements(spell),
     };
 
@@ -84,7 +118,7 @@ function preparerGroupes(spells, stats, { telefrag, unLancer }) {
 
 /** Met en forme un lancer retenu pour l'affichage. */
 function ligneLancer(entree, k) {
-  const { spell, moyenne, cout, rend } = entree;
+  const { spell, moyenne, cout, rend, valeurs } = entree;
   return {
     id: spell.id,
     name: spell.name ?? '',
@@ -94,7 +128,7 @@ function ligneLancer(entree, k) {
     rend,
     coutTotal: coutLancers(k, cout, rend),
     moyenne,
-    total: k * moyenne,
+    total: valeurs[k],
   };
 }
 
@@ -112,13 +146,13 @@ function optimiserSimple(parGroupe, budget) {
       let retenu = null;
 
       for (let m = 0; m < membres.length; m += 1) {
-        const { moyenne, cout, max, rend } = membres[m];
+        const { valeurs, cout, max, rend } = membres[m];
 
         for (let k = 1; k <= max; k += 1) {
           const coutTotal = coutLancers(k, cout, rend);
           if (coutTotal > pa) break;
 
-          const valeur = dp[pa - coutTotal] + k * moyenne;
+          const valeur = dp[pa - coutTotal] + valeurs[k];
           if (valeur > meilleur) {
             meilleur = valeur;
             retenu = { membre: m, k };
@@ -217,7 +251,7 @@ function optimiserAvecElements(parGroupe, budget, elementsMin) {
             const paSuivant = pa + coutLancers(k, membre.cout, membre.rend);
             if (paSuivant > budget) break;
 
-            const valeur = base + k * membre.moyenne;
+            const valeur = base + membre.valeurs[k];
             if (valeur > suivant[rangSuivant + paSuivant]) {
               suivant[rangSuivant + paSuivant] = valeur;
               pris[rangSuivant + paSuivant] = (((m << 4) | k) << 14) | (masque << 8) | pa;
@@ -296,15 +330,17 @@ function optimiserAvecElements(parGroupe, budget, elementsMin) {
  * @param {boolean} [reglages.telefrag] Faux pour ignorer la remise telefrag.
  * @param {number} [reglages.elementsMin] Elements distincts exiges (0 = libre).
  * @param {boolean} [reglages.unLancer] Vrai : chaque sort se lance au plus une fois.
+ * @param {boolean} [reglages.cibleTelefrag] Vrai : bonus des sorts sur cible telefrag.
  * @returns {{total: number, budget: number, paUtilises: number, lancers: any[],
  *   elementsCouverts: string[], elementsMin: number, elementsManquants: number}}
  */
 export function optimiserCombo(spells, stats, reglages) {
-  const { paBudget, telefrag = true, elementsMin = 0, unLancer = false } = reglages;
+  const { paBudget, telefrag = true, elementsMin = 0, unLancer = false,
+    cibleTelefrag = false } = reglages;
   const budget = Math.max(0, Math.floor(paBudget ?? 0));
   const minElements = Math.max(0, Math.min(ELEMENTS_COMPTES.length, Math.floor(elementsMin)));
 
-  const parGroupe = preparerGroupes(spells, stats, { telefrag, unLancer });
+  const parGroupe = preparerGroupes(spells, stats, { telefrag, unLancer, cibleTelefrag });
 
   const resultat = minElements > 0
     ? optimiserAvecElements(parGroupe, budget, minElements)

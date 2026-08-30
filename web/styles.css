@@ -640,3 +640,21 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   background: color-mix(in srgb, var(--teinte) 12%, transparent);
 }
 .mini.large { width: auto; padding: 2px 10px; font-size: 10px; white-space: nowrap; }
+
+/* ---------- Cellules legendees des sorts et elements du combo ---------- */
+
+.cellule-sort { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cellule-sort .legende {
+  font-size: 8px; text-transform: uppercase; letter-spacing: 0.4px;
+  color: var(--faible); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cellule-sort input[type='checkbox'] { align-self: flex-start; margin-top: 3px; accent-color: var(--accent); }
+.ligne-sort.differee .legende { color: var(--ambre); }
+
+.elements-combo {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--bord);
+}
+.elements-combo img { width: 15px; height: 15px; }
+.elements-combo .note-elements { font-size: 10px; color: var(--faible); margin-left: 4px; }
+.elements-combo.manque .note-elements { color: var(--ambre); }

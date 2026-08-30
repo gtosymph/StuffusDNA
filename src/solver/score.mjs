@@ -173,6 +173,8 @@ function objectiveCombo(objective, stats, spells) {
   return optimiserCombo(spells, stats, {
     paBudget: (stats.pa ?? 0) - reserve,
     telefrag: reglage.telefrag !== false,
+    elementsMin: Number(reglage.elementsMin) || 0,
+    unLancer: Boolean(reglage.unLancer),
   });
 }
 

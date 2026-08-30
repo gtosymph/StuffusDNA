@@ -143,3 +143,80 @@ test('des sorts sans couple restent libres ensemble', () => {
 
   assert.equal(combo.total, 200);
 });
+
+/** Sort de test bi-element : une ligne par element donne. */
+function sortMulti({ id, nom, bases, pa, max = 10 }) {
+  return {
+    id, name: nom, apCost: pa, castsPerTurn: max,
+    telefrag: { genere: false, consomme: false, bonusSousTelefrag: false },
+    lines: Object.entries(bases).map(([element, base]) => ({
+      element, min: base, max: base, critMin: base, critMax: base,
+    })),
+  };
+}
+
+test('la condition d\'elements force un combo multi-elements', () => {
+  // Sans condition, 6 PA prennent 2 x A (200, feu seul).
+  // Avec 2 elements minimum : A + B (110, feu + eau).
+  const a = sort({ id: 1, nom: 'A', base: 100, pa: 3 });
+  const b = sortMulti({ id: 2, nom: 'B', bases: { eau: 10 }, pa: 3 });
+
+  const libre = optimiserCombo([a, b], STATS_NULLES, { paBudget: 6 });
+  const contraint = optimiserCombo([a, b], STATS_NULLES, { paBudget: 6, elementsMin: 2 });
+
+  assert.equal(libre.total, 200);
+  assert.equal(contraint.total, 110);
+  assert.deepEqual([...contraint.elementsCouverts].sort(), ['eau', 'feu']);
+});
+
+test('un sort multi-elements couvre plusieurs elements a lui seul', () => {
+  const c = sortMulti({ id: 1, nom: 'C', bases: { feu: 40, eau: 40 }, pa: 4, max: 1 });
+
+  const combo = optimiserCombo([c], STATS_NULLES, { paBudget: 4, elementsMin: 2 });
+
+  assert.equal(combo.total, 80);
+  assert.deepEqual([...combo.elementsCouverts].sort(), ['eau', 'feu']);
+});
+
+test('condition d\'elements impossible : couvrir le maximum, garder les degats', () => {
+  // Un seul element disponible : le combo reste plein malgre elementsMin 3.
+  const a = sort({ id: 1, nom: 'A', base: 100, pa: 3, max: 2 });
+
+  const combo = optimiserCombo([a], STATS_NULLES, { paBudget: 6, elementsMin: 3 });
+
+  assert.equal(combo.total, 200);
+  assert.deepEqual([...combo.elementsCouverts], ['feu']);
+  assert.equal(combo.elementsManquants, 2);
+});
+
+test('l\'option globale limite chaque sort a un lancer', () => {
+  const a = sort({ id: 1, nom: 'A', base: 100, pa: 2, max: 4 });
+  const b = sort({ id: 2, nom: 'B', base: 60, pa: 2, max: 4 });
+
+  const combo = optimiserCombo([a, b], STATS_NULLES, { paBudget: 8, unLancer: true });
+
+  assert.equal(combo.total, 160);
+  assert.deepEqual(combo.lancers.map((l) => l.lancers), [1, 1]);
+});
+
+test('la case "1 max au combo" d\'un sort le limite, les autres restent libres', () => {
+  const a = { ...sort({ id: 1, nom: 'A', base: 100, pa: 2, max: 4 }), unParTour: true };
+  const b = sort({ id: 2, nom: 'B', base: 60, pa: 2, max: 4 });
+
+  const combo = optimiserCombo([a, b], STATS_NULLES, { paBudget: 8 });
+
+  // 1 x A (100) + 3 x B (180) = 280.
+  assert.equal(combo.total, 280);
+});
+
+test('la condition d\'elements respecte aussi les couples de variantes', () => {
+  // A et B sont un couple : le combo ne peut pas les prendre tous les deux
+  // pour couvrir deux elements, meme si cela l'arrangerait.
+  const a = { ...sort({ id: 1, nom: 'A', base: 100, pa: 3 }), exclusiveGroup: 9 };
+  const b = { ...sortMulti({ id: 2, nom: 'B', bases: { eau: 90 }, pa: 3 }), exclusiveGroup: 9 };
+
+  const combo = optimiserCombo([a, b], STATS_NULLES, { paBudget: 6, elementsMin: 2 });
+
+  assert.equal(combo.elementsCouverts.length, 1);
+  assert.equal(combo.elementsManquants, 1);
+});

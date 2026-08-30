@@ -387,14 +387,19 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
   }
 
   fill(root, sorts.map((sort, index) => {
-    const champ = (cle, titre) => el('input', {
-      type: 'number', value: String(sort[cle] ?? 0), title: titre, placeholder: titre,
+    // Chaque champ porte sa legende au-dessus : la grille se lit sans survol.
+    const cellule = (titre, controle, aide) => el('label', {
+      class: 'cellule-sort', title: aide ?? titre,
+    }, el('span', { class: 'legende', text: titre }), controle);
+
+    const champ = (cle, titre, aide) => cellule(titre, el('input', {
+      type: 'number', value: String(sort[cle] ?? 0),
       onChange: (ev) => onChange(index, cle, Number(ev.target.value)),
-    });
-    const champLigne = (rang, ligne, cle, titre) => el('input', {
-      type: 'number', value: String(ligne[cle] ?? 0), title: titre, placeholder: titre,
+    }), aide);
+    const champLigne = (rang, ligne, cle, titre, aide) => cellule(titre, el('input', {
+      type: 'number', value: String(ligne[cle] ?? 0),
       onChange: (ev) => onChange(index, `line.${rang}.${cle}`, Number(ev.target.value)),
-    });
+    }), aide);
 
     const detail = degats?.[index];
 
@@ -414,21 +419,29 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
           onClick: () => onRemove(index) }),
       ),
       el('div', { class: 'sort-grille' },
-        champ('apCost', 'PA'), champ('castsPerTurn', 'Lancers'), champ('baseCrit', 'Crit +'),
-        el('span', {}),
+        champ('apCost', 'PA', 'Cout du sort en points d\'action'),
+        champ('castsPerTurn', 'Lancers/tour', 'Nombre maximal de lancers par tour'),
+        champ('baseCrit', 'Crit +%', 'Bonus de critique propre au sort'),
+        cellule('1 max au combo', el('input', {
+          type: 'checkbox', ...(sort.unParTour ? { checked: true } : {}),
+          onChange: (ev) => onChange(index, 'unParTour', ev.target.checked),
+        }), 'Coche : l\'optimisateur de combo ne lance ce sort qu\'une fois'),
       ),
       // Une rangee editable par ligne de degats : element, plage, plage critique.
       sort.lines.map((ligne, rang) => el('div', {
-        class: `sort-grille ligne-sort ${ligne.differe > 0 ? 'differee' : ''}`.trim(),
-        title: ligne.differe > 0
-          ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer` : '' },
-        el('select', { title: 'Element',
-          onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
-          ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
-            value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
-        champLigne(rang, ligne, 'min', 'Min'), champLigne(rang, ligne, 'max', 'Max'),
-        champLigne(rang, ligne, 'critMin', 'CC min'), champLigne(rang, ligne, 'critMax', 'CC max'),
-        ligne.differe > 0 ? el('span', { class: 'marque-differe', text: `T+${ligne.differe}` }) : null,
+        class: `sort-grille ligne-sort ${ligne.differe > 0 ? 'differee' : ''}`.trim() },
+        cellule(ligne.differe > 0 ? `Element · T+${ligne.differe}` : 'Element',
+          el('select', {
+            onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
+            ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
+              value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
+          ligne.differe > 0
+            ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer`
+            : 'Element de la ligne de degats'),
+        champLigne(rang, ligne, 'min', 'Min', 'Degats de base minimaux'),
+        champLigne(rang, ligne, 'max', 'Max', 'Degats de base maximaux'),
+        champLigne(rang, ligne, 'critMin', 'Crit min', 'Degats de base minimaux en critique'),
+        champLigne(rang, ligne, 'critMax', 'Crit max', 'Degats de base maximaux en critique'),
       )),
       detail ? detailSort(detail) : null,
     );
@@ -529,6 +542,24 @@ export function renderCombo(root, combo) {
     el('span', { class: 'deg', text: entier(l.total) }),
   ));
 
+  // Couverture d'elements : montree des qu'une condition existe ou que le
+  // combo touche plusieurs elements.
+  const couverts = combo.elementsCouverts ?? [];
+  const manque = combo.elementsManquants ?? 0;
+  const ligneElements = (combo.elementsMin > 0 || couverts.length > 1)
+    ? el('div', { class: `elements-combo ${manque > 0 ? 'manque' : ''}`.trim() },
+        couverts.map((e) => {
+          const icone = iconeElement(e);
+          return icone ? el('img', { src: icone, alt: e, title: e, decoding: 'async' })
+            : el('span', { text: e });
+        }),
+        el('span', { class: 'note-elements',
+          text: combo.elementsMin > 0
+            ? `${couverts.length}/${combo.elementsMin} element(s) demandes`
+              + (manque > 0 ? ' — budget insuffisant' : '')
+            : `${couverts.length} element(s)` }))
+    : null;
+
   fill(root, [el('div', { class: 'carte-combo' },
     el('div', { class: 'tete-combo' },
       el('span', { class: 'titre', text: 'Combo optimise' }),
@@ -536,6 +567,7 @@ export function renderCombo(root, combo) {
     combo.lancers.length > 0
       ? lignes
       : el('p', { class: 'note', text: 'Aucun lancer ne tient dans le budget de PA.' }),
+    ligneElements,
     el('div', { class: 'total-combo' },
       el('span', { text: 'Degats du combo' }),
       el('span', { class: 'deg', text: entier(combo.total) })),

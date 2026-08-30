@@ -57,7 +57,16 @@ const OPTIONS = [
   { cle: 'paReserves', libelle: 'PA a enlever', type: 'nombre', min: 0, max: 11,
     aide: 'PA gardes hors du combo (deplacement, sorts utilitaires).\n'
       + 'Exemple : 12 PA et 2 PA enleves donnent un budget de 10 PA.' },
+  { cle: 'comboElements', libelle: 'Elements distincts (min)', type: 'nombre', min: 0, max: 4,
+    aide: 'Le combo doit toucher au moins ce nombre d\'elements differents.\n'
+      + 'Si le budget ne le permet pas, le combo couvre le maximum possible.' },
+  { cle: 'comboUnLancer', libelle: '1 seul lancer par sort',
+    aide: 'Coche : le combo lance chaque sort au plus une fois.\n'
+      + 'La case « 1 max au combo » d\'un sort donne la meme limite, sort par sort.' },
 ];
+
+/** Options numeriques qui n'ont de sens que quand le combo est actif. */
+const OPTIONS_DU_COMBO = new Set(['paReserves', 'comboElements']);
 
 let etat = {
   niveau: 190, classe: 5, sexe: 0,
@@ -69,7 +78,10 @@ let etat = {
   filtreStat: { stat: '', op: '>=', valeur: 0 },
   conditions: CONDITIONS_DEPART,
   sorts: [],
-  options: { distance: false, arme: false, passifs: true, toursSuivants: false, combo: false, paReserves: 0 },
+  options: {
+    distance: false, arme: false, passifs: true, toursSuivants: false,
+    combo: false, paReserves: 0, comboElements: 0, comboUnLancer: false,
+  },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
 };
@@ -302,7 +314,12 @@ function objectif() {
     // Le solveur ajoute lui-meme l'attaque de l'arme de chaque build essaye.
     useWeapon: etat.options.arme,
     combo: etat.options.combo
-      ? { actif: true, reserve: Math.max(0, Number(etat.options.paReserves) || 0) }
+      ? {
+        actif: true,
+        reserve: Math.max(0, Number(etat.options.paReserves) || 0),
+        elementsMin: Math.max(0, Number(etat.options.comboElements) || 0),
+        unLancer: Boolean(etat.options.comboUnLancer),
+      }
       : null,
     mode: enDegats ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS,
   };
@@ -582,7 +599,7 @@ function render() {
     ...o,
     actif: etat.options[o.cle],
     // Le champ des PA reserves ne sert que quand le combo est actif.
-    ...(o.cle === 'paReserves' ? { inactif: !etat.options.combo } : {}),
+    ...(OPTIONS_DU_COMBO.has(o.cle) ? { inactif: !etat.options.combo } : {}),
   })),
     (cle, actif) => setEtat({ options: { ...etat.options, [cle]: actif } }));
 
@@ -780,6 +797,8 @@ function brancher() {
     }
     setEtat({ conditions: [...etat.conditions, { stat, target: 0, weight: 1, max: null, absolute: false }] });
   });
+
+  $('enlever-sorts').addEventListener('click', () => setEtat({ sorts: [] }));
 
   $('choisir-sorts').addEventListener('click', () => {
     const classe = classeCourante();

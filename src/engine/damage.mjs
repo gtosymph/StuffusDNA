@@ -2,14 +2,14 @@
  * Calcul des degats d'un coup, selon les regles de Dofus.
  *
  * Un coup se calcule en plusieurs temps :
- *   1. base * (100 + caracteristique + puissance) / 100 + degats fixes
- *   2. chaque famille de pourcentages s'applique ensuite EN MULTIPLICATIF,
- *      avec un arrondi vers le bas entre chaque etape :
- *      sorts/armes, puis melee/distance, puis dommages finaux.
+ *   1. base * (100 + caracteristique + puissance) / 100 + degats fixes,
+ *      arrondi vers le bas ;
+ *   2. les familles de pourcentages (sorts/armes, melee/distance, finaux)
+ *      s'appliquent EN MULTIPLICATIF, avec un seul arrondi vers le bas final.
  *
- * La composition multiplicative avec arrondis intermediaires a ete verifiee
- * contre RoxxSolver sur un build reel : 415 -> 439 et 476 -> 504 avec
- * 6 % Dommages Sorts et 6 % Dommages Melee (ecarts exacts a l'unite).
+ * L'ordre des arrondis vient du calcul de reference de RoxxSolver (fonction
+ * de degats de son affichage) : h = floor(base * f + fixes) puis
+ * h = floor(h * v * b * y). Verifie a l'unite pres sur un build reel.
  */
 import { ELEMENT_CHARACTERISTIC } from '../data/stats.mjs';
 
@@ -22,34 +22,51 @@ const FLAT_DAMAGE_STAT = Object.freeze({
   air: 'dommagesAir',
 });
 
-/**
- * Applique un pourcentage de degats, avec l'arrondi vers le bas du jeu.
- * @param {number} value
- * @param {number} percent
- * @returns {number}
- */
-function applyPercent(value, percent) {
-  return Math.floor((value * (100 + Math.max(percent ?? 0, -100))) / 100);
+/** Facteur multiplicatif d'un pourcentage de degats, plancher a -100. */
+function percentFactor(percent) {
+  return (100 + Math.max(percent ?? 0, -100)) / 100;
 }
 
 /**
  * Applique les familles de pourcentages, dans l'ordre du jeu.
+ *
+ * Les trois familles composent un seul produit, arrondi une seule fois :
+ * c'est l'arrondi du calcul de reference.
+ *
  * @param {number} scaled Degats apres caracteristique et degats fixes.
  * @param {Record<string, number>} stats
  * @param {{source: 'sort' | 'arme', range: 'melee' | 'distance' | null}} context
  * @returns {number}
  */
 function applyPercentFamilies(scaled, stats, context) {
-  let total = scaled;
-
-  total = applyPercent(total, context.source === 'arme'
+  let facteur = percentFactor(context.source === 'arme'
     ? stats.pctDommagesArmes : stats.pctDommagesSorts);
 
-  if (context.range === 'melee') total = applyPercent(total, stats.pctDommagesMelee);
-  else if (context.range === 'distance') total = applyPercent(total, stats.pctDommagesDistance);
-  else total = Math.floor(total);
+  if (context.range === 'melee') facteur *= percentFactor(stats.pctDommagesMelee);
+  else if (context.range === 'distance') facteur *= percentFactor(stats.pctDommagesDistance);
 
-  return applyPercent(total, stats.pctDommagesFinaux);
+  facteur *= percentFactor(stats.pctDommagesFinaux);
+
+  return Math.floor(Math.floor(scaled) * facteur);
+}
+
+/** Bornes du bonus de puissance de la maitrise d'arme. */
+const MAITRISE_MIN = 300;
+const MAITRISE_MAX = 360;
+
+/**
+ * Bonus de puissance de la maitrise d'arme, selon le taux critique.
+ *
+ * Formule du calcul de reference : le bonus glisse de 300 a 360 avec
+ * T = clamp(5 + critique, 0, 100) / 100. Il ne s'applique qu'aux coups
+ * d'arme, quand l'option est active.
+ *
+ * @param {Record<string, number>} stats
+ * @returns {number}
+ */
+export function maitriseArmeBonus(stats) {
+  const taux = Math.max(0, Math.min(100, 5 + (stats.critique ?? 0))) / 100;
+  return Math.floor(MAITRISE_MIN * (1 - taux) + MAITRISE_MAX * taux);
 }
 
 /**
@@ -61,11 +78,12 @@ function applyPercentFamilies(scaled, stats, context) {
  * @param {boolean} [hit.critical] Vrai pour un coup critique.
  * @param {'sort' | 'arme'} [hit.source] Origine du coup.
  * @param {'melee' | 'distance' | null} [hit.range] Portee du coup.
+ * @param {boolean} [hit.maitrise] Vrai pour un coup d'arme sous maitrise.
  * @param {Record<string, number>} stats Statistiques du personnage.
  * @returns {number} Degats infliges, arrondis vers le bas.
  */
 export function computeHit(hit, stats) {
-  const { element, base, critical = false, source = 'sort', range = null } = hit;
+  const { element, base, critical = false, source = 'sort', range = null, maitrise = false } = hit;
 
   if (!Number.isFinite(base) || base <= 0) return 0;
 
@@ -79,7 +97,8 @@ export function computeHit(hit, stats) {
     throw new Error(`Element inconnu: "${element}"`);
   }
 
-  const power = (stats[characteristic] ?? 0) + (stats.puissance ?? 0);
+  let power = (stats[characteristic] ?? 0) + (stats.puissance ?? 0);
+  if (maitrise && source === 'arme') power += maitriseArmeBonus(stats);
 
   let flat = (stats[FLAT_DAMAGE_STAT[element]] ?? 0) + (stats.dommages ?? 0);
   if (critical) flat += stats.dommagesCritiques ?? 0;
@@ -117,16 +136,16 @@ export function criticalRate(stats, spellCritBonus = 0) {
  * @returns {{normal: number, critical: number, average: number}}
  */
 export function computeLine(line, stats, critRate = criticalRate(stats)) {
-  const { element, min, max, source = 'sort', range = null } = line;
+  const { element, min, max, source = 'sort', range = null, maitrise = false } = line;
   const critMin = line.critMin ?? min;
   const critMax = line.critMax ?? max;
 
   const normal = computeHit(
-    { element, base: (min + max) / 2, critical: false, source, range },
+    { element, base: (min + max) / 2, critical: false, source, range, maitrise },
     stats,
   );
   const critical = computeHit(
-    { element, base: (critMin + critMax) / 2, critical: true, source, range },
+    { element, base: (critMin + critMax) / 2, critical: true, source, range, maitrise },
     stats,
   );
 
@@ -183,24 +202,30 @@ export function computeSpell(spell, stats) {
  *
  * Le coup critique d'une arme ajoute son bonus critique a chaque ligne.
  * Une arme dont la portee depasse un compte comme un coup a distance.
+ * L'arme frappe `repeats` fois par tour (ses utilisations par tour), et la
+ * maitrise d'arme s'applique par defaut, comme dans le calcul de reference.
  *
  * @param {any} item Arme du catalogue, avec ses lignes de degats.
+ * @param {{maitrise?: boolean}} [options]
  * @returns {any | null} Sort equivalent, ou null si l'item n'est pas une arme.
  */
-export function weaponAttack(item) {
+export function weaponAttack(item, options = {}) {
   if (!item || item.slot !== 'arme') return null;
   const lignes = Array.isArray(item.weapon) ? item.weapon.filter((l) => l.max > 0) : [];
   if (lignes.length === 0) return null;
 
+  const { maitrise = true } = options;
   const range = (item.range ?? 1) > 1 ? 'distance' : 'melee';
   const bonus = item.critBonus ?? 0;
+  const utilisations = Number(item.usesPerTurn) > 0 ? Number(item.usesPerTurn) : 1;
 
   return {
     id: `arme:${item.id}`,
     name: item.fr,
     icon: item.img ?? null,
     apCost: item.apCost ?? null,
-    castsPerTurn: item.usesPerTurn ?? 1,
+    castsPerTurn: utilisations,
+    repeats: utilisations,
     baseCrit: item.critProbability ?? 0,
     arme: true,
     lines: lignes.map((ligne) => ({
@@ -211,6 +236,7 @@ export function weaponAttack(item) {
       critMax: ligne.max + bonus,
       source: 'arme',
       range,
+      ...(maitrise ? { maitrise: true } : {}),
     })),
   };
 }
@@ -233,16 +259,16 @@ export function computeSpellDetail(spell, stats) {
   const parLigne = [];
 
   for (const line of lines) {
-    const { element, min, max, source = 'sort', range = null } = line;
+    const { element, min, max, source = 'sort', range = null, maitrise = false } = line;
     const critMin = line.critMin ?? min;
     const critMax = line.critMax ?? max;
 
     const ligne = {
       element,
-      normalMin: computeHit({ element, base: min, source, range }, stats),
-      normalMax: computeHit({ element, base: max, source, range }, stats),
-      critMin: computeHit({ element, base: critMin, critical: true, source, range }, stats),
-      critMax: computeHit({ element, base: critMax, critical: true, source, range }, stats),
+      normalMin: computeHit({ element, base: min, source, range, maitrise }, stats),
+      normalMax: computeHit({ element, base: max, source, range, maitrise }, stats),
+      critMin: computeHit({ element, base: critMin, critical: true, source, range, maitrise }, stats),
+      critMax: computeHit({ element, base: critMax, critical: true, source, range, maitrise }, stats),
     };
 
     bornes.normalMin += ligne.normalMin;

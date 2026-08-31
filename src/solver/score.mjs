@@ -91,8 +91,11 @@ export function damageValue(spells, stats) {
 
   for (const spell of spells) {
     const result = computeSpell(spell, stats);
-    total += result.average;
-    perSpell.push({ name: spell.name ?? '', ...result });
+    // L'attaque d'une arme compte ses utilisations par tour ; un sort
+    // compte un seul lancer, comme dans le calcul de reference.
+    const repeats = Number(spell.repeats) > 0 ? Number(spell.repeats) : 1;
+    total += result.average * repeats;
+    perSpell.push({ name: spell.name ?? '', repeats, ...result });
   }
 
   return { total, perSpell };

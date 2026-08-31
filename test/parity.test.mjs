@@ -263,10 +263,10 @@ test('mode caracteristiques, sans aucun sort', async (t) => {
 });
 
 test('Sables du Temps : parite mesuree contre RoxxSolver', async (t) => {
-  // Build reel du 2026-08-30 : Copyroxx montrait 415/476, RoxxSolver 439/504.
-  // La difference venait du % Dommages Melee : sans option distance, le coup
-  // compte comme un coup de melee, et chaque famille de pourcentages
-  // s'applique en multiplicatif avec arrondi entre les etapes.
+  // Build reel du 2026-08-30 : RoxxSolver montrait 439/504 en melee.
+  // Les familles de pourcentages composent un seul produit, arrondi une
+  // seule fois apres l'arrondi de la base : c'est l'ordre du calcul de
+  // reference, verifie a l'unite pres.
   const stats = {
     ...emptyStats(),
     intelligence: 560, puissance: 160, dommagesFeu: 104, dommages: 5,
@@ -276,8 +276,8 @@ test('Sables du Temps : parite mesuree contre RoxxSolver', async (t) => {
 
   await t.test('sans portee, seule la famille sorts s applique', () => {
     const result = computeLine({ ...ligne, range: null }, stats, 0);
-    assert.equal(result.normal, 415);
-    assert.equal(computeLine({ ...ligne, range: null }, stats, 1).critical, 476);
+    assert.equal(result.normal, 414);
+    assert.equal(computeLine({ ...ligne, range: null }, stats, 1).critical, 475);
   });
 
   await t.test('en melee, les valeurs RoxxSolver sont reproduites a l unite', () => {

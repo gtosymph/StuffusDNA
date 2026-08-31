@@ -59,6 +59,20 @@ export function weaponDamageLines(effects) {
 }
 
 /**
+ * Objets reserves aux maitres du jeu, sans le marqueur "(MJ)" dans le nom.
+ * 2155 : Amulette de Jiva.
+ */
+const IDS_MAITRE_DU_JEU = new Set([2155]);
+
+/**
+ * Vrai si l'objet est reserve aux maitres du jeu : il sort du catalogue.
+ * @param {any} item
+ */
+function estReserveMj(item) {
+  return IDS_MAITRE_DU_JEU.has(item.id) || /\(MJ\)/.test(item.fr ?? '');
+}
+
+/**
  * Construit le catalogue et ses index a partir des donnees brutes.
  *
  * La fonction ne lit aucun fichier : elle tourne aussi bien sous Node que
@@ -77,7 +91,7 @@ export function buildCatalog(rawItems, rawSets) {
   if (!Array.isArray(rawItems)) throw new Error('Catalogue invalide : liste d\'items attendue.');
   if (!Array.isArray(rawSets)) throw new Error('Catalogue invalide : liste de panoplies attendue.');
 
-  const items = rawItems.map((item) => ({
+  const items = rawItems.filter((item) => !estReserveMj(item)).map((item) => ({
     ...item,
     stats: effectsToStats(item.effects),
     weapon: item.slot === 'arme' ? weaponDamageLines(item.effects) : [],

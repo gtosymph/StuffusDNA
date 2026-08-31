@@ -7,6 +7,7 @@
  */
 import { el, ligneArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
+import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 import { passifDe } from '../src/data/passives-defaults.mjs';
 import { libelleCriteria } from '../src/data/criteria.mjs';
@@ -26,9 +27,32 @@ function assurerBulle() {
 }
 
 const signe = (v) => (v > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
+const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
+
+/**
+ * Bloc des degats de l'arme, calcules avec les statistiques du build.
+ * @param {any} item
+ * @param {Record<string, number>|null} stats
+ */
+function blocArmeCalculee(item, stats) {
+  if (!stats || item.slot !== 'arme') return null;
+  const attaque = weaponAttack(item);
+  if (!attaque) return null;
+
+  const detail = computeSpellDetail(attaque, stats);
+  return el('div', { class: 'bulle-arme-calc' },
+    el('div', { class: 'titre-arme-calc', text: 'Avec vos caracteristiques' }),
+    detail.parLigne.map((ligne) =>
+      ligneArme(ligne, `${entier(ligne.normalMin)}–${entier(ligne.normalMax)}`
+        + ` (${entier(ligne.critMin)}–${entier(ligne.critMax)} crit)`)),
+    el('div', { class: 'bulle-arme-moyenne',
+      text: `Moyenne ${entier(detail.average)} par coup — critique ${Math.round(detail.critRate * 100)} %`
+        + (attaque.repeats > 1 ? ` — ×${attaque.repeats} par tour` : '') }),
+  );
+}
 
 /** Remplit l'infobulle avec le detail d'une piece. */
-function garnir(noeud, item) {
+function garnir(noeud, item, contexte = {}) {
   const lignes = Object.entries(item.stats ?? {})
     .filter(([, v]) => v !== 0)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
@@ -51,6 +75,8 @@ function garnir(noeud, item) {
       ? el('div', { class: 'bulle-arme' },
           item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`)))
       : null,
+
+    blocArmeCalculee(item, contexte.stats ?? null),
 
     lignes.length === 0
       ? el('div', { class: 'bulle-vide', text: 'Aucune statistique' })
@@ -99,10 +125,10 @@ function placer(noeud, x, y) {
  * @param {number} x
  * @param {number} y
  */
-export function montrerBulle(item, x, y) {
+export function montrerBulle(item, x, y, contexte = {}) {
   if (!item) return;
   const noeud = assurerBulle();
-  garnir(noeud, item);
+  garnir(noeud, item, contexte);
   noeud.hidden = false;
   placer(noeud, x, y);
 }

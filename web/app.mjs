@@ -45,7 +45,11 @@ const OPTIONS = [
   { cle: 'distance', libelle: 'Degats a distance',
     aide: 'Coche : les coups comptent a distance. Decoche : ils comptent en melee.' },
   { cle: 'arme', libelle: 'Degats de l\'arme',
-    aide: 'Ajoute les degats de l\'arme equipee au total optimise' },
+    aide: 'Ajoute les degats de l\'arme equipee au total optimise.\n'
+      + 'L\'arme frappe autant de fois que ses utilisations par tour.' },
+  { cle: 'maitriseArme', libelle: 'Maitrise d\'arme',
+    aide: 'Compte le bonus de maitrise d\'arme : de 300 a 360 de puissance\n'
+      + 'sur les coups d\'arme, selon le taux critique.' },
   { cle: 'passifs', libelle: 'Passifs Dofus & Legendaires',
     aide: 'Compte les passifs en combat des Dofus et objets legendaires' },
   { cle: 'cibleTelefrag', libelle: 'Cible telefrag (Xelor)',
@@ -74,7 +78,7 @@ const OPTIONS_DU_COMBO = new Set(['paReserves', 'comboElements']);
 
 let etat = {
   niveau: 190, classe: 5, sexe: 0,
-  filtre: null, filtreType: null, recherche: '',
+  filtre: null, filtreType: null, recherche: '', filtrePk: false,
   equipped: new Map(),
   posees: new Set(),
   bannis: new Set(),
@@ -83,7 +87,7 @@ let etat = {
   conditions: CONDITIONS_DEPART,
   sorts: [],
   options: {
-    distance: false, arme: false, passifs: true, toursSuivants: false,
+    distance: false, arme: false, maitriseArme: true, passifs: true, toursSuivants: false,
     cibleTelefrag: false,
     combo: false, paReserves: 0, comboElements: 0, comboUnLancer: false,
   },
@@ -244,11 +248,9 @@ function attaqueArme() {
   if (!etat.options.arme) return null;
   const arme = etat.equipped.get('arme:0');
   if (!arme) return null;
-  const attaque = weaponAttack(arme);
-  if (!attaque) return null;
-  // La portee de l'arme suit l'option distance, comme les sorts.
-  const range = etat.options.distance ? 'distance' : 'melee';
-  return { ...attaque, lines: attaque.lines.map((l) => ({ ...l, range })) };
+  // La portee de l'arme suit l'arme (melee sauf arme a distance), comme
+  // dans le calcul de reference ; l'option distance ne touche que les sorts.
+  return weaponAttack(arme, { maitrise: etat.options.maitriseArme });
 }
 
 /** Sorts et attaque d'arme comptes dans le score affiche. */
@@ -357,6 +359,7 @@ function objectif() {
     spells: sortsCalcules(),
     // Le solveur ajoute lui-meme l'attaque de l'arme de chaque build essaye.
     useWeapon: etat.options.arme,
+    maitriseArme: etat.options.maitriseArme,
     combo: etat.options.combo
       ? {
         actif: true,
@@ -380,6 +383,8 @@ function itemsFiltres() {
       if (item.level > etat.niveau) return false;
       if (etat.filtre && item.slot !== etat.filtre) return false;
       if (etat.filtreType && item.typeFr !== etat.filtreType) return false;
+      // Trophees majeurs : leur condition exige moins de trois bonus de panoplie.
+      if (etat.filtrePk && !/Pk<3/.test(item.criteria ?? '')) return false;
       if (terme && !item.fr.toLowerCase().includes(terme)) return false;
       // Filtre par statistique : ">= 1 PA" garde les pieces qui donnent 1 PA ou plus.
       if (stat) {
@@ -581,10 +586,11 @@ function render() {
     onLock: () => verrouiller(item),
     banni: etat.bannis.has(item.id),
     verrouille: etat.verrous.has(item.id),
+    stats,
   });
-  vue.renderCases($('slots-gauche'), plan.SLOTS_GAUCHE, etat.equipped, etat.posees, voirPiece, etat.verrous);
-  vue.renderCases($('slots-droite'), plan.SLOTS_DROITE, etat.equipped, etat.posees, voirPiece, etat.verrous);
-  vue.renderCases($('slots-artefacts'), plan.SLOTS_ARTEFACTS, etat.equipped, etat.posees, voirPiece, etat.verrous);
+  vue.renderCases($('slots-gauche'), plan.SLOTS_GAUCHE, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
+  vue.renderCases($('slots-droite'), plan.SLOTS_DROITE, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
+  vue.renderCases($('slots-artefacts'), plan.SLOTS_ARTEFACTS, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
 
   const classe = classeCourante();
   const image = $('avatar-image');
@@ -860,6 +866,7 @@ function brancher() {
   $('classe').addEventListener('change', (e) => setEtat({ classe: Number(e.target.value) }));
   $('sexe').addEventListener('change', (e) => setEtat({ sexe: Number(e.target.value) }));
   $('recherche').addEventListener('input', (e) => setEtat({ recherche: e.target.value }));
+  $('filtre-pk').addEventListener('change', (e) => setEtat({ filtrePk: e.target.checked }));
 
   $('filtre-stat').addEventListener('change', (e) =>
     setEtat({ filtreStat: { ...etat.filtreStat, stat: e.target.value } }));

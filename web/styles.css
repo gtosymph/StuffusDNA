@@ -660,3 +660,14 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .elements-combo.manque .note-elements { color: var(--ambre); }
 
 .actions-combo { display: flex; gap: 6px; margin-top: 6px; }
+
+/* Filtre des trophees majeurs (condition Pk<3). */
+.filtre-case { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faible); cursor: pointer; user-select: none; }
+.filtre-case input { margin: 0; }
+
+/* Degats de l'arme calcules avec les caracteristiques du build. */
+.bulle-arme-calc { margin: 4px 0; padding-top: 4px; border-top: 1px solid var(--bord); }
+.titre-arme-calc { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
+.bulle-arme-calc .ligne-arme { font-size: 9px; padding: 0 6px; margin: 0 3px 3px 0; }
+.bulle-arme-moyenne { font-size: 10px; color: var(--faible); margin-top: 2px; }
+.fiche-arme.calc { padding-top: 6px; border-top: 1px solid var(--bord); }

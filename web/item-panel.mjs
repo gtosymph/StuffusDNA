@@ -4,6 +4,7 @@
  */
 import { el, ligneArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
+import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 import { passifDe } from '../src/data/passives-defaults.mjs';
 import { libelleCriteria } from '../src/data/criteria.mjs';
@@ -12,6 +13,30 @@ import { libelleCriteria } from '../src/data/criteria.mjs';
 let racine = null;
 
 const nombre = (v) => (v > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
+const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
+
+/**
+ * Bloc des degats de l'arme, calcules avec les statistiques du build.
+ * @param {any} item
+ * @param {Record<string, number>|null} stats
+ */
+function blocArmeCalculee(item, stats) {
+  if (!stats || item.slot !== 'arme') return null;
+  const attaque = weaponAttack(item);
+  if (!attaque) return null;
+
+  const detail = computeSpellDetail(attaque, stats);
+  return el('div', { class: 'fiche-arme calc' },
+    el('div', { class: 'titre-arme', text: 'Avec vos caracteristiques' }),
+    el('div', { class: 'lignes-arme' },
+      detail.parLigne.map((ligne) =>
+        ligneArme(ligne, `${entier(ligne.normalMin)}–${entier(ligne.normalMax)}`
+          + ` (${entier(ligne.critMin)}–${entier(ligne.critMax)} crit)`))),
+    el('div', { class: 'fiche-note',
+      text: `Moyenne ${entier(detail.average)} par coup — critique ${Math.round(detail.critRate * 100)} %`
+        + (attaque.repeats > 1 ? ` — ×${attaque.repeats} par tour` : '') }),
+  );
+}
 
 function assurerRacine() {
   if (racine) return racine;
@@ -84,6 +109,8 @@ export function ouvrirFiche(item, actions = {}) {
           el('div', { class: 'lignes-arme' },
             item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`))))
       : null,
+
+    blocArmeCalculee(item, actions.stats ?? null),
 
     item.twoHanded
       ? el('div', { class: 'fiche-note', text: 'Arme a deux mains : elle interdit le bouclier.' })

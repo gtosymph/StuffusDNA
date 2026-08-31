@@ -80,15 +80,24 @@ export function renderPaires(root, liste, stats, options = {}) {
 /** Types de la case monture, proposes en onglets separes. */
 const TYPES_MONTURE = Object.freeze(['Dragodinde', 'Volkorne', 'Muldo', 'Familier', 'Montilier']);
 
+/** Types de la case artefact, proposes en onglets separes. */
+const TYPES_ARTEFACT = Object.freeze([
+  { type: 'Dofus', label: 'Dofus' },
+  { type: 'Trophée', label: 'Trophées' },
+  { type: 'Prysmaradite', label: 'Prysmaradites' },
+]);
+
 /**
  * Remplit les onglets de filtre du catalogue.
- * La case monture s'ouvre en cinq onglets, un par type d'item.
+ * Les cases monture et artefact s'ouvrent en plusieurs onglets, un par type.
  */
 export function renderOnglets(root, actif, onPick, typeActif = null) {
   const entrees = [{ key: null, type: null, label: 'Tous' }];
   for (const slot of SLOTS) {
     if (slot.key === 'monture') {
       for (const type of TYPES_MONTURE) entrees.push({ key: slot.key, type, label: type });
+    } else if (slot.key === 'artefact') {
+      for (const e of TYPES_ARTEFACT) entrees.push({ key: slot.key, type: e.type, label: e.label });
     } else {
       entrees.push({ key: slot.key, type: null, label: slot.label });
     }
@@ -178,7 +187,12 @@ export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(
   fill(root, montres.map((item) => {
     const noeud = vignette(item, bannis.has(item.id) ? 'bannie' : '');
     if (bannis.has(item.id)) noeud.title += '\nBannie : le solveur ne la propose plus.';
-    noeud.addEventListener('click', () => onPick(item));
+    // Le titre natif laisserait sa place : l'infobulle le remplace au survol.
+    noeud.removeAttribute('title');
+    noeud.addEventListener('click', () => { cacherBulle(); onPick(item); });
+    noeud.addEventListener('mouseenter', (ev) => montrerBulle(item, ev.clientX, ev.clientY));
+    noeud.addEventListener('mousemove', (ev) => suivreBulle(ev.clientX, ev.clientY));
+    noeud.addEventListener('mouseleave', cacherBulle);
     return noeud;
   }));
 
@@ -222,7 +236,7 @@ export function renderBannis(root, items, onUnban) {
  * @param {Set<string>} posees Cases choisies a la main.
  * @param {(cle: string, item: any) => void} onPick Ouvre la fiche de la piece.
  */
-export function renderCases(root, cles, equipped, posees, onPick, verrous = new Set()) {
+export function renderCases(root, cles, equipped, posees, onPick, verrous = new Set(), stats = null) {
   fill(root, cles.map((cle) => {
     const item = equipped.get(cle);
     const libelle = LIBELLE_CASE[cle] ?? cle;
@@ -237,7 +251,8 @@ export function renderCases(root, cles, equipped, posees, onPick, verrous = new 
       class: `case-slot ${marque}`, type: 'button',
       onClick: () => onPick(cle, item),
       // Le survol montre l'infobulle ; le clic ouvre la fiche complete.
-      onMouseenter: (ev) => montrerBulle(item, ev.clientX, ev.clientY),
+      // Les stats du build permettent le calcul des degats de l'arme portee.
+      onMouseenter: (ev) => montrerBulle(item, ev.clientX, ev.clientY, { stats }),
       onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
       onMouseleave: cacherBulle,
       onFocus: cacherBulle,

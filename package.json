@@ -13,6 +13,8 @@
     "data:sets": "node scripts/fetch-sets.mjs",
     "data:all": "npm run data:effects && npm run data:sets && npm run data:items",
     "test": "node --test test/*.test.mjs",
+    "bench": "node scripts/bench-convergence.mjs",
+    "bench:gate": "node scripts/bench-convergence.mjs --gate",
     "serve": "node scripts/serve.mjs",
     "solve": "node scripts/solve-parallel-demo.mjs"
   }

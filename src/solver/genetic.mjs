@@ -11,6 +11,8 @@ import { maxViolations, scoreBuild, SEARCH_MODES } from './score.mjs';
 import { optimiserAllocation } from './allocation.mjs';
 import { EMPTY, buildPools, decode, genomeFromItems, planLocks, randomGenome, repair } from './genome.mjs';
 import { buildRankings, improve, indexerPanoplies } from './local-search.mjs';
+import { createIncrementalBuild } from './incremental.mjs';
+import { creerArchive } from './candidates.mjs';
 import { SCROLLABLE as SCROLLABLE_KEYS } from '../engine/characteristics.mjs';
 
 /**
@@ -42,10 +44,23 @@ export const DEFAULT_OPTIONS = Object.freeze({
   guidedMutationRate: 0.6,
   /** Taille de la tete de classement utilisee par une mutation orientee. */
   guidedPoolSize: 40,
-  /** Generations entre deux descentes locales sur le meilleur individu. */
-  localSearchEvery: 20,
+  /**
+   * Generations entre deux descentes locales sur le meilleur individu.
+   * Mesure du 2026-08-31, budget de 10 s par graine sur 20 graines : une
+   * descente etroite et frequente (3 / 35) rend 2951 la ou une descente
+   * large et rare (20 / 60) rendait 2684. Le croisement explore, la descente
+   * affine ; c'est elle qui produit le score, il faut la lancer souvent.
+   */
+  localSearchEvery: 3,
   /** Nombre de parcours d'emplacements par descente. */
   localSearchPasses: 2,
+  /**
+   * Pieces essayees par emplacement pendant une descente periodique.
+   * Une descente etroite vaut mieux qu'une large : a temps egal, essayer
+   * 35 pieces par case et redescendre souvent bat 60 pieces et descendre
+   * rarement (3023 contre 2874 sur 12 graines).
+   */
+  localSearchCandidates: 35,
   /** Vrai pour laisser le solveur repartir les points de caracteristique. */
   optimiserPoints: false,
   /** Generations entre deux repartitions des points. */
@@ -54,6 +69,8 @@ export const DEFAULT_OPTIONS = Object.freeze({
   immigrantsAfter: 25,
   /** Part de la population remplacee par une injection. */
   immigrantsShare: 0.25,
+  /** Nombre de builds distincts gardes a cote du gagnant. */
+  candidatsGardes: 8,
 });
 
 /**
@@ -74,11 +91,27 @@ export function createRandom(seed) {
 }
 
 /**
+ * Nombre maximal de resultats gardes par le cache d'evaluation.
+ * L'eviction retire l'entree la plus ancienne (ordre d'insertion du Map).
+ */
+const CACHE_EVALUATIONS = 4096;
+
+/**
  * Prepare la fonction d'evaluation d'un genome.
+ *
+ * L'evaluation passe par un cache par genome : les elites et les doublons
+ * reviennent souvent d'une generation a l'autre. Le cache DOIT etre vide par
+ * `evaluate.invalidate()` quand la repartition des points change, sans quoi
+ * il rendrait des scores perimes.
+ *
+ * `evaluate.incremental()` cree un evaluateur par delta pour la recherche
+ * locale : `noter(genome)` rend le meme resultat que `evaluate(genome)`,
+ * `rebaser(genome)` fige la base des deltas.
+ *
  * @param {object} context
  * @returns {(genome: number[]) => {score: number, stats: any, detail: any}}
  */
-function createEvaluator({ pools, setById, level, porteur, scrolls, passives, profile, objective }) {
+export function createEvaluator({ pools, setById, level, porteur, scrolls, passives, profile, objective }) {
   // L'attaque d'une arme se construit une seule fois par arme rencontree.
   const attaques = new Map();
   const spellsAvecArme = (items) => {
@@ -93,11 +126,8 @@ function createEvaluator({ pools, setById, level, porteur, scrolls, passives, pr
     return attaque ? [...spells, attaque] : spells;
   };
 
-  const evaluate = function evaluate(genome) {
-    const items = decode(genome, pools);
-    const { stats, invalid } = computeBuild(
-      { items, level, allocation: porteur.allocation, scrolls, passives, profile }, setById,
-    );
+  // Note un build deja agrege : score des sorts et penalites.
+  const noterBuild = (items, stats, invalid) => {
     const detail = scoreBuild(stats, { ...objective, spells: spellsAvecArme(items) });
     const violations = maxViolations(objective.conditions, stats);
 
@@ -109,6 +139,35 @@ function createEvaluator({ pools, setById, level, porteur, scrolls, passives, pr
     return { score, stats, detail, items, invalid, violations };
   };
 
+  const cache = new Map();
+
+  const evaluate = function evaluate(genome) {
+    const cle = genome.join(',');
+    const connu = cache.get(cle);
+    if (connu) return connu;
+
+    const items = decode(genome, pools);
+    const { stats, invalid } = computeBuild(
+      { items, level, allocation: porteur.allocation, scrolls, passives, profile }, setById,
+    );
+    const resultat = noterBuild(items, stats, invalid);
+
+    if (cache.size >= CACHE_EVALUATIONS) cache.delete(cache.keys().next().value);
+    cache.set(cle, resultat);
+    return resultat;
+  };
+
+  evaluate.invalidate = () => { cache.clear(); };
+  evaluate.incremental = () => {
+    const delta = createIncrementalBuild({ pools, setById, level, porteur, scrolls, passives, profile });
+    return {
+      noter: (genome) => {
+        const { stats, items, invalid } = delta.calculer(genome);
+        return noterBuild(items, stats, invalid);
+      },
+      rebaser: (genome) => delta.rebaser(genome),
+    };
+  };
   evaluate.spellsAvecArme = spellsAvecArme;
   return evaluate;
 }
@@ -280,6 +339,8 @@ export function solve(input, options = {}, onProgress) {
     if (!changee) return false;
 
     porteur.allocation = proposee;
+    // Les scores en cache dependent des points : ils sont tous perimes.
+    evaluate.invalidate();
     return true;
   };
 
@@ -289,7 +350,18 @@ export function solve(input, options = {}, onProgress) {
   const rankings = buildRankings(pools, objective);
   const guidage = { rankings, rate: settings.guidedMutationRate, size: settings.guidedPoolSize };
   const panoplies = indexerPanoplies(pools);
-  const contexteLocal = { layout, pools, rankings, evaluate, panoplies, locks };
+  const contexteLocal = {
+    layout, pools, rankings, evaluate, evaluateur: evaluate.incremental(), panoplies, locks,
+  };
+
+  // Les builds distincts croises en chemin : le gagnant n'est pas toujours
+  // celui que le joueur veut porter.
+  // La diversite se juge sur les pieces portees : deux anneaux echanges de
+  // case donnent le meme build aux yeux du joueur.
+  const archive = creerArchive({
+    taille: settings.candidatsGardes,
+    identite: (genome) => decode(genome, pools).map((item) => item.id).sort((a, b) => a - b),
+  });
 
   // Population initiale. Les genomes recus d'un tour precedent ouvrent la
   // marche : c'est ainsi que les fils se transmettent leurs trouvailles.
@@ -366,6 +438,7 @@ export function solve(input, options = {}, onProgress) {
 
     if (population[0].score > best.score) {
       best = population[0];
+      archive.proposer(best.genome, best.score);
       stagnation = 0;
     } else {
       stagnation += 1;
@@ -408,7 +481,13 @@ export function solve(input, options = {}, onProgress) {
       }
       descentes += 1;
 
-      const affine = improve(depart, contexteLocal, { maxPasses: settings.localSearchPasses });
+      const affine = improve(depart, contexteLocal, {
+        maxPasses: settings.localSearchPasses,
+        candidatesPerSlot: settings.localSearchCandidates,
+      });
+      // Une descente finit toujours sur un optimum local : meme perdante,
+      // elle rend un build abouti, donc un candidat credible.
+      archive.proposer(affine.genome, affine.score);
       if (affine.score > best.score) {
         best = { genome: affine.genome, score: affine.score };
         population[0] = { ...best };
@@ -437,6 +516,26 @@ export function solve(input, options = {}, onProgress) {
   if (settings.optimiserPoints) repartirPoints(best);
 
   const final = evaluate(best.genome);
+  archive.proposer(best.genome, final.score);
+  for (const individu of population.slice(0, 40)) {
+    archive.proposer(individu.genome, individu.score);
+  }
+
+  // Chaque candidat repart avec de quoi etre compare : ses pieces, son score
+  // et le detail de ses conditions.
+  const candidats = archive.liste().map(({ genome }) => {
+    const vue = evaluate(genome);
+    return {
+      genome: [...genome],
+      itemIds: vue.items.map((item) => item.id),
+      score: vue.score,
+      damage: vue.detail.damage,
+      satisfied: vue.detail.satisfied,
+      unmet: vue.detail.unmet,
+      stats: vue.stats,
+    };
+  });
+
   return {
     items: final.items,
     stats: final.stats,
@@ -447,6 +546,7 @@ export function solve(input, options = {}, onProgress) {
     violations: final.violations,
     unplaced,
     history,
+    candidats,
     // Les meilleurs genomes repartent vers les autres fils.
     topGenomes: population.slice(0, 16).map((individu) => individu.genome),
     generations: generation,

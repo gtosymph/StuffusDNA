@@ -182,7 +182,7 @@ export function indexerPanoplies(pools) {
  * @param {number} score Score courant.
  * @returns {{score: number, ameliore: boolean}}
  */
-function passePanoplies(courant, { layout, pools, evaluate, panoplies, locks }, score) {
+function passePanoplies(courant, { layout, pools, noter, rebaser, panoplies, locks }, score) {
   let ameliore = false;
 
   const portees = new Set();
@@ -200,9 +200,10 @@ function passePanoplies(courant, { layout, pools, evaluate, panoplies, locks }, 
       essai[cellule] = index;
       repair(essai, layout, pools, locks);
 
-      const note = evaluate(essai).score;
+      const note = noter(essai);
       if (note > score) {
         courant.splice(0, courant.length, ...essai);
+        rebaser(courant);
         score = note;
         ameliore = true;
       }
@@ -221,17 +222,27 @@ function passePanoplies(courant, { layout, pools, evaluate, panoplies, locks }, 
  * @param {any[][]} contexte.pools
  * @param {number[][]} contexte.rankings
  * @param {(genome: number[]) => {score: number}} contexte.evaluate
+ * @param {{noter: Function, rebaser: Function}} [contexte.evaluateur]
+ *   Evaluateur incremental : quand il est present, la descente note ses
+ *   voisins par delta au lieu de reevaluer le build entier.
  * @param {Map<number, {cellule: number, index: number}[]>} [contexte.panoplies]
  * @param {Map<number, number>|null} [contexte.locks] Cases imposees.
  * @param {Partial<typeof DEFAULT_LOCAL>} [options]
  * @returns {{genome: number[], score: number, gain: number, passes: number}}
  */
 export function improve(genome, contexte, options = {}) {
-  const { layout, pools, rankings, evaluate, panoplies = null, locks = null } = contexte;
+  const { layout, pools, rankings, evaluate, evaluateur = null, panoplies = null, locks = null } = contexte;
   const reglages = { ...DEFAULT_LOCAL, ...options };
 
+  const noter = evaluateur
+    ? (g) => evaluateur.noter(g).score
+    : (g) => evaluate(g).score;
+  // La base des deltas suit le build courant : rebasee a chaque adoption.
+  const rebaser = evaluateur ? (g) => evaluateur.rebaser(g) : () => {};
+
   let courant = [...genome];
-  let score = evaluate(courant).score;
+  rebaser(courant);
+  let score = noter(courant);
   const depart = score;
   let passes = 0;
 
@@ -260,7 +271,7 @@ export function improve(genome, contexte, options = {}) {
         // La reparation ecarte les doublons et le conflit arme a deux mains.
         repair(essai, layout, pools, locks);
 
-        const note = evaluate(essai).score;
+        const note = noter(essai);
         if (note > meilleurScore) {
           meilleurScore = note;
           meilleurIndex = candidat;
@@ -270,14 +281,15 @@ export function improve(genome, contexte, options = {}) {
       if (meilleurIndex !== avant) {
         courant[cellule] = meilleurIndex;
         repair(courant, layout, pools, locks);
-        score = evaluate(courant).score;
+        rebaser(courant);
+        score = noter(courant);
         ameliore = true;
       }
     }
 
     // Les bonus de groupe se cherchent panoplie par panoplie.
     if (panoplies && panoplies.size > 0) {
-      const resultat = passePanoplies(courant, { layout, pools, evaluate, panoplies, locks }, score);
+      const resultat = passePanoplies(courant, { layout, pools, noter, rebaser, panoplies, locks }, score);
       score = resultat.score;
       ameliore = ameliore || resultat.ameliore;
     }

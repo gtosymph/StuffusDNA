@@ -7,6 +7,7 @@
  */
 import { cpus } from 'node:os';
 import { Worker } from 'node:worker_threads';
+import { creerArchive } from './candidates.mjs';
 
 /** Nombre maximal de fils, pour ne pas saturer la machine. */
 export const MAX_THREADS = 8;
@@ -62,32 +63,52 @@ export function defaultThreadCount() {
 }
 
 /**
- * Lance un fil et attend son resultat.
+ * Cree un fil de calcul persistant.
+ *
+ * Le fil charge le catalogue une seule fois puis traite les requetes de vague
+ * l'une apres l'autre : c'est le fonctionnement du navigateur, et le seul qui
+ * donne des mesures de temps fideles.
+ *
  * @param {URL} url
- * @param {object} data
- * @returns {Promise<any>}
+ * @param {object} config Configuration fixe transmise par workerData.
+ * @returns {{vivant: boolean, demander: (message: object) => Promise<any>, arreter: () => void}}
  */
-function runWorker(url, data) {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(url, { workerData: data });
-    let settled = false;
+function creerFil(url, config) {
+  const worker = new Worker(url, { workerData: config });
+  const fil = { vivant: true };
 
-    worker.once('message', (message) => {
-      settled = true;
-      worker.terminate();
-      if (message?.ok) resolve(message);
-      else reject(new Error(message?.message ?? 'Fil de calcul en echec.'));
-    });
+  worker.on('exit', () => { fil.vivant = false; });
 
-    worker.once('error', (error) => {
-      settled = true;
-      reject(error);
-    });
+  fil.demander = (message) => new Promise((resolve, reject) => {
+    if (!fil.vivant) {
+      reject(new Error('Fil de calcul arrete.'));
+      return;
+    }
 
-    worker.once('exit', (code) => {
-      if (!settled) reject(new Error(`Fil de calcul arrete avec le code ${code}.`));
-    });
+    const nettoyer = () => {
+      worker.off('message', surMessage);
+      worker.off('error', surErreur);
+      worker.off('exit', surExit);
+    };
+    const surMessage = (reponse) => {
+      nettoyer();
+      if (reponse?.ok) resolve(reponse);
+      else reject(new Error(reponse?.message ?? 'Fil de calcul en echec.'));
+    };
+    const surErreur = (error) => { nettoyer(); reject(error); };
+    const surExit = (code) => {
+      nettoyer();
+      reject(new Error(`Fil de calcul arrete avec le code ${code}.`));
+    };
+
+    worker.on('message', surMessage);
+    worker.on('error', surErreur);
+    worker.on('exit', surExit);
+    worker.postMessage(message);
   });
+
+  fil.arreter = () => worker.terminate();
+  return fil;
 }
 
 /**
@@ -127,43 +148,65 @@ export async function solveParallel(input, options = {}) {
   const failures = [];
   const historique = new Array(threads).fill(null).map(() => []);
 
-  for (let vague = 0; vague < nbVagues; vague += 1) {
-    const tasks = [];
-    for (let i = 0; i < threads; i += 1) {
-      // Une graine distincte par fil et par vague garde des explorations variees.
-      tasks.push(runWorker(url, {
-        ...input,
-        seedGenomes: migrants[i],
-        options: { ...solverOptions, maxGenerations: parVague },
-        seed: baseSeed + i * 7919 + vague * 104729,
-      }));
-    }
+  // Les fils naissent une fois et vivent toutes les vagues.
+  const fils = new Array(threads).fill(null).map(() => creerFil(url, input));
 
-    const settled = await Promise.allSettled(tasks);
-
-    const resultats = [];
-    for (let i = 0; i < settled.length; i += 1) {
-      const issue = settled[i];
-      if (issue.status === 'fulfilled') {
-        resultats[i] = issue.value;
-        historique[i].push(...(issue.value.history ?? []));
-      } else {
-        failures.push(issue.reason?.message ?? String(issue.reason));
+  try {
+    for (let vague = 0; vague < nbVagues; vague += 1) {
+      const tasks = [];
+      for (let i = 0; i < threads; i += 1) {
+        // Une graine distincte par fil et par vague garde des explorations variees.
+        tasks.push(fils[i].demander({
+          type: 'vague',
+          seedGenomes: migrants[i],
+          options: { ...solverOptions, maxGenerations: parVague },
+          seed: baseSeed + i * 7919 + vague * 104729,
+        }));
       }
-    }
 
-    const aboutis = resultats.filter(Boolean);
-    if (aboutis.length === 0) {
-      throw new Error(`Tous les fils ont echoue. Premiere cause : ${failures[0] ?? 'inconnue'}`);
-    }
+      const settled = await Promise.allSettled(tasks);
 
-    runs = aboutis;
-    if (vague < nbVagues - 1) migrants = repartirMigrants(resultats, threads);
+      const resultats = [];
+      for (let i = 0; i < settled.length; i += 1) {
+        const issue = settled[i];
+        if (issue.status === 'fulfilled') {
+          resultats[i] = issue.value;
+          historique[i].push(...(issue.value.history ?? []));
+        } else {
+          failures.push(issue.reason?.message ?? String(issue.reason));
+        }
+      }
+
+      const aboutis = resultats.filter(Boolean);
+      if (aboutis.length === 0) {
+        throw new Error(`Tous les fils ont echoue. Premiere cause : ${failures[0] ?? 'inconnue'}`);
+      }
+
+      runs = aboutis;
+      if (vague < nbVagues - 1) migrants = repartirMigrants(resultats, threads);
+    }
+  } finally {
+    for (const fil of fils) fil.arreter();
   }
 
   // La courbe couvre toutes les vagues, pas seulement la derniere.
   runs = runs.map((run, i) => ({ ...run, history: historique[i] ?? run.history }));
   runs.sort((a, b) => b.score - a.score);
 
-  return { best: runs[0], runs, threads, waves: nbVagues, failures };
+  // Les candidats des fils se fondent dans une archive commune.
+  const archive = creerArchive({ identite: (ids) => [...ids].sort((a, b) => a - b) });
+  for (const run of runs) {
+    for (const candidat of run.candidats ?? []) {
+      archive.proposer(candidat.itemIds, candidat.score, candidat);
+    }
+  }
+
+  return {
+    best: runs[0],
+    runs,
+    threads,
+    waves: nbVagues,
+    failures,
+    candidats: archive.liste().map((entree) => entree.detail),
+  };
 }

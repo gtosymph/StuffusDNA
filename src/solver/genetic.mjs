@@ -10,7 +10,7 @@ import { weaponAttack } from '../engine/damage.mjs';
 import { maxViolations, scoreBuild, SEARCH_MODES } from './score.mjs';
 import { optimiserAllocation } from './allocation.mjs';
 import { EMPTY, buildPools, decode, genomeFromItems, planLocks, randomGenome, repair } from './genome.mjs';
-import { buildRankings, improve } from './local-search.mjs';
+import { buildRankings, improve, indexerPanoplies } from './local-search.mjs';
 import { SCROLLABLE as SCROLLABLE_KEYS } from '../engine/characteristics.mjs';
 
 /**
@@ -43,13 +43,17 @@ export const DEFAULT_OPTIONS = Object.freeze({
   /** Taille de la tete de classement utilisee par une mutation orientee. */
   guidedPoolSize: 40,
   /** Generations entre deux descentes locales sur le meilleur individu. */
-  localSearchEvery: 60,
+  localSearchEvery: 20,
   /** Nombre de parcours d'emplacements par descente. */
   localSearchPasses: 2,
   /** Vrai pour laisser le solveur repartir les points de caracteristique. */
   optimiserPoints: false,
   /** Generations entre deux repartitions des points. */
   allocationEvery: 15,
+  /** Generations de stagnation avant une injection d'immigrants. */
+  immigrantsAfter: 25,
+  /** Part de la population remplacee par une injection. */
+  immigrantsShare: 0.25,
 });
 
 /**
@@ -82,7 +86,9 @@ function createEvaluator({ pools, setById, level, porteur, scrolls, passives, pr
     if (!objective.useWeapon) return spells;
     const arme = items.find((item) => item.slot === 'arme');
     if (!arme) return spells;
-    if (!attaques.has(arme.id)) attaques.set(arme.id, weaponAttack(arme));
+    if (!attaques.has(arme.id)) {
+      attaques.set(arme.id, weaponAttack(arme, { maitrise: objective.maitriseArme !== false }));
+    }
     const attaque = attaques.get(arme.id);
     return attaque ? [...spells, attaque] : spells;
   };
@@ -185,6 +191,35 @@ function mutate(genome, pools, rate, random, guidage = null) {
 }
 
 /**
+ * Secoue un genome : deux a quatre cases changent d'un coup.
+ *
+ * Le tirage suit le meme guidage que les mutations orientees : la piece de
+ * remplacement vient le plus souvent de la tete du classement.
+ *
+ * @param {number[]} genome Non modifie.
+ * @returns {number[]} Une copie secouee.
+ */
+function secouer(genome, pools, random, guidage, locks = null, force = 0) {
+  const copie = [...genome];
+  const nb = 2 + Math.floor(random() * 3) + force;
+
+  for (let coup = 0; coup < nb; coup += 1) {
+    const cellule = Math.floor(random() * copie.length);
+    if (locks?.has(cellule) || pools[cellule].length === 0) continue;
+
+    const rangs = guidage?.rankings?.[cellule];
+    if (rangs && rangs.length > 0 && random() < 0.7) {
+      const tete = Math.min(guidage.size, rangs.length);
+      copie[cellule] = rangs[Math.floor(random() * tete)];
+    } else {
+      copie[cellule] = Math.floor(random() * pools[cellule].length);
+    }
+  }
+
+  return copie;
+}
+
+/**
  * Lance la recherche du meilleur build.
  *
  * @param {object} input
@@ -248,12 +283,13 @@ export function solve(input, options = {}, onProgress) {
     return true;
   };
 
-  // Classement des pieces par interet pour les conditions posees. Il sert aux
-  // mutations orientees comme a la descente locale.
-  const statsVisees = objective.conditions.map((c) => c.stat).filter(Boolean);
-  const rankings = buildRankings(pools, statsVisees);
+  // Classement des pieces par interet pour l'objectif entier : conditions
+  // posees et degats des sorts retenus. Il sert aux mutations orientees comme
+  // a la descente locale.
+  const rankings = buildRankings(pools, objective);
   const guidage = { rankings, rate: settings.guidedMutationRate, size: settings.guidedPoolSize };
-  const contexteLocal = { layout, pools, rankings, evaluate, locks };
+  const panoplies = indexerPanoplies(pools);
+  const contexteLocal = { layout, pools, rankings, evaluate, panoplies, locks };
 
   // Population initiale. Les genomes recus d'un tour precedent ouvrent la
   // marche : c'est ainsi que les fils se transmettent leurs trouvailles.
@@ -269,6 +305,18 @@ export function solve(input, options = {}, onProgress) {
     const copie = repair([...graine], layout, pools, locks);
     population.push({ genome: copie, score: evaluate(copie).score });
   }
+  // Les graines essaiment : une partie de la population part de leurs copies
+  // mutees plutot que du hasard, pour garder leurs acquis d'une vague a l'autre.
+  const nbGraines = population.length;
+  if (nbGraines > 0) {
+    const nbMutants = Math.floor((settings.populationSize - nbGraines) / 2);
+    for (let i = 0; i < nbMutants; i += 1) {
+      const source = population[Math.floor(random() * nbGraines)].genome;
+      const genome = mutate([...source], pools, 0.3, random, guidage);
+      repair(genome, layout, pools, locks);
+      population.push({ genome, score: evaluate(genome).score });
+    }
+  }
   while (population.length < settings.populationSize) {
     const genome = randomGenome(layout, pools, random, 0.9, locks);
     population.push({ genome, score: evaluate(genome).score });
@@ -278,6 +326,8 @@ export function solve(input, options = {}, onProgress) {
   let best = population[0];
   let stagnation = 0;
   let generation = 0;
+  let descentes = 0;
+  let echecsSecousse = 0;
 
   // Historique du meilleur score, pour tracer la courbe d'evolution.
   const history = [best.score];
@@ -321,14 +371,56 @@ export function solve(input, options = {}, onProgress) {
       stagnation += 1;
     }
 
-    // La descente locale affine le meilleur individu : le genetique explore
-    // largement mais n'essaie jamais le remplacement d'une seule piece.
+    // Quand le score n'avance plus, une injection remplace la queue de la
+    // population : moitie tirages neufs, moitie copies fortement mutees des
+    // meilleurs. L'elite reste en place, le score ne peut pas reculer.
+    if (settings.immigrantsAfter > 0 && stagnation > 0
+      && stagnation % settings.immigrantsAfter === 0) {
+      const nb = Math.max(1, Math.floor(settings.populationSize * settings.immigrantsShare));
+      for (let i = 0; i < nb; i += 1) {
+        const position = settings.populationSize - 1 - i;
+        if (position < settings.eliteCount) break;
+
+        let genome;
+        if (i % 2 === 0) {
+          genome = randomGenome(layout, pools, random, 0.9, locks);
+        } else {
+          const source = population[Math.floor(random() * settings.eliteCount)].genome;
+          genome = mutate([...source], pools, 0.4, random, guidage);
+          repair(genome, layout, pools, locks);
+        }
+        population[position] = { genome, score: evaluate(genome).score };
+      }
+      population.sort((a, b) => b.score - a.score);
+    }
+
+    // La descente locale affine le meilleur individu, puis les tours suivants
+    // le secouent avant de redescendre : quelques cases changent d'un coup,
+    // la descente repare le reste. Ce coup de pied traverse les vallees de
+    // penalite qu'un remplacement d'une seule piece ne peut pas franchir.
     if (settings.localSearchEvery > 0 && generation % settings.localSearchEvery === 0) {
-      const affine = improve(best.genome, contexteLocal, { maxPasses: settings.localSearchPasses });
+      let depart = best.genome;
+      if (descentes > 0) {
+        // La secousse grossit quand les essais echouent en serie : le bassin
+        // courant est epuise, il faut sauter plus loin.
+        depart = secouer(best.genome, pools, random, guidage, locks, Math.min(5, echecsSecousse));
+        repair(depart, layout, pools, locks);
+      }
+      descentes += 1;
+
+      const affine = improve(depart, contexteLocal, { maxPasses: settings.localSearchPasses });
       if (affine.score > best.score) {
         best = { genome: affine.genome, score: affine.score };
         population[0] = { ...best };
         stagnation = 0;
+        echecsSecousse = 0;
+      } else if (affine.score > population[population.length - 1].score) {
+        // Un essai perdant mais correct rejoint la population : il porte
+        // parfois la piece qui manquait a un croisement futur.
+        population[population.length - 1] = { genome: affine.genome, score: affine.score };
+        echecsSecousse += 1;
+      } else {
+        echecsSecousse += 1;
       }
     }
 
@@ -338,7 +430,7 @@ export function solve(input, options = {}, onProgress) {
   }
 
   // Une derniere descente, plus profonde, avant de rendre le resultat.
-  const dernier = improve(best.genome, contexteLocal, { maxPasses: 4 });
+  const dernier = improve(best.genome, contexteLocal, { maxPasses: 4, candidatesPerSlot: 120 });
   if (dernier.score > best.score) best = { genome: dernier.genome, score: dernier.score };
 
   // Les points se recalent une derniere fois sur le build retenu.
@@ -356,7 +448,7 @@ export function solve(input, options = {}, onProgress) {
     unplaced,
     history,
     // Les meilleurs genomes repartent vers les autres fils.
-    topGenomes: population.slice(0, 8).map((individu) => individu.genome),
+    topGenomes: population.slice(0, 16).map((individu) => individu.genome),
     generations: generation,
   };
 }

@@ -70,3 +70,31 @@ test('le reliquat part en vitalite', () => {
   });
   assert.equal(allocation.vitalite, availablePoints(190));
 });
+
+test('une condition de fuite se comble par l\'agilite (stat derivee)', () => {
+  // Cas reel : items donnant sagesse 420 et fuite 50 ; conditions sagesse 600
+  // et fuite 60. La fuite derive de l'agilite (1 pour 10) : l'optimiseur doit
+  // caler une tranche d'agilite sur la distance, puis investir le reste en
+  // intelligence pour les degats feu.
+  const raw = { sagesse: 420, fuite: 50, vitalite: 2000 };
+  const objective = {
+    conditions: [
+      { stat: 'sagesse', target: 600, weight: 15, max: null, absolute: false },
+      { stat: 'fuite', target: 60, weight: 1, max: null, absolute: false },
+    ],
+    spells: [{
+      name: 'Sort feu', apCost: 4, castsPerTurn: 1, baseCrit: 0,
+      lines: [{ element: 'feu', min: 30, max: 34, critMin: 36, critMax: 40, source: 'sort', range: 'melee' }],
+    }],
+    mode: 'degats',
+  };
+
+  const { allocation, score } = optimiserAllocation({ raw, level: 190, objective });
+
+  const sagesseFinale = 420 + allocation.sagesse;
+  const fuiteFinale = 50 + Math.floor(allocation.agilite / 10);
+  assert.ok(sagesseFinale >= 600, `sagesse ${sagesseFinale} < 600`);
+  assert.ok(fuiteFinale >= 60, `fuite ${fuiteFinale} < 60 (agilite ${allocation.agilite})`);
+  assert.ok(score > 0, `score ${score} : les conditions devraient etre satisfaites`);
+  assert.ok(allocation.intelligence > 0, 'le reste du budget doit nourrir les degats feu');
+});

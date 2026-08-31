@@ -246,6 +246,12 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); }
 .sort-grille { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .sort-grille.ligne-sort { grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); }
 .sort-grille.ligne-sort select { min-width: 0; font-size: 10px; }
+/* Une rangee otable garde une colonne etroite pour son bouton d'effacement. */
+.sort-grille.ligne-sort.otable { grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)) auto; }
+.ligne-sort .oter-ligne { align-self: end; margin-bottom: 1px; padding: 2px 6px; }
+.ajout-ligne { margin-top: 5px; }
+.ajout-ligne .mini.large { width: 100%; color: var(--faible); }
+.ajout-ligne .mini.large:hover { color: var(--accent); border-color: var(--accent); }
 .sort-total { margin-top: 5px; font-family: var(--chiffre); font-size: 11px; color: var(--positif); text-align: right; }
 
 /* ---------- Panoplies et options ---------- */
@@ -671,3 +677,64 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .bulle-arme-calc .ligne-arme { font-size: 9px; padding: 0 6px; margin: 0 3px 3px 0; }
 .bulle-arme-moyenne { font-size: 10px; color: var(--faible); margin-top: 2px; }
 .fiche-arme.calc { padding-top: 6px; border-top: 1px solid var(--bord); }
+
+/* ---------- Autres builds trouves ---------- */
+
+.candidats { display: grid; gap: 6px; }
+.candidat {
+  border: 1px solid var(--bord); border-radius: var(--r);
+  padding: 6px 8px; background: var(--champ);
+}
+.candidat.porte { border-color: var(--accent); }
+.candidat-tete { display: flex; align-items: center; gap: 8px; }
+.candidat-score { font-family: var(--chiffre); font-size: 14px; color: var(--positif); font-weight: 600; }
+.candidat-ecart { font-family: var(--chiffre); font-size: 11px; }
+.candidat-ecart.pos { color: var(--positif); }
+.candidat-ecart.neg { color: var(--ambre); }
+.candidat-changements { flex: 1; font-size: 10px; color: var(--faible); }
+.candidat-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 5px; }
+.candidat-legende {
+  font-size: 8px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--faible);
+}
+.piece-candidat { width: 26px; height: 26px; border-radius: 4px; border: 1px solid transparent; }
+.piece-candidat.entrante { border-color: var(--positif); }
+.piece-candidat.sortante { border-color: var(--bord); opacity: 0.55; }
+
+/* ---------- Analyse du build ---------- */
+
+.sous-titre {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--faible); margin: 8px 0 5px; font-weight: 600;
+}
+.sous-titre:first-of-type { margin-top: 0; }
+.apports, .sensibilite { display: grid; gap: 2px; }
+/* La jauge occupe le fond de la ligne : le nom garde toute la largeur. */
+.apport, .mesure {
+  position: relative; display: flex; align-items: center; gap: 6px;
+  font-size: 10px; padding: 3px 5px; border-radius: 4px; overflow: hidden;
+}
+.apport > *, .mesure > * { position: relative; z-index: 1; }
+.apport-icone { width: 18px; height: 18px; flex: none; }
+.mesure-icone { width: 14px; height: 14px; flex: none; }
+.apport-nom, .mesure-nom {
+  flex: 1; min-width: 0; color: var(--texte);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.apport-jauge {
+  position: absolute; inset: 0; z-index: 0; background: none; border-radius: 4px;
+}
+.apport-jauge i {
+  display: block; height: 100%; border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.apport-valeur, .mesure-gain {
+  flex: none; text-align: right;
+  font-family: var(--chiffre); font-size: 11px; color: var(--positif);
+}
+.apport-valeur.neg { color: var(--alerte); }
+.apport-valeur.nul { color: var(--faible); }
+.apport.decisive .apport-nom { color: var(--ambre); }
+.apport-marque {
+  flex: none; width: 10px; text-align: center;
+  font-family: var(--chiffre); font-size: 11px; font-weight: 700; color: var(--ambre);
+}

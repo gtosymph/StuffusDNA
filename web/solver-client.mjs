@@ -6,14 +6,22 @@
  * et rend le meilleur build quand l'utilisateur met la recherche en pause.
  */
 
+import { creerArchive } from '../src/solver/candidates.mjs';
+
 /** Nombre de fils propose par defaut, selon le processeur. */
 export function defaultThreadCount() {
   const cores = Math.max(1, navigator.hardwareConcurrency || 2);
   return Math.min(8, Math.max(1, Math.floor(cores / 2)));
 }
 
-/** Delai accorde aux fils pour rendre leur resultat apres l'ordre d'arret. */
-const DELAI_ARRET_MS = 5000;
+/**
+ * Delai accorde aux fils pour rendre leur resultat apres l'ordre d'arret.
+ *
+ * Un fil ne lit ses messages qu'entre deux vagues : il faut donc laisser
+ * finir la vague en cours. Sous plusieurs fils qui se partagent les coeurs,
+ * une vague peut demander plusieurs secondes.
+ */
+const DELAI_ARRET_MS = 20000;
 
 /**
  * Lance une recherche continue sur plusieurs fils.
@@ -32,6 +40,9 @@ export function runSearch(request, { threads, onProgress, onWave }) {
 
   const promise = new Promise((resolve, reject) => {
     const resultats = [];
+    // Meilleur build vu en cours de route, par fil : si un fil tarde a rendre
+    // son resultat final, son travail n'est pas perdu pour autant.
+    const derniersResumes = new Map();
     let vivants = threads;
     let minuteur = null;
 
@@ -39,12 +50,28 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       clearTimeout(minuteur);
       for (const { worker } of fils) worker.terminate();
 
-      if (resultats.length === 0) {
+      // Aucun resultat final : le meilleur des vagues recues fait foi.
+      const retenus = resultats.length > 0 ? resultats : [...derniersResumes.values()];
+      if (retenus.length === 0) {
         reject(new Error('Aucun fil n\'a rendu de resultat.'));
         return;
       }
-      resultats.sort((a, b) => b.score - a.score);
-      resolve({ best: resultats[0], runs: resultats });
+      retenus.sort((a, b) => b.score - a.score);
+
+      // Les fils explorent des pistes differentes : leurs candidats se
+      // fondent dans une seule archive, sans doublon de composition.
+      const archive = creerArchive({ identite: (ids) => [...ids].sort((a, b) => a - b) });
+      for (const run of retenus) {
+        for (const candidat of run.candidats ?? []) {
+          archive.proposer(candidat.itemIds, candidat.score, candidat);
+        }
+      }
+
+      resolve({
+        best: retenus[0],
+        runs: retenus,
+        candidats: archive.liste().map((entree) => entree.detail),
+      });
     };
 
     const terminerFil = () => {
@@ -67,6 +94,10 @@ export function runSearch(request, { threads, onProgress, onWave }) {
 
         if (message.type === 'vague') {
           onWave?.(message);
+          const connu = derniersResumes.get(message.seed);
+          if (message.resume && (!connu || message.resume.score > connu.score)) {
+            derniersResumes.set(message.seed, message.resume);
+          }
           // Les meilleurs genomes du fil partent chez les autres.
           if (Array.isArray(message.topGenomes) && message.topGenomes.length > 0) {
             for (const autre of fils) {

@@ -10,9 +10,18 @@ import { loadCatalog } from './catalog-web.mjs';
 import { normalizePassives } from '../src/data/passives.mjs';
 import { STAT_KEYS } from '../src/data/stats.mjs';
 import { solve } from '../src/solver/genetic.mjs';
+import { creerArchive } from '../src/solver/candidates.mjs';
 
-/** Generations par vague : le compromis entre reactivite et debit. */
-const GENERATIONS_PAR_VAGUE = 40;
+/**
+ * Generations par vague : le compromis entre reactivite et debit.
+ *
+ * Une vague ne rend la main qu'une fois finie : c'est elle qui fixe le delai
+ * de reponse a la Pause et le rythme des echanges entre fils. Mesure du
+ * 2026-08-31 dans le navigateur : 20 generations coutent environ une seconde
+ * sur un objectif avec arme, plusieurs fois plus quand tous les fils se
+ * partagent les coeurs.
+ */
+const GENERATIONS_PAR_VAGUE = 20;
 
 /** Le catalogue ne se charge qu'une fois par fil. */
 let catalogPromise = null;
@@ -58,6 +67,10 @@ async function chercher(request) {
     objective: request.objective,
   };
 
+  // Les candidats se cumulent sur toute la recherche : chaque vague repart
+  // avec une archive neuve, celle-ci garde la memoire de toutes les vagues.
+  const archive = creerArchive({ identite: (ids) => [...ids].sort((a, b) => a - b) });
+
   let allocation = request.allocation ?? {};
   let graines = [];
   let totalGenerations = 0;
@@ -78,7 +91,7 @@ async function chercher(request) {
         seed: (request.seed + vague * 7919) >>> 0,
       },
       (progress) => {
-        if ((debut + progress.generation) % 20 === 0) {
+        if ((debut + progress.generation) % 5 === 0) {
           self.postMessage({
             type: 'progress', seed: request.seed,
             generation: debut + progress.generation, best: progress.best,
@@ -90,6 +103,10 @@ async function chercher(request) {
     totalGenerations += GENERATIONS_PAR_VAGUE;
     graines = result.topGenomes;
     allocation = result.allocation ?? allocation;
+
+    for (const candidat of result.candidats ?? []) {
+      archive.proposer(candidat.itemIds, candidat.score, candidat);
+    }
 
     const resume = resumer(result);
     if (!meilleur || resume.score > meilleur.score) meilleur = resume;
@@ -114,6 +131,7 @@ async function chercher(request) {
     type: 'done',
     seed: request.seed,
     generations: totalGenerations,
+    candidats: archive.liste().map((entree) => entree.detail),
     ...(meilleur ?? { score: Number.NEGATIVE_INFINITY }),
   });
 }

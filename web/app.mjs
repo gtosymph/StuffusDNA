@@ -9,9 +9,9 @@ import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
 import { dessinerEvolution } from './chart.mjs';
 import { loadSpells, versSortMoteur } from './spells-data.mjs';
-import { ouvrirFiche } from './item-panel.mjs';
+import { fermerFiche, ouvrirFiche } from './item-panel.mjs';
 import { renderPoints } from './points-panel.mjs';
-import { ouvrirPicker } from './spell-picker.mjs';
+import { fermerPicker, ouvrirPicker } from './spell-picker.mjs';
 import { cacherBulle } from './hover-card.mjs';
 import { chargerSet, enleverSet, enregistrerSet, lireSets } from './presets.mjs';
 
@@ -21,8 +21,10 @@ import { computeBuild } from '../src/engine/build.mjs';
 import { availablePoints } from '../src/engine/characteristics.mjs';
 import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { normalizePassives } from '../src/data/passives.mjs';
+import { ajouterLigne, enleverLigne, modifierLigne } from '../src/data/spell-lines.mjs';
 import { configPassifsDefaut } from '../src/data/passives-defaults.mjs';
 import { scoreBuild, SEARCH_MODES } from '../src/solver/score.mjs';
+import { apportsPieces, sensibiliteStats } from '../src/solver/explain.mjs';
 
 const $ = (id) => document.getElementById(id);
 
@@ -86,6 +88,8 @@ let etat = {
   filtreStat: { stat: '', op: '>=', valeur: 0 },
   conditions: CONDITIONS_DEPART,
   sorts: [],
+  /** Autres builds distincts rendus par la derniere recherche. */
+  candidats: [],
   options: {
     distance: false, arme: false, maitriseArme: true, passifs: true, toursSuivants: false,
     cibleTelefrag: false,
@@ -103,7 +107,38 @@ let historiques = [];
 /** Vrai pendant une recherche : la courbe se redessine a chaque avancee. */
 let rechercheEnCours = false;
 
-const setEtat = (patch) => { etat = { ...etat, ...patch }; sauverEtat(); render(); };
+/** Nombre d'etats gardes pour l'annulation. */
+const ETATS_GARDES = 30;
+
+/**
+ * Etats precedents, du plus ancien au plus recent.
+ *
+ * L'etat est immuable : garder les versions precedentes suffit a tout
+ * annuler, sans code special par action. « Vider », « Bannir les resultats »
+ * et « Recommencer » deviennent ainsi reversibles, sans demander confirmation
+ * a chaque fois.
+ */
+const passe = [];
+
+const setEtat = (patch) => {
+  passe.push(etat);
+  if (passe.length > ETATS_GARDES) passe.shift();
+  etat = { ...etat, ...patch };
+  sauverEtat();
+  render();
+};
+
+/** Revient a l'etat precedent, s'il y en a un. */
+function annuler() {
+  const precedent = passe.pop();
+  if (!precedent) {
+    message('Rien a annuler.', 'info');
+    return;
+  }
+  etat = precedent;
+  sauverEtat();
+  render();
+}
 
 /** Cle de l'etat persistant dans le navigateur. */
 const CLE_ETAT = 'copyroxx_etat';
@@ -535,12 +570,18 @@ function changerSort(index, cle, valeur) {
     if (!cle.startsWith('line.')) return { ...sort, [cle]: valeur };
     // "line.<rang>.<champ>" modifie une ligne de degats precise.
     const [, rang, champ] = cle.split('.');
-    return {
-      ...sort,
-      lines: sort.lines.map((l, j) => (j === Number(rang) ? { ...l, [champ]: valeur } : l)),
-    };
+    return modifierLigne(sort, Number(rang), champ, valeur);
   });
   setEtat({ sorts });
+}
+
+/**
+ * Remplace un sort de la liste par sa version transformee.
+ * @param {number} index
+ * @param {(sort: any) => any} transformer
+ */
+function changerLignes(index, transformer) {
+  setEtat({ sorts: etat.sorts.map((sort, i) => (i === index ? transformer(sort) : sort)) });
 }
 
 function render() {
@@ -618,10 +659,17 @@ function render() {
   vue.renderSorts($('liste-sorts'), etat.sorts, degats, {
     onChange: changerSort,
     onRemove: (i) => setEtat({ sorts: etat.sorts.filter((_, j) => j !== i) }),
+    onAjouterLigne: (i) => changerLignes(i, ajouterLigne),
+    onEnleverLigne: (i, rang) => changerLignes(i, (sort) => enleverLigne(sort, rang)),
   });
 
   const arme = attaqueArme();
   vue.renderArme($('carte-arme'), arme, arme && stats ? computeSpellDetail(arme, stats) : null);
+
+  montrerCandidats(stats);
+  montrerAnalyse(build, stats);
+
+  $('annuler').disabled = passe.length === 0;
 
   renderPoints($('points'), etat, {
     onPoints: (cle, valeur) => setEtat({ allocation: { ...etat.allocation, [cle]: Math.max(0, valeur) } }),
@@ -816,8 +864,9 @@ async function lancer(choix = {}) {
   );
 
   try {
-    const { best } = await recherche.promise;
+    const { best, candidats } = await recherche.promise;
     if (best.score > meilleurApplique) appliquer(best);
+    if (Array.isArray(candidats)) setEtat({ candidats });
     message(`Recherche en pause apres ${generationMax.toLocaleString('fr-FR')} generations sur ${fils} fil(s).`, 'info');
     $('compteur-generations').textContent =
       `generation ${generationMax.toLocaleString('fr-FR')} — en pause`;
@@ -832,6 +881,63 @@ async function lancer(choix = {}) {
     dessinerEvolution($('graphe'), historiques, { enCours: false });
     sauverResultat(generationMax, fils);
   }
+}
+
+/**
+ * Montre ce que chaque piece apporte et ou investir pour gagner des degats.
+ *
+ * @param {any|null} build Build courant, deja calcule.
+ * @param {Record<string, number>|null} stats
+ */
+function montrerAnalyse(build, stats) {
+  const bloc = $('bloc-analyse');
+  const pieces = [...etat.equipped.values()];
+  bloc.hidden = !stats || pieces.length === 0;
+  if (bloc.hidden) return;
+
+  const cible = { ...objectif(), spells: attaquesAffichees() };
+
+  vue.renderAnalyse($('apports'), $('sensibilite'), {
+    apports: apportsPieces(pieces, {
+      level: etat.niveau,
+      allocation: etat.allocation,
+      scrolls: etat.scrolls,
+      passives: passifsActifs(),
+      profile: { classe: etat.classe, sexe: etat.sexe },
+      setById: catalogue.setById,
+      objective: cible,
+    }),
+    sensibilite: sensibiliteStats(stats, cible),
+    itemById: catalogue.itemById,
+    libelles: STAT_LABELS,
+  });
+}
+
+/**
+ * Montre les autres builds trouves, avec ce qu'il faut changer pour chacun.
+ * @param {Record<string, number>|null} stats Statistiques du build porte.
+ */
+function montrerCandidats(stats) {
+  const bloc = $('bloc-candidats');
+  const candidats = etat.candidats ?? [];
+  bloc.hidden = candidats.length === 0;
+  $('compte-candidats').textContent = String(candidats.length);
+  if (candidats.length === 0) return;
+
+  const portes = new Set([...etat.equipped.values()].map((piece) => piece.id));
+  const scorePorte = stats
+    ? scoreBuild(stats, { ...objectif(), spells: attaquesAffichees() }).score
+    : null;
+
+  vue.renderCandidats($('candidats'), candidats, {
+    portes,
+    itemById: catalogue.itemById,
+    scorePorte,
+    onPorter: (candidat) => {
+      appliquer(candidat);
+      message(`Build remplace par un candidat a ${Math.floor(candidat.score).toLocaleString('fr-FR')}.`, 'info');
+    },
+  });
 }
 
 /** Pose le build trouve par le solveur, points de caracteristique compris. */
@@ -877,6 +983,26 @@ function brancher() {
   $('bannir-resultats').addEventListener('click', bannirResultats);
   $('autoriser-resultats').addEventListener('click', autoriserResultats);
   $('vider').addEventListener('click', () => setEtat({ equipped: new Map(), posees: new Set() }));
+  $('annuler').addEventListener('click', annuler);
+
+  window.addEventListener('keydown', (ev) => {
+    // Echap ferme ce qui est ouvert par-dessus la page.
+    if (ev.key === 'Escape') {
+      fermerFiche();
+      fermerPicker();
+      cacherBulle();
+      return;
+    }
+
+    // Ctrl+Z, ou Cmd+Z sur Mac : le geste attendu partout ailleurs.
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z' && !ev.shiftKey) {
+      const cible = ev.target;
+      // Dans un champ de saisie, le navigateur annule le texte lui-meme.
+      if (cible instanceof HTMLInputElement || cible instanceof HTMLTextAreaElement) return;
+      ev.preventDefault();
+      annuler();
+    }
+  });
 
   $('ajouter-condition').addEventListener('click', () => {
     const stat = $('nouvelle-condition').value;

@@ -339,6 +339,11 @@ function detailSort(detail) {
       el('span', { class: 'cle crit', text: `Critique ${taux} %` }),
       el('span', { class: 'val crit', text: plage(detail.critMin, detail.critMax) }),
     ),
+    // Plusieurs lignes : chacune montre son apport, element par element.
+    (detail.parLigne?.length ?? 0) > 1
+      ? el('div', { class: 'lignes-arme', title: 'Apport de chaque ligne, hors critique' },
+          detail.parLigne.map((ligne) => ligneArme(ligne, plage(ligne.normalMin, ligne.normalMax))))
+      : null,
     el('div', { class: 'sort-moyennes' },
       el('span', { title: 'Moyenne par coup, taux critique compris' },
         el('b', { text: entier(detail.average) }), ' par coup'),
@@ -394,8 +399,21 @@ export function renderArme(root, attaque, detail) {
   ));
 }
 
-/** Remplit la liste des sorts. */
-export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
+/**
+ * Remplit la liste des sorts.
+ *
+ * @param {HTMLElement} root
+ * @param {any[]} sorts
+ * @param {any[]|null} degats Details calcules, un par sort.
+ * @param {object} actions
+ * @param {(index: number, cle: string, valeur: any) => void} actions.onChange
+ * @param {(index: number) => void} actions.onRemove
+ * @param {(index: number) => void} [actions.onAjouterLigne] Ajoute une ligne de degats.
+ * @param {(index: number, rang: number) => void} [actions.onEnleverLigne]
+ */
+export function renderSorts(root, sorts, degats, {
+  onChange, onRemove, onAjouterLigne = null, onEnleverLigne = null,
+}) {
   if (sorts.length === 0) {
     fill(root, el('p', { class: 'note', text: 'Aucun sort. Le solveur ne vise que les conditions.' }));
     return;
@@ -444,7 +462,9 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
       ),
       // Une rangee editable par ligne de degats : element, plage, plage critique.
       sort.lines.map((ligne, rang) => el('div', {
-        class: `sort-grille ligne-sort ${ligne.differe > 0 ? 'differee' : ''}`.trim() },
+        class: ['sort-grille', 'ligne-sort',
+          ligne.differe > 0 ? 'differee' : '',
+          onEnleverLigne && sort.lines.length > 1 ? 'otable' : ''].filter(Boolean).join(' ') },
         cellule(ligne.differe > 0 ? `Element · T+${ligne.differe}` : 'Element',
           el('select', {
             onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
@@ -457,8 +477,158 @@ export function renderSorts(root, sorts, degats, { onChange, onRemove }) {
         champLigne(rang, ligne, 'max', 'Max', 'Degats de base maximaux'),
         champLigne(rang, ligne, 'critMin', 'Crit min', 'Degats de base minimaux en critique'),
         champLigne(rang, ligne, 'critMax', 'Crit max', 'Degats de base maximaux en critique'),
+        // Le sort garde toujours une ligne : la derniere ne s'enleve pas.
+        onEnleverLigne && sort.lines.length > 1
+          ? el('button', { class: 'mini oter-ligne', type: 'button', text: '×',
+              title: 'Enlever cette ligne de degats',
+              onClick: () => onEnleverLigne(index, rang) })
+          : null,
       )),
+      onAjouterLigne
+        ? el('div', { class: 'ajout-ligne' },
+            el('button', { class: 'mini large', type: 'button', text: '+ ligne de degats',
+              title: 'Ajoute une ligne de degats, dans le meme element ou dans un autre',
+              onClick: () => onAjouterLigne(index) }))
+        : null,
       detail ? detailSort(detail) : null,
+    );
+  }));
+}
+
+/**
+ * Remplit l'analyse du build : apport des pieces et statistiques qui paient.
+ *
+ * L'apport d'une piece vaut ce que le build perd sans elle ; la barre le
+ * montre a l'echelle de la piece la plus utile. Les statistiques, elles,
+ * repondent a la question suivante : ou mettre le prochain point gagne.
+ *
+ * @param {HTMLElement} racineApports
+ * @param {HTMLElement} racineSensibilite
+ * @param {object} analyse
+ * @param {any[]} analyse.apports
+ * @param {any[]} analyse.sensibilite
+ * @param {Map<number, any>} analyse.itemById
+ * @param {Record<string, string>} analyse.libelles
+ */
+export function renderAnalyse(racineApports, racineSensibilite, analyse) {
+  const { apports, sensibilite, itemById, libelles } = analyse;
+
+  // La jauge suit les degats : le score melange degats et penalites, une piece
+  // qui rend un point d'action y paraitrait plus utile qu'une piece de degats.
+  const fort = Math.max(1, ...apports.map((a) => a.degats ?? 0));
+  fill(racineApports, apports.map((apport) => {
+    const piece = itemById.get(apport.id);
+    const part = Math.min(100, Math.round(((apport.degats ?? 0) / fort) * 100));
+
+    return el('div', {
+      class: `apport ${apport.casseCondition ? 'decisive' : ''}`.trim(),
+      title: apport.casseCondition
+        ? `${apport.fr} — sans elle, ces conditions tombent : `
+          + `${(apport.conditionsPerdues ?? []).map((stat) => libelles[stat] ?? stat).join(', ')}`
+        : `${apport.fr} — sans elle, le build perd ${entier(apport.degats ?? 0)} degats`,
+    },
+      piece?.img
+        ? el('img', { class: 'apport-icone', src: piece.img, alt: '', decoding: 'async',
+            onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+            onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
+            onMouseleave: cacherBulle })
+        : null,
+      el('span', { class: 'apport-nom', text: apport.fr }),
+      el('span', { class: 'apport-jauge' }, el('i', { style: `width:${part}%` })),
+      apport.casseCondition
+        ? el('span', { class: 'apport-marque', title: 'Sans cette piece, une condition tombe', text: '!' })
+        : null,
+      el('span', { class: `apport-valeur ${ton(apport.degats ?? 0)}`,
+        text: `+${entier(apport.degats ?? 0)}` }));
+  }));
+
+  // Une statistique sans effet n'apprend rien : seules les utiles restent.
+  const utiles = sensibilite.filter((mesure) => mesure.gain > 0).slice(0, 8);
+  if (utiles.length === 0) {
+    fill(racineSensibilite, el('p', { class: 'note', text: 'Aucun sort retenu : rien a conseiller.' }));
+    return;
+  }
+
+  const meilleur = utiles[0].gain;
+  fill(racineSensibilite, utiles.map((mesure) => {
+    const icone = iconeStat(mesure.stat);
+    const part = Math.min(100, Math.round((mesure.gain / meilleur) * 100));
+    // Les libelles portent deja leur unite : « % Dommages Melee », « % Critique ».
+    const unite = '';
+
+    return el('div', { class: 'mesure', title: `${mesure.pas}${unite} de plus sur cette statistique rend ${entier(mesure.gain)} degats` },
+      icone ? el('img', { class: 'mesure-icone', src: icone, alt: '', decoding: 'async' }) : null,
+      el('span', { class: 'mesure-nom', text: `+${mesure.pas}${unite} ${libelles[mesure.stat] ?? mesure.stat}` }),
+      el('span', { class: 'apport-jauge' }, el('i', { style: `width:${part}%` })),
+      el('span', { class: 'mesure-gain', text: `+${entier(mesure.gain)}` }));
+  }));
+}
+
+/**
+ * Remplit la liste des autres builds trouves.
+ *
+ * Un solveur qui ne rend qu'un gagnant cache ses seconds : ils valent
+ * souvent quelques degats de moins pour deux pieces que le joueur possede
+ * deja. Chaque ligne dit donc ce qu'il faut changer, et ce que cela coute.
+ *
+ * @param {HTMLElement} root
+ * @param {any[]} candidats
+ * @param {object} contexte
+ * @param {Set<number>} contexte.portes Identifiants du build porte.
+ * @param {Map<number, any>} contexte.itemById
+ * @param {number|null} contexte.scorePorte Score du build porte, ou null.
+ * @param {(candidat: any) => void} contexte.onPorter
+ */
+export function renderCandidats(root, candidats, { portes, itemById, scorePorte, onPorter }) {
+  if (!candidats || candidats.length === 0) {
+    fill(root, el('p', { class: 'note', text: 'Aucun autre build. Lancez une recherche.' }));
+    return;
+  }
+
+  fill(root, candidats.map((candidat) => {
+    const ids = candidat.itemIds ?? [];
+    const aMettre = ids.filter((id) => !portes.has(id));
+    const aEnlever = [...portes].filter((id) => !ids.includes(id));
+    const ecart = Number.isFinite(scorePorte) ? candidat.score - scorePorte : null;
+
+    // Un build deja porte se signale : il n'y a rien a changer.
+    const identique = aMettre.length === 0 && aEnlever.length === 0;
+
+    const vignette = (id, classe) => {
+      const piece = itemById.get(id);
+      if (!piece) return null;
+      return el('img', {
+        class: `piece-candidat ${classe}`,
+        src: piece.img, alt: piece.fr, title: piece.fr, decoding: 'async',
+        onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+        onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
+        onMouseleave: cacherBulle,
+      });
+    };
+
+    return el('div', { class: `candidat ${identique ? 'porte' : ''}`.trim() },
+      el('div', { class: 'candidat-tete' },
+        el('span', { class: 'candidat-score', text: entier(candidat.score) }),
+        ecart === null || identique
+          ? null
+          : el('span', {
+              class: `candidat-ecart ${ecart >= 0 ? 'pos' : 'neg'}`,
+              text: `${ecart >= 0 ? '+' : ''}${entier(ecart)}`,
+              title: 'Ecart avec le build porte',
+            }),
+        el('span', { class: 'candidat-changements',
+          text: identique ? 'build porte' : `${aMettre.length} piece(s) a changer` }),
+        identique
+          ? null
+          : el('button', { class: 'mini large', type: 'button', text: 'Porter',
+              title: 'Remplace le build porte par celui-ci',
+              onClick: () => onPorter(candidat) })),
+
+      identique ? null : el('div', { class: 'candidat-pieces' },
+        el('span', { class: 'candidat-legende', text: 'a mettre' }),
+        aMettre.map((id) => vignette(id, 'entrante')),
+        aEnlever.length > 0 ? el('span', { class: 'candidat-legende', text: 'a enlever' }) : null,
+        aEnlever.map((id) => vignette(id, 'sortante'))),
     );
   }));
 }

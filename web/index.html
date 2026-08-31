@@ -128,6 +128,7 @@
           <option value="0">♂</option>
           <option value="1">♀</option>
         </select>
+        <button id="annuler" type="button" title="Annule la derniere action (Ctrl+Z)" disabled>Annuler</button>
         <button id="vider" class="danger" type="button">Vider</button>
       </div>
 
@@ -170,6 +171,12 @@
       <div id="carte-combo"></div>
     </section>
 
+    <section class="bloc" id="bloc-candidats" hidden>
+      <h2>Autres builds trouves <span class="compteur" id="compte-candidats">0</span></h2>
+      <p class="note">Chaque ligne montre les pieces a changer pour passer du build porte a celui-ci.</p>
+      <div class="candidats" id="candidats"></div>
+    </section>
+
     <section class="bloc">
       <h2>Bonus de panoplie <span class="compteur" id="compte-bonus" title="Chaque panoplie apporte (pieces − 1) bonus">0</span></h2>
       <div class="panoplies" id="panoplies"></div>
@@ -178,6 +185,14 @@
 
   <!-- ===== Colonne 4 : dommages, resistances, options ===== -->
   <div class="colonne colonne-detail">
+    <section class="bloc" id="bloc-analyse" hidden>
+      <h2>Analyse du build</h2>
+      <h3 class="sous-titre">Apport de chaque piece</h3>
+      <div class="apports" id="apports"></div>
+      <h3 class="sous-titre">Ou investir pour gagner des degats</h3>
+      <div class="sensibilite" id="sensibilite"></div>
+    </section>
+
     <section class="bloc">
       <h2>Dommages</h2>
       <dl class="paires" id="stats-dommages"></dl>

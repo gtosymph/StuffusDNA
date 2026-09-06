@@ -1,0 +1,138 @@
+/* Copyroxx — theme « Papier ».
+   Direction : une fiche technique d'atelier. Fond papier gris-bleu, cartes
+   blanches, une seule encre bleue, filets fins, aucune ombre portee lourde.
+   Le contraste vient du trait et de la typographie, pas de la couleur. */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: light;
+
+  --fond: #e7eaef;
+  --carte: #ffffff;
+  --carte-haute: #ffffff;
+  --champ: #f3f5f9;
+  --bord: #d2d8e2;
+  --bord-clair: #b5bdcc;
+  --survol: #eef1f7;
+  --survol-fort: #e2e7f1;
+  --barre-haut: #ffffff;
+  --barre-bas: #ffffff;
+
+  --texte: #2a3140;
+  --faible: #6a7383;
+  --titre: #0f131b;
+
+  --accent: #2647c8;
+  --accent-doux: #2647c8;
+  --accent-vif: #1a35a4;
+  --sur-accent: #ffffff;
+  --ambre: #9a5c05;
+  --positif: #0a7551;
+  --alerte: #bd3427;
+  --cyan: #0d6b83;
+
+  --bouton: #ffffff;
+  --bouton-survol: #eaeef6;
+
+  --or-fond: #fdf3e0;
+  --or-bord: #e2c289;
+  --or-voile: rgba(154, 92, 5, 0.06);
+  --or-trait: rgba(154, 92, 5, 0.28);
+  --info-fond: #eaf0ff;
+  --info-bord: #bacbf4;
+  --info-texte: #22407e;
+  --alerte-fond: #fdece9;
+  --alerte-bord: #efbcb5;
+  --alerte-texte: #8b1f17;
+  --banni-fond: #fbedf0;
+  --banni-bord: #ecbbc6;
+  --banni-texte: #8a2840;
+  --cyan-fond: #e5f3f8;
+  --cyan-bord: #a7d2df;
+
+  --avatar-haut: #f7f8fb;
+  --avatar-bas: #e9edf4;
+  --halo: rgba(38, 71, 200, .10);
+  --couple-fond: rgba(38, 71, 200, 0.03);
+  --prise-fond: #edf1ff;
+
+  --graphe-grille: #dbe0ea;
+  --graphe-zero: #97a1b3;
+  --graphe-aire: 38, 71, 200;
+  --graphe-etiquette: rgba(255, 255, 255, 0.9);
+  --graphe-fils: #2647c8, #0a7551, #9a5c05, #bd3427, #0d6b83, #7a3ea8, #4d7d1f, #a8306e;
+
+  --voile: rgba(24, 30, 44, .38);
+  --ombre-fiche: rgba(24, 30, 44, .18);
+  --ombre-picker: rgba(24, 30, 44, .22);
+  --ombre-bulle: rgba(24, 30, 44, .16);
+
+  --r: 6px;
+  --police: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --chiffre: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --taille: 12.5px;
+  --interligne: 1.5;
+  --pad-bloc: 11px 12px;
+  --gap-atelier: 10px;
+}
+
+/* --- Barre du haut : un bandeau blanc, pose sur le papier par un seul filet. --- */
+.barre {
+  background: var(--carte);
+  border-bottom: 1px solid var(--bord);
+  padding: 9px 16px;
+}
+.logo { font-weight: 600; letter-spacing: -0.2px; }
+.losange { border-radius: 50%; transform: none; width: 9px; height: 9px; }
+.barre-info { background: var(--champ); border-color: transparent; }
+.etiquette { border-radius: 4px; background: var(--champ); border-color: transparent; }
+.etiquette.accent { background: var(--prise-fond); border-color: transparent; color: var(--accent); }
+
+/* --- Blocs : carte blanche, titre souligne d'un filet plein. --- */
+.bloc { box-shadow: 0 1px 2px rgba(24, 30, 44, .04); }
+.bloc > h2 {
+  border-left: none;
+  border-bottom: 1px solid var(--bord);
+  padding: 0 0 7px;
+  margin-bottom: 9px;
+  color: var(--titre);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+}
+.compteur {
+  background: var(--champ); color: var(--faible);
+  border-radius: 999px; padding: 0 7px; font-size: 10px;
+}
+
+/* --- Champs : le fond gris clair porte la saisie, le trait reste discret. --- */
+input, select, button { border-radius: 4px; }
+input, select { background: var(--champ); border-color: var(--bord); }
+input:focus, select:focus, button:focus-visible { outline-color: var(--accent); }
+button { border-color: var(--bord-clair); font-weight: 500; }
+button.primaire { font-weight: 600; }
+button.danger { border-color: var(--alerte-bord); }
+
+/* --- Score : le chiffre porte le bloc, le libelle passe en capitales fines. --- */
+.bloc-recherche { border-color: var(--bord-clair); }
+.score { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; color: var(--titre); }
+.score.pos { color: var(--positif); }
+.score-libelle { letter-spacing: 0.14em; }
+
+/* --- Cases : un fond gris tres clair, une bordure qui se colore au survol. --- */
+.case-item, .case-slot { background: var(--champ); }
+.case-item.bannie { opacity: .3; }
+.puce-bannie img, .puce-sort img { background: var(--carte); }
+.sort, .panoplie, .candidat, .carte-sort { background: var(--carte); border-color: var(--bord); }
+.graphe { background: var(--champ); }
+.avatar-cadre { border-color: var(--bord); }
+.fiche, .picker, .bulle { box-shadow: 0 12px 34px var(--ombre-fiche); }
+.curseur { background: var(--bord); }
+.curseur::-webkit-slider-thumb { border-color: var(--carte); }
+.curseur::-moz-range-thumb { border-color: var(--carte); }
+
+/* --- Analyse : la jauge reste un fond, pas un aplat. --- */
+.apport-jauge i { background: color-mix(in srgb, var(--accent) 11%, transparent); }
+.apport.decisive .apport-nom { color: var(--ambre); font-weight: 600; }

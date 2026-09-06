@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Copyroxx — solveur de stuff</title>
 <link rel="stylesheet" href="styles.css">
+<script>
+  // Le theme garde se pose avant le premier rendu : sans cela, la page
+  // clignote sur le theme de depart le temps de charger le module.
+  try {
+    var adresse = new URLSearchParams(location.search);
+    var poser = function (dossier, cle, defaut, id) {
+      var choix = adresse.get(cle) || localStorage.getItem('copyroxx_' + cle);
+      if (!choix || !/^[a-z-]+$/.test(choix) || choix === defaut) return;
+      var feuille = document.createElement('link');
+      feuille.id = id;
+      feuille.rel = 'stylesheet';
+      feuille.href = dossier + '/' + choix + '.css';
+      document.head.appendChild(feuille);
+    };
+    poser('themes', 'theme', 'nuit', 'feuille-theme');
+    poser('dispositions', 'disposition', 'colonnes', 'feuille-disposition');
+  } catch (erreur) { /* stockage refuse : l'habillage de depart s'applique */ }
+</script>
 </head>
 <body>
 
@@ -211,6 +229,15 @@
 
 </div>
 
+<script type="module">
+  import { installerTheme } from './theme.mjs';
+  import { installerDisposition } from './layouts.mjs';
+  const barre = document.querySelector('.barre-actions');
+  // La disposition passe en premier : elle deplace les sections, le theme
+  // ne fait que les habiller.
+  installerDisposition(barre);
+  installerTheme(barre);
+</script>
 <script type="module" src="app.mjs"></script>
 </body>
 </html>

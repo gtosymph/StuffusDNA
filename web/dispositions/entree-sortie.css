@@ -1,0 +1,107 @@
+/* Disposition « Entree / sortie ».
+
+   L'ecran se coupe en deux selon le travail reel : a gauche ce que l'on regle
+   (une piece, une condition, un sort, des points), a droite ce que cela donne
+   (le score, le personnage, les statistiques, l'analyse). Les deux ne se
+   melangent plus, et chaque moitie porte son titre.
+
+   Le cote gauche est range par onglets : un seul reglage a la fois, mais
+   entier. Le cote droit montre tout, sans onglet : une sortie ne se cache pas. */
+
+.atelier { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; padding: 0; gap: 0; }
+
+.grille-atelier {
+  display: grid;
+  grid-template-columns: minmax(320px, 26fr) minmax(420px, 44fr);
+  gap: 0;
+  align-items: start;
+  min-width: 0;
+}
+.grille-atelier > * { min-width: 0; }
+
+.volets-entree, .volets-sortie {
+  display: flex; flex-direction: column; gap: var(--gap-atelier, 8px);
+  padding: 10px;
+  min-width: 0;
+}
+.volets-entree { border-right: 1px solid var(--bord); }
+
+.titre-moitie {
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .16em;
+  color: var(--faible);
+  padding-bottom: 7px; margin-bottom: 1px;
+  border-bottom: 1px solid var(--bord);
+}
+
+/* ---------- Le cote gauche : un reglage a la fois ---------- */
+
+.panneau { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
+.onglets-panneau { display: flex; flex-wrap: wrap; gap: 3px; }
+.onglet-panneau {
+  padding: 6px 12px; font-size: 11px; border-radius: var(--r, 5px);
+  background: var(--bouton, transparent); border: 1px solid var(--bord);
+  color: var(--faible); cursor: pointer;
+}
+.onglet-panneau:hover { color: var(--texte); }
+.onglet-panneau[aria-selected="true"] {
+  background: var(--accent-doux); border-color: var(--accent);
+  color: var(--sur-accent, #fff); font-weight: 600;
+}
+.volet { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
+.volet[hidden] { display: none; }
+/* L'onglet porte deja le nom de la section : le titre ferait doublon. */
+.volet[data-volet="catalogue"] > .bloc > h2,
+.volet[data-volet="conditions"] > .bloc > h2,
+.volet[data-volet="sorts"] > .bloc > h2 { display: none; }
+
+/* Le catalogue est le seul volet qui a besoin de toute la hauteur. */
+.volet[data-volet="catalogue"] .grille-items { max-height: calc(100vh - 260px); }
+
+/* ---------- Le cote droit : la sortie, en entier ---------- */
+
+/* Le resultat ouvre la colonne : score, courbe et commandes sur une ligne. */
+.volets-sortie > .bloc-recherche {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 8px 24px;
+  align-items: center;
+}
+.volets-sortie > .bloc-recherche > .score-zone { grid-column: 1; text-align: left; padding: 0; }
+.volets-sortie > .bloc-recherche > .graphe { grid-column: 2; height: 104px; margin: 0; }
+.volets-sortie > .bloc-recherche > .rangee-reglages {
+  grid-column: 1 / -1; margin: 0;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.volets-sortie > .bloc-recherche > .rangee-reglages > div { display: flex; align-items: center; gap: 7px; }
+.volets-sortie > .bloc-recherche > .rangee-reglages label { margin: 0; }
+.volets-sortie > .bloc-recherche > .rangee-reglages input#fils { width: 52px; }
+.volets-sortie > .bloc-recherche > .rangee-reglages .compteur-generations { flex: 1; }
+.volets-sortie > .bloc-recherche > .fils,
+.volets-sortie > .bloc-recherche > #message,
+.volets-sortie > .bloc-recherche > #carte-combo { grid-column: 1 / -1; margin: 0; }
+.volets-sortie > .bloc-recherche > .fils {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 24px;
+}
+.score { font-size: 40px; line-height: .95; }
+
+/* Le personnage et les chiffres se lisent cote a cote. */
+.paire-sortie {
+  display: grid; grid-template-columns: minmax(260px, 1fr) minmax(240px, 1fr);
+  gap: var(--gap-atelier, 8px); align-items: start; min-width: 0;
+}
+.paire-sortie > .colonne { gap: var(--gap-atelier, 8px); min-width: 0; }
+
+#carte-combo .carte-combo {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0 24px; align-items: start;
+}
+#carte-combo .tete-combo,
+#carte-combo .total-combo,
+#carte-combo .elements-combo,
+#carte-combo .actions-combo { grid-column: 1 / -1; }
+
+@media (max-width: 1100px) {
+  .grille-atelier { grid-template-columns: minmax(0, 1fr); }
+  .volets-entree { border-right: none; border-bottom: 1px solid var(--bord); }
+  .paire-sortie { grid-template-columns: minmax(0, 1fr); }
+}

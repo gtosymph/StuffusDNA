@@ -1,0 +1,113 @@
+/* Disposition « Bandeau ».
+
+   Le resultat quitte sa colonne etroite et prend toute la largeur en tete :
+   c'est ce que l'on regarde le plus souvent. Dessous, trois colonnes — la
+   matiere a gauche, le personnage au centre, les reglages a droite, ranges
+   par onglets pour supprimer le defilement sans fin.
+
+   Cette feuille ne pose aucune couleur : elle n'agit que sur les places. */
+
+.atelier {
+  display: flex;
+  flex-direction: column;
+  /* La feuille de base aligne les colonnes sur leur debut ; en pile verticale,
+     cette regle empecherait le bandeau de prendre toute la largeur. */
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+
+/* ---------- Le bandeau ---------- */
+
+.atelier > .bloc-recherche {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 32px;
+  padding: 18px 20px 16px;
+  border-radius: 0;
+}
+.atelier > .bloc-recherche > .score-zone { grid-column: 1; text-align: left; padding: 0; }
+.atelier > .bloc-recherche > .graphe { grid-column: 2; height: 92px; margin: 0; }
+.atelier > .bloc-recherche > .rangee-reglages {
+  grid-column: 3; display: flex; align-items: center; gap: 8px;
+}
+.atelier > .bloc-recherche > .rangee-reglages > div { display: flex; align-items: center; gap: 7px; }
+.atelier > .bloc-recherche > .rangee-reglages label { margin: 0; }
+.atelier > .bloc-recherche > .rangee-reglages input#fils { width: 52px; }
+.atelier > .bloc-recherche > .fils,
+.atelier > .bloc-recherche > #message,
+.atelier > .bloc-recherche > #carte-combo { grid-column: 1 / -1; margin: 0; }
+
+/* Huit fils empiles rendraient le bandeau trop haut. */
+.atelier > .bloc-recherche > .fils {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 2px 24px;
+}
+
+/* Le tour optimise profite de la largeur : ses lignes se rangent en colonnes. */
+#carte-combo .carte-combo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0 28px;
+  align-items: start;
+  margin: 6px 0 0;
+}
+#carte-combo .ligne-combo {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  gap: 8px; padding: 5px 0; margin: 0;
+}
+#carte-combo .tete-combo,
+#carte-combo .total-combo,
+#carte-combo .elements-combo,
+#carte-combo .actions-combo { grid-column: 1 / -1; }
+
+/* Le score porte le bandeau : il grandit, quel que soit le theme. */
+.score { font-size: 44px; line-height: .95; }
+
+/* ---------- Les trois colonnes ---------- */
+
+.grille-atelier {
+  display: grid;
+  grid-template-columns: 210px minmax(320px, 480px) minmax(340px, 1fr);
+  gap: var(--gap-atelier, 8px);
+  padding: var(--gap-atelier, 8px);
+  align-items: start;
+  min-width: 0;
+}
+.grille-atelier > * { min-width: 0; }
+.grille-atelier .colonne-catalogue { position: sticky; top: 46px; }
+.grille-atelier .grille-items { max-height: calc(100vh - 320px); }
+
+/* ---------- Le panneau a onglets ---------- */
+
+.panneau { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
+
+.onglets-panneau {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  padding-bottom: 2px;
+}
+.onglet-panneau {
+  padding: 6px 12px; font-size: 11px; border-radius: var(--r, 5px);
+  background: var(--bouton, transparent); border: 1px solid var(--bord);
+  color: var(--faible); cursor: pointer;
+}
+.onglet-panneau:hover { color: var(--texte); }
+.onglet-panneau[aria-selected="true"] {
+  background: var(--accent-doux); border-color: var(--accent);
+  color: var(--sur-accent, #fff); font-weight: 600;
+}
+.volet { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
+.volet[hidden] { display: none; }
+
+/* Le volet des statistiques tient sur deux colonnes quand la place le permet. */
+@media (min-width: 1500px) {
+  .volet[data-volet="stats"] { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+  .volet[data-volet="degats"] { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
+@media (max-width: 1100px) {
+  .grille-atelier { grid-template-columns: minmax(0, 1fr); }
+  .grille-atelier .colonne-catalogue { position: static; }
+  .atelier > .bloc-recherche { grid-template-columns: minmax(0, 1fr); }
+  .atelier > .bloc-recherche > * { grid-column: 1 !important; }
+}

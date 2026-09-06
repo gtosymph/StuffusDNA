@@ -1,0 +1,140 @@
+/* Copyroxx — theme « Forge ».
+   Direction : l'atelier d'un forgeron. Anthracite brun, laiton et cuivre,
+   titres a empattements. La chaleur vient du fond, pas d'un aplat de couleur ;
+   l'accent laiton ne sert qu'a ce qui agit ou qui compte. */
+
+@import url('https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Karla:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  --fond: #15100c;
+  --carte: #1f1811;
+  --carte-haute: #281f17;
+  --champ: #0f0b07;
+  --bord: #382b20;
+  --bord-clair: #503d2d;
+  --survol: #261d15;
+  --survol-fort: #32261b;
+  --barre-haut: #241b13;
+  --barre-bas: #180f0a;
+
+  --texte: #e4d6c0;
+  --faible: #9a8970;
+  --titre: #fbf1de;
+
+  --accent: #d9a441;
+  --accent-doux: #7a5a1e;
+  --accent-vif: #e8b75b;
+  --sur-accent: #1a130c;
+  --ambre: #e8a33c;
+  --positif: #83bd93;
+  --alerte: #e0645f;
+  --cyan: #79b7c4;
+
+  --bouton: #2c2118;
+  --bouton-survol: #3a2c20;
+
+  --or-fond: #2a1f0e;
+  --or-bord: #6a4e23;
+  --or-voile: rgba(217, 164, 65, 0.08);
+  --or-trait: rgba(217, 164, 65, 0.32);
+  --info-fond: #19202a;
+  --info-bord: #35434f;
+  --info-texte: #b6c6d2;
+  --alerte-fond: #2c1512;
+  --alerte-bord: #64302a;
+  --alerte-texte: #f2bdb6;
+  --banni-fond: #2a1418;
+  --banni-bord: #5c2c33;
+  --banni-texte: #e6b4b8;
+  --cyan-fond: #10201f;
+  --cyan-bord: #2e4e4c;
+
+  --avatar-haut: #241a12;
+  --avatar-bas: #150f0a;
+  --halo: rgba(217, 164, 65, .18);
+  --couple-fond: rgba(217, 164, 65, 0.04);
+  --prise-fond: #2e2314;
+
+  --graphe-grille: #382b20;
+  --graphe-zero: #6b5843;
+  --graphe-aire: 217, 164, 65;
+  --graphe-etiquette: rgba(21, 16, 12, 0.88);
+  --graphe-fils: #d9a441, #83bd93, #c4703a, #79b7c4, #b8925e, #d4645f, #9ab06a, #a9825f;
+
+  --voile: rgba(10, 7, 4, .78);
+  --ombre-fiche: rgba(0, 0, 0, .62);
+  --ombre-picker: rgba(0, 0, 0, .68);
+  --ombre-bulle: rgba(0, 0, 0, .58);
+
+  --r: 3px;
+  --police: Karla, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: Spectral, Georgia, "Times New Roman", serif;
+  --chiffre: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --taille: 12.5px;
+  --interligne: 1.45;
+  --pad-bloc: 10px 11px;
+  --gap-atelier: 8px;
+}
+
+/* Le fond porte une lueur basse : la piece est eclairee par la forge. */
+body {
+  background:
+    radial-gradient(120% 70% at 50% 100%, rgba(217, 164, 65, .07), transparent 62%),
+    var(--fond);
+}
+
+/* --- Barre du haut : un bandeau grave, le nom en serif. --- */
+.barre {
+  background: linear-gradient(180deg, var(--barre-haut), var(--barre-bas));
+  border-bottom: 1px solid var(--bord-clair);
+  box-shadow: 0 1px 0 rgba(217, 164, 65, .14) inset;
+}
+.logo { font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: 0.3px; }
+.losange { background: linear-gradient(135deg, var(--accent-vif), var(--accent-doux)); }
+.barre-info { border-color: var(--bord-clair); }
+
+/* --- Blocs : titre en serif capitale, marque d'un losange de laiton. --- */
+.bloc { box-shadow: 0 1px 0 rgba(217, 164, 65, .05) inset; }
+.bloc > h2 {
+  border-left: none;
+  padding-left: 0;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--titre);
+  text-transform: none;
+}
+.bloc > h2::before {
+  content: '';
+  width: 6px; height: 6px; flex: none;
+  background: var(--accent); transform: rotate(45deg);
+}
+.bloc > h2::after {
+  content: '';
+  flex: 1; height: 1px; margin-left: 2px;
+  background: linear-gradient(90deg, var(--bord-clair), transparent);
+}
+
+/* --- Boutons : metal brosse, l'action principale en laiton plein. --- */
+button { border-color: var(--bord-clair); }
+button.primaire {
+  background: linear-gradient(180deg, var(--accent-vif), var(--accent));
+  border-color: var(--accent-vif); color: var(--sur-accent); font-weight: 600;
+}
+button.primaire:hover { background: var(--accent-vif); }
+.onglets button[aria-pressed="true"] { background: var(--accent-doux); border-color: var(--accent); color: var(--titre); }
+
+/* --- Score : le chiffre frappe, en mono lourd. --- */
+.score { font-size: 30px; font-weight: 600; color: var(--titre); }
+.score.pos { color: var(--accent); }
+.score-libelle { font-family: var(--display); text-transform: none; letter-spacing: 0.04em; font-size: 11px; }
+
+/* --- Le personnage se tient dans une niche eclairee par le bas. --- */
+.avatar-cadre { border-color: var(--bord-clair); }
+.case-slot.verrou::after { content: '⚒'; font-size: 10px; }
+
+/* --- Titres des fenetres : meme serif que les blocs. --- */
+.picker-titre, .fiche-nom, .tete-sort .nom, .bulle-nom { font-family: var(--display); }

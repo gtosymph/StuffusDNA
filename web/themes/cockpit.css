@@ -1,0 +1,208 @@
+/* Copyroxx — theme « Cockpit ».
+   Direction reprise de la maquette du meme nom : aucune carte, une seule
+   surface decoupee par des filets et par l'echelle typographique. Le resultat
+   occupe un bandeau sur toute la largeur ; les quatre zones de travail se
+   lisent dessous, separees par un filet vertical.
+
+   Difference avec la maquette : toute l'information de l'application reste en
+   place. La maquette montrait trois colonnes choisies ; ici les quatre
+   colonnes gardent leur contenu, mais perdent leurs cadres. */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  /* --- Fonds et cadres : une seule surface, des filets pour la decouper. --- */
+  --fond: #0a0c0e;
+  --carte: transparent;
+  --carte-haute: #0e1114;
+  --champ: #14181c;
+  --bord: rgba(255, 255, 255, .07);
+  --bord-clair: rgba(255, 255, 255, .13);
+  --survol: #14181c;
+  --survol-fort: #1b2126;
+  --barre-haut: #0a0c0e;
+  --barre-bas: #0a0c0e;
+
+  /* --- Textes : trois niveaux seulement, comme dans la maquette. --- */
+  --texte: #e9edf0;
+  --faible: #98a2aa;
+  --titre: #f1f4f6;
+
+  --accent: #ff7a5c;
+  --accent-doux: #5e2a1d;
+  --accent-vif: #ff8f76;
+  --sur-accent: #1a0a06;
+  --ambre: #e8a95c;
+  --positif: #5dbe94;
+  --alerte: #e5736b;
+  --cyan: #6fb8c8;
+
+  --bouton: transparent;
+  --bouton-survol: #14181c;
+
+  --or-fond: #1e1710;
+  --or-bord: #4a3820;
+  --or-voile: rgba(232, 169, 92, 0.07);
+  --or-trait: rgba(232, 169, 92, 0.3);
+  --info-fond: #101820;
+  --info-bord: #24333f;
+  --info-texte: #a9bcc8;
+  --alerte-fond: #21100f;
+  --alerte-bord: #552824;
+  --alerte-texte: #f4bab5;
+  --banni-fond: #201012;
+  --banni-bord: #52282c;
+  --banni-texte: #e8b2b5;
+  --cyan-fond: #0d1a1e;
+  --cyan-bord: #244047;
+
+  --avatar-haut: #101418;
+  --avatar-bas: #0a0c0e;
+  --halo: rgba(255, 122, 92, .12);
+  --couple-fond: rgba(255, 122, 92, 0.03);
+  --prise-fond: #201310;
+
+  --graphe-grille: rgba(255, 255, 255, .07);
+  --graphe-zero: #5f6971;
+  --graphe-aire: 255, 122, 92;
+  --graphe-etiquette: rgba(10, 12, 14, 0.9);
+  --graphe-fils: #ff7a5c, #5dbe94, #e8a95c, #6fb8c8, #b58af0, #e5736b, #8ed36a, #dba0c8;
+
+  --voile: rgba(4, 6, 8, .8);
+  --ombre-fiche: rgba(0, 0, 0, .66);
+  --ombre-picker: rgba(0, 0, 0, .72);
+  --ombre-bulle: rgba(0, 0, 0, .6);
+
+  --r: 7px;
+  --police: Archivo, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: Archivo, ui-sans-serif, system-ui, sans-serif;
+  --chiffre: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --taille: 12.5px;
+  --interligne: 1.5;
+  --pad-bloc: 18px 20px;
+  --gap-atelier: 0px;
+  /* Sans gouttiere, la colonne du catalogue peut s'elargir un peu : Archivo
+     est plus large que la police du systeme, et ses libelles y tenaient mal. */
+  --colonnes-atelier: 218px minmax(300px, 1.2fr) minmax(280px, 470px) minmax(286px, 1fr);
+}
+
+/* ---------- La grille : plus de gouttiere, des filets a la place ---------- */
+
+.atelier { padding: 0; }
+.colonne { gap: 0; }
+.colonne + .colonne { border-left: 1px solid var(--bord); }
+.colonne-catalogue { top: 47px; }
+
+/* Une seule surface : les blocs ne sont plus des cartes, mais des sections
+   qu'un filet separe. */
+.bloc { border: none; border-radius: 0; }
+.bloc + .bloc { border-top: 1px solid var(--bord); }
+
+/* Le titre porte un filet qui court jusqu'au bord de la colonne. */
+.bloc > h2 {
+  border-left: none;
+  padding-left: 0;
+  margin-bottom: 14px;
+  font: 500 9.5px/1 var(--police);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #5f6971;
+}
+.bloc > h2::after {
+  content: '';
+  flex: 1; height: 1px; margin-left: 2px;
+  background: var(--bord);
+}
+.compteur { flex: none; order: 9; font-size: 10px; color: var(--faible); }
+.sous-titre { letter-spacing: .2em; color: #5f6971; }
+
+/* ---------- Barre d'identite ---------- */
+
+.barre { background: var(--fond); border-bottom: 1px solid var(--bord); padding: 0 20px; height: 47px; }
+.logo { font: 700 14px/1 var(--police); letter-spacing: -.01em; }
+.losange { width: 8px; height: 8px; border-radius: 50%; transform: none; }
+.barre-info { border-color: var(--bord); color: #5f6971; }
+.etiquette { border-color: var(--bord); border-radius: 6px; color: #5f6971; }
+
+/* ---------- Le bandeau du resultat, quand la disposition le montre ---------- */
+
+.atelier > .bloc-recherche { background: var(--carte-haute); border-bottom: 1px solid var(--bord); }
+
+.score {
+  font: 700 60px/.88 var(--police);
+  letter-spacing: -.035em; font-variant-numeric: tabular-nums;
+  color: var(--titre);
+}
+.score.pos { color: var(--titre); }
+.score.neg { color: var(--alerte); }
+.score-libelle { font-size: 9.5px; letter-spacing: .2em; color: #5f6971; margin-bottom: 6px; }
+.score-zone .note { margin-top: 9px; font-size: 11px; color: var(--faible); }
+
+/* Les commandes de la recherche portent l'action principale : elles gardent
+   une taille pleine, la ou les autres boutons restent compacts. */
+.bloc-recherche .rangee-reglages button {
+  border: 1px solid var(--bord-clair); background: none;
+  border-radius: 9px; padding: 10px 16px; font: 500 12.5px/1 var(--police);
+}
+.bloc-recherche .rangee-reglages button:hover { background: var(--survol); }
+.bloc-recherche .rangee-reglages button.primaire {
+  background: var(--accent); border-color: var(--accent); color: var(--sur-accent); font-weight: 600;
+}
+.bloc-recherche .rangee-reglages button.primaire:hover { background: var(--accent-vif); }
+
+#carte-combo .carte-combo { border-color: var(--bord); }
+#carte-combo .ligne-combo { border-bottom: 1px solid var(--bord); }
+#carte-combo .tete-combo .titre {
+  font: 500 9.5px/1 var(--police); letter-spacing: .2em; text-transform: uppercase; color: #5f6971;
+}
+#carte-combo .total-combo { border-top-style: solid; border-top-color: var(--bord-clair); }
+
+/* ---------- Champs, boutons et cases ---------- */
+
+input, select { background: var(--champ); border-color: var(--bord); border-radius: 6px; }
+button {
+  border: 1px solid var(--bord-clair); background: none;
+  border-radius: 7px; padding: 5px 10px; font-weight: 500;
+}
+button:hover { background: var(--survol); }
+button.primaire { background: var(--accent); border-color: var(--accent); color: var(--sur-accent); font-weight: 600; }
+button.primaire:hover { background: var(--accent-vif); }
+button.danger { color: var(--alerte); border-color: var(--alerte-bord); }
+.onglets button[aria-pressed="true"] { background: var(--survol-fort); border-color: var(--bord-clair); color: var(--titre); }
+
+.case-item, .case-slot { background: var(--champ); border-color: transparent; border-radius: 6px; }
+.case-item:hover, .case-slot:hover { background: var(--survol-fort); border-color: var(--bord-clair); }
+.case-slot.pose { border-color: var(--accent); }
+.case-slot.solveur { border-color: var(--positif); }
+.case-slot.verrou { border-color: var(--ambre); }
+
+/* ---------- Listes : le nom et le chiffre priment ---------- */
+
+.paires dt { color: var(--faible); }
+.paires dd { font-variant-numeric: tabular-nums; }
+.sort, .panoplie, .candidat {
+  background: none; border: none; border-bottom: 1px solid var(--bord); border-radius: 0;
+}
+.candidat.porte { border-bottom-color: var(--accent); }
+/* Dans une fenetre, les cartes gardent leur cadre : elles flottent au dessus
+   de la page, elles ne peuvent pas s'appuyer sur la grille de filets. */
+.carte-sort { background: var(--champ); border-color: var(--bord); }
+.carte-sort.prise { border-color: var(--accent); background: var(--prise-fond); }
+.couple-sorts { border-color: var(--bord); }
+.apport, .mesure { border-radius: 6px; }
+.apport-jauge i { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.avatar-cadre { border-color: var(--bord); }
+
+/* ---------- Fenetres : elles gardent un cadre, elles flottent ---------- */
+
+.fiche, .picker, .bulle {
+  background: var(--carte-haute); border: 1px solid var(--bord-clair); border-radius: 12px;
+}
+.fiche-actions button { padding: 9px; }
+
+/* --- Le catalogue est etroit : ses libelles longs demandent moins de corps. --- */
+.rangee-masse button { font-size: 11px; padding: 5px 8px; }
+.rangee-sets button { padding: 5px 8px; }
+.onglets button { padding: 3px 8px; }

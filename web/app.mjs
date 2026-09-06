@@ -1043,6 +1043,10 @@ function brancher() {
   document.querySelector('.colonne-perso')?.addEventListener('mouseleave', cacherBulle);
   window.addEventListener('scroll', cacherBulle, { passive: true });
 
+  // Le graphe se dessine dans un canvas : il ne suit pas la cascade CSS.
+  // Un changement de theme demande donc un nouveau rendu.
+  window.addEventListener('copyroxx:theme', () => render());
+
   $('lancer').addEventListener('click', () => lancer());
   $('recommencer').addEventListener('click', () => lancer({ deZero: true }));
   $('arreter').addEventListener('click', () => {

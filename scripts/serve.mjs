@@ -29,6 +29,15 @@ const MIME = {
   '.svg': 'image/svg+xml',
 };
 
+/** Envoie un fichier avec son type et sa taille. */
+function envoyer(response, chemin, info) {
+  response.writeHead(200, {
+    'content-type': MIME[extname(chemin)] ?? 'application/octet-stream',
+    'content-length': info.size,
+  });
+  createReadStream(chemin).pipe(response);
+}
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, `http://localhost:${PORT}`);
@@ -53,16 +62,31 @@ const server = createServer(async (request, response) => {
     }
 
     const info = await stat(target);
+
+    // Un repertoire sert son index.html, comme tout serveur statique. Sans
+    // cela, /web/maquettes rend 404 alors que la page existe. La barre finale
+    // est obligatoire avant de servir l'index : sinon le navigateur resout
+    // les chemins relatifs de la page depuis le repertoire parent.
+    if (info.isDirectory()) {
+      if (!raw.endsWith('/')) {
+        response.writeHead(301, { location: `${raw}/${url.search}` }).end();
+        return;
+      }
+      const index = join(target, 'index.html');
+      const infoIndex = await stat(index).catch(() => null);
+      if (!infoIndex?.isFile()) {
+        response.writeHead(404).end('Fichier absent.');
+        return;
+      }
+      return envoyer(response, index, infoIndex);
+    }
+
     if (!info.isFile()) {
       response.writeHead(404).end('Fichier absent.');
       return;
     }
 
-    response.writeHead(200, {
-      'content-type': MIME[extname(target)] ?? 'application/octet-stream',
-      'content-length': info.size,
-    });
-    createReadStream(target).pipe(response);
+    envoyer(response, target, info);
   } catch {
     response.writeHead(404).end('Fichier absent.');
   }

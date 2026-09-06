@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copyroxx — direction Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ============================================================
+   Direction « Studio »
+   Fond clair, grille asymetrique : la taille de chaque panneau
+   dit son importance. Le choix entre plusieurs builds passe au
+   premier plan, parce que c'est la vraie decision du joueur.
+   ============================================================ */
+
+:root {
+  --papier:  #eceef1;
+  --blanc:   #ffffff;
+  --creux:   #f5f6f8;
+  --trait:   #e0e4e9;
+  --trait-2: #cdd3da;
+
+  --encre:  #101318;
+  --demi:   #4d565f;
+  --faible: #858e98;
+
+  --bleu:  #14507a;
+  --vert:  #17734f;
+  --rouge: #b23a2e;
+  --or:    #8a6410;
+
+  --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--papier); color: var(--encre);
+  font: 400 13.5px/1.55 var(--sans); -webkit-font-smoothing: antialiased;
+}
+.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- Barre ---------- */
+.barre {
+  display: flex; align-items: center; gap: 22px; padding: 0 26px; height: 58px;
+  background: var(--papier); border-bottom: 1px solid var(--trait);
+  position: sticky; top: 0; z-index: 5;
+}
+.barre .marque { font: 700 18px/1 var(--display); letter-spacing: -.02em; }
+.barre nav { display: flex; gap: 4px; }
+.barre nav a {
+  padding: 7px 13px; border-radius: 9px; text-decoration: none; color: var(--demi);
+  font: 500 13px/1 var(--sans);
+}
+.barre nav a[aria-current] { background: var(--blanc); color: var(--encre); box-shadow: 0 1px 2px rgba(16,19,24,.06); }
+.barre .droite { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.barre .droite .personne { font-size: 12.5px; color: var(--demi); }
+.barre .primaire {
+  border: none; background: var(--encre); color: var(--blanc); cursor: pointer;
+  border-radius: 10px; padding: 10px 18px; font: 600 13px/1 var(--sans);
+  transition: background .15s ease;
+}
+.barre .primaire:hover { background: #2b3037; }
+
+/* ---------- Grille asymetrique ---------- */
+.grille {
+  display: grid; gap: 14px; padding: 20px 26px 34px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) 286px;
+  grid-template-areas:
+    "mesure  mesure  figure"
+    "voyants tour    figure"
+    "choix   choix   investir";
+  align-items: start;
+}
+.panneau {
+  background: var(--blanc); border: 1px solid var(--trait); border-radius: 16px; padding: 20px 22px;
+  box-shadow: 0 1px 2px rgba(16,19,24,.04);
+}
+.panneau > h2 {
+  margin: 0 0 16px; font: 500 10px/1 var(--sans); letter-spacing: .17em;
+  text-transform: uppercase; color: var(--faible);
+  display: flex; align-items: center; gap: 10px;
+}
+.panneau > h2 .fil { flex: 1; height: 1px; background: var(--trait); }
+.panneau > h2 .n { font-size: 10.5px; letter-spacing: 0; color: var(--faible); text-transform: none; }
+
+/* La mesure : le chiffre porte le panneau, la courbe l'accompagne. */
+.mesure { grid-area: mesure; display: grid; grid-template-columns: auto 1fr; gap: 30px; align-items: center; }
+.mesure .chiffre { font: 600 78px/.85 var(--display); letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.mesure .libelle { font: 500 11px/1 var(--sans); letter-spacing: .17em; text-transform: uppercase; color: var(--faible); margin-bottom: 16px; }
+.mesure .gain { margin-top: 14px; font: 500 12.5px/1 var(--mono); color: var(--vert); }
+.mesure .gain span { color: var(--faible); font-weight: 400; }
+.mesure svg { width: 100%; height: 104px; display: block; overflow: visible; padding-right: 6px; }
+.mesure .pied { margin-top: 8px; display: flex; gap: 18px; font: 400 11px/1 var(--mono); color: var(--faible); }
+
+/* Le personnage tient une colonne entiere : c'est l'objet du travail. */
+.figure { grid-area: figure; text-align: center; }
+.figure img.perso { height: 216px; filter: drop-shadow(0 16px 22px rgba(16,19,24,.16)); }
+.figure .pieces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-top: 18px; }
+.figure .pieces div {
+  aspect-ratio: 1; border-radius: 11px; background: var(--creux); border: 1px solid var(--trait);
+  display: grid; place-items: center; transition: border-color .15s ease, transform .15s ease;
+}
+.figure .pieces div:hover { border-color: var(--trait-2); transform: translateY(-2px); }
+.figure .pieces img { width: 76%; height: 76%; object-fit: contain; }
+.figure .pieces div.verrou { border-color: var(--or); }
+.figure .pieces div.vide { border-style: dashed; }
+
+/* Les conditions : trois lignes, un etat, une jauge. */
+.voyants { grid-area: voyants; }
+.condition { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 11px 0; }
+.condition + .condition { border-top: 1px solid var(--trait); }
+.condition .nom { font-size: 13px; }
+.condition .val { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.condition .val span { color: var(--faible); font-weight: 400; }
+.condition .jauge { grid-column: 1 / -1; height: 3px; background: var(--creux); border-radius: 3px; }
+.condition .jauge i { display: block; height: 100%; border-radius: 3px; background: var(--vert); }
+.condition.manque .jauge i { background: var(--rouge); }
+
+/* Le tour de jeu, sort par sort. */
+.tour { grid-area: tour; }
+.sort { display: grid; grid-template-columns: 24px 1fr auto auto; gap: 10px; align-items: center; padding: 7px 0; }
+.sort + .sort { border-top: 1px solid var(--trait); }
+.sort img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
+.sort .nom { font-size: 13px; }
+.sort .pa { font: 400 11px/1 var(--mono); color: var(--faible); }
+.sort .deg { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; min-width: 48px; text-align: right; }
+.tour .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--trait-2); }
+.tour .total .v { font: 600 24px/1 var(--display); font-variant-numeric: tabular-nums; }
+
+/* Le choix : les autres builds trouves, cote a cote. */
+.choix { grid-area: choix; }
+.rangee-builds { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.build {
+  border: 1px solid var(--trait); border-radius: 13px; padding: 14px; background: var(--creux);
+  cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.build:hover { border-color: var(--trait-2); background: var(--blanc); transform: translateY(-2px); }
+.build.porte { border-color: var(--encre); background: var(--blanc); }
+.build .tete { display: flex; align-items: baseline; justify-content: space-between; }
+.build .score { font: 600 25px/1 var(--display); font-variant-numeric: tabular-nums; }
+.build .ecart { font: 500 11.5px/1 var(--mono); color: var(--vert); }
+.build .ecart.moins { color: var(--faible); }
+.build .marque {
+  display: inline-block; margin-top: 9px; font: 500 9.5px/1 var(--sans); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faible);
+}
+.build .echange { display: flex; align-items: center; gap: 5px; margin-top: 11px; }
+.build .echange img { width: 26px; height: 26px; object-fit: contain; border-radius: 7px; background: var(--blanc); border: 1px solid var(--trait); padding: 2px; }
+.build .echange .fleche { color: var(--faible); font-size: 13px; }
+.build .echange img.sortante { opacity: .4; }
+.build .resume { margin-top: 10px; font-size: 11.5px; color: var(--faible); }
+
+/* Ou investir : une liste courte, ordonnee par gain. */
+.investir { grid-area: investir; }
+.mesure-ligne { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 0; }
+.mesure-ligne + .mesure-ligne { border-top: 1px solid var(--trait); }
+.mesure-ligne .nom { font-size: 12.5px; color: var(--demi); }
+.mesure-ligne .gain { font: 500 12.5px/1 var(--mono); color: var(--vert); font-variant-numeric: tabular-nums; }
+.mesure-ligne .barre { grid-column: 1 / -1; height: 2px; background: var(--creux); border-radius: 2px; margin-top: -4px; }
+.mesure-ligne .barre i { display: block; height: 100%; background: var(--bleu); opacity: .35; border-radius: 2px; }
+
+@media (max-width: 1180px) {
+  .grille {
+    grid-template-columns: minmax(0,1fr) 286px;
+    grid-template-areas: "mesure figure" "voyants figure" "tour investir" "choix choix";
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque">Copyroxx</div>
+  <nav>
+    <a href="#" aria-current="page">Build</a>
+    <a href="#">Catalogue</a>
+    <a href="#">Sorts</a>
+    <a href="#">Conditions</a>
+  </nav>
+  <div class="droite">
+    <span class="personne">Xélor · niveau 190 · 3 822 items</span>
+    <button class="primaire">Lancer la recherche</button>
+  </div>
+</header>
+
+<main class="grille">
+
+  <section class="panneau mesure">
+    <div>
+      <div class="libelle">Dégâts du combo</div>
+      <div class="chiffre">3 193</div>
+      <div class="gain">+286 <span>depuis le dernier essai</span></div>
+      <div class="pied"><span>597 générations</span><span>1 fil</span><span>en pause</span></div>
+    </div>
+    <svg viewBox="0 0 420 104" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="aire" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#14507a" stop-opacity=".13"/>
+          <stop offset="1" stop-color="#14507a" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="26" x2="420" y2="26" stroke="#e0e4e9"/>
+      <line x1="0" y1="56" x2="420" y2="56" stroke="#e0e4e9"/>
+      <line x1="0" y1="86" x2="420" y2="86" stroke="#e0e4e9"/>
+      <path d="M0 100 L0 96 C28 92 46 62 74 40 C102 20 130 22 168 17 C214 11 280 13 340 11 C382 10 404 10 420 10 L420 104 Z" fill="url(#aire)"/>
+      <path d="M0 96 C28 92 46 62 74 40 C102 20 130 22 168 17 C214 11 280 13 340 11 C382 10 404 10 420 10"
+            fill="none" stroke="#14507a" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="419" cy="10" r="3.4" fill="#14507a"/>
+    </svg>
+  </section>
+
+  <section class="panneau figure">
+    <img class="perso" src="../assets/renders/5.png" alt="Xélor">
+    <div class="pieces">
+      <div class="verrou"><img src="https://api.dofusdb.fr/img/items/17215.png" alt="Cape Peupret"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/16634.png" alt="Bandeau de Spiritueur"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/1334.png" alt="Collier du YeCh'Ti"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/82559.png" alt="Bras du YeCh'Ti"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/19047.png" alt="Hache du Guerrier Zoth"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/9396.png" alt="Mitaine du YeCh'Ti"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/9228.png" alt="Bague de Boréale"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/10198.png" alt="Ceinture Bine"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/11192.png" alt="Bottes de Boréale"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/97177.png" alt="Volkorne Ébène"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/23001.png" alt="Dofus Pourpre"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/23003.png" alt="Dofus Turquoise"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/23005.png" alt="Dofus des Glaces"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/23006.png" alt="Dofus Cawotte"></div>
+      <div><img src="https://api.dofusdb.fr/img/items/23023.png" alt="Dofus Abyssal"></div>
+      <div class="vide"></div>
+    </div>
+  </section>
+
+  <section class="panneau voyants">
+    <h2>Conditions <i class="fil"></i><span class="n">3 tenues sur 3</span></h2>
+    <div class="condition">
+      <span class="nom">Points d'action</span><span class="val">12 <span>/ 12</span></span>
+      <div class="jauge"><i style="width:100%"></i></div>
+    </div>
+    <div class="condition">
+      <span class="nom">Points de mouvement</span><span class="val">5 <span>/ 5</span></span>
+      <div class="jauge"><i style="width:100%"></i></div>
+    </div>
+    <div class="condition">
+      <span class="nom">Sagesse</span><span class="val">600 <span>/ 600</span></span>
+      <div class="jauge"><i style="width:100%"></i></div>
+    </div>
+  </section>
+
+  <section class="panneau tour">
+    <h2>Tour optimisé <i class="fil"></i><span class="n">10 / 10 PA</span></h2>
+    <div class="sort"><img src="../assets/spells/13254.png" alt=""><span class="nom">Flétrissement</span><span class="pa">3 PA</span><span class="deg">446</span></div>
+    <div class="sort"><img src="../assets/spells/13299.png" alt=""><span class="nom">Engrenage</span><span class="pa">1 PA</span><span class="deg">273</span></div>
+    <div class="sort"><img src="../assets/spells/13289.png" alt=""><span class="nom">Distorsion</span><span class="pa">2 PA</span><span class="deg">495</span></div>
+    <div class="sort"><img src="../assets/spells/13294.png" alt=""><span class="nom">Pendule</span><span class="pa">2 PA</span><span class="deg">1 090</span></div>
+    <div class="sort"><img src="../assets/spells/13245.png" alt=""><span class="nom">Gelure</span><span class="pa">0 PA</span><span class="deg">156</span></div>
+    <div class="sort"><img src="../assets/spells/13281.png" alt=""><span class="nom">Souvenir</span><span class="pa">0 PA</span><span class="deg">264</span></div>
+    <div class="sort"><img src="../assets/spells/13288.png" alt=""><span class="nom">Perturbation</span><span class="pa">1 PA</span><span class="deg">285</span></div>
+    <div class="sort"><img src="../assets/spells/13242.png" alt=""><span class="nom">Ralentissement</span><span class="pa">1 PA</span><span class="deg">181</span></div>
+    <div class="total"><span>Total du tour</span><span class="v">3 193</span></div>
+  </section>
+
+  <section class="panneau choix">
+    <h2>Autres builds trouvés <i class="fil"></i><span class="n">une pièce à changer, ou deux</span></h2>
+    <div class="rangee-builds">
+      <div class="build porte">
+        <div class="tete"><span class="score">3 193</span><span class="ecart">porté</span></div>
+        <span class="marque">Build actuel</span>
+        <div class="resume">Les trois conditions sont tenues.</div>
+      </div>
+      <div class="build">
+        <div class="tete"><span class="score">3 186</span><span class="ecart moins">−7</span></div>
+        <span class="marque">1 pièce à changer</span>
+        <div class="echange">
+          <img class="sortante" src="https://api.dofusdb.fr/img/items/9228.png" alt="">
+          <span class="fleche">→</span>
+          <img src="https://api.dofusdb.fr/img/items/9148.png" alt="">
+        </div>
+        <div class="resume">Alliance Boletée à la place de la Bague de Boréale.</div>
+      </div>
+      <div class="build">
+        <div class="tete"><span class="score">3 174</span><span class="ecart moins">−19</span></div>
+        <span class="marque">2 pièces à changer</span>
+        <div class="echange">
+          <img class="sortante" src="https://api.dofusdb.fr/img/items/10198.png" alt="">
+          <img class="sortante" src="https://api.dofusdb.fr/img/items/9396.png" alt="">
+          <span class="fleche">→</span>
+          <img src="https://api.dofusdb.fr/img/items/10133.png" alt="">
+        </div>
+        <div class="resume">Sans la panoplie Bine, une ceinture libre.</div>
+      </div>
+      <div class="build">
+        <div class="tete"><span class="score">3 152</span><span class="ecart moins">−41</span></div>
+        <span class="marque">3 pièces à changer</span>
+        <div class="echange">
+          <img class="sortante" src="https://api.dofusdb.fr/img/items/17215.png" alt="">
+          <span class="fleche">→</span>
+          <img src="https://api.dofusdb.fr/img/items/17211.png" alt="">
+        </div>
+        <div class="resume">Si le verrou de la cape saute.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panneau investir">
+    <h2>Où investir <i class="fil"></i></h2>
+    <div class="mesure-ligne">
+      <span class="nom">+1 % dommages sorts</span><span class="gain">+78</span>
+      <div class="barre"><i style="width:100%"></i></div>
+    </div>
+    <div class="mesure-ligne">
+      <span class="nom">+1 % dommages mêlée</span><span class="gain">+78</span>
+      <div class="barre"><i style="width:100%"></i></div>
+    </div>
+    <div class="mesure-ligne">
+      <span class="nom">+10 puissance</span><span class="gain">+76</span>
+      <div class="barre"><i style="width:97%"></i></div>
+    </div>
+    <div class="mesure-ligne">
+      <span class="nom">+1 % dommages finaux</span><span class="gain">+71</span>
+      <div class="barre"><i style="width:91%"></i></div>
+    </div>
+    <div class="mesure-ligne">
+      <span class="nom">+1 dommages</span><span class="gain">+26</span>
+      <div class="barre"><i style="width:33%"></i></div>
+    </div>
+    <div class="mesure-ligne">
+      <span class="nom">+10 agilité</span><span class="gain">+21</span>
+      <div class="barre"><i style="width:27%"></i></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="navigation.js"></script>
+</body>
+</html>

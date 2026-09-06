@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copyroxx — les propositions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500&display=swap">
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: #0c0e11; color: #eef1f4;
+  font: 400 15px/1.6 "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: grid; place-items: start center; min-height: 100vh; padding: 48px 24px 110px;
+}
+main { width: min(880px, 100%); }
+h1 { font: 700 34px/1.1 "Bricolage Grotesque", ui-sans-serif, sans-serif; letter-spacing: -.03em; margin: 0 0 10px; }
+p.chapo { color: #98a2ab; margin: 0 0 40px; max-width: 62ch; }
+
+h2 {
+  font: 500 11px/1 "Public Sans", ui-sans-serif, sans-serif;
+  text-transform: uppercase; letter-spacing: .16em; color: #667079;
+  margin: 0 0 12px; display: flex; align-items: baseline; gap: 12px;
+}
+h2 .etat { text-transform: none; letter-spacing: 0; color: #4e575f; font-size: 12px; }
+section + section { margin-top: 46px; }
+section > p { color: #98a2ab; font-size: 14px; margin: 0 0 14px; max-width: 62ch; }
+
+a.direction {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 20px; align-items: baseline;
+  padding: 22px 0; border-top: 1px solid rgba(255,255,255,.09);
+  text-decoration: none; color: inherit; transition: padding-left .18s ease;
+}
+a.direction:last-of-type { border-bottom: 1px solid rgba(255,255,255,.09); }
+a.direction:hover { padding-left: 8px; }
+a.direction:focus-visible { outline: 2px solid #6f8cff; outline-offset: 4px; border-radius: 4px; }
+a.direction .nom { font: 600 21px/1.2 "Bricolage Grotesque", ui-sans-serif, sans-serif; letter-spacing: -.02em; }
+a.direction .quoi { grid-column: 1; color: #98a2ab; font-size: 14px; }
+a.direction .fleche { color: #667079; font-size: 20px; }
+a.direction:hover .fleche { color: #eef1f4; }
+
+/* La pastille porte la couleur de fond du theme : elle annonce l'ambiance. */
+a.direction .nom { display: flex; align-items: center; gap: 10px; }
+a.direction .pastille {
+  width: 15px; height: 15px; border-radius: 4px; flex: none;
+  border: 2px solid currentColor;
+}
+.pastille.cockpit { background: #0a0c0e; color: #ff7a5c; }
+.pastille.nuit { background: #0d1220; color: #7c6cf6; }
+.pastille.papier { background: #e7eaef; color: #2647c8; }
+.pastille.forge { background: #15100c; color: #d9a441; }
+.pastille.console { background: #080a0d; color: #4d9bf5; }
+
+footer { margin-top: 44px; color: #667079; font-size: 13px; max-width: 62ch; }
+footer code, section > p code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #8a929c; }
+p.chapo strong { color: #eef1f4; font-weight: 500; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Refondre Copyroxx</h1>
+  <p class="chapo">Trois familles. Les <strong>dispositions</strong> changent la place des choses, les <strong>thèmes</strong> changent l’habillage : les deux tournent sur l’application, avec vos données, et se combinent librement. Les <strong>maquettes</strong> restent des pages figées, gardées comme référence.</p>
+
+  <section>
+    <h2>Dispositions <span class="etat">à essayer sur l’application</span></h2>
+    <p>Chaque lien ouvre l’application réelle. Les sections ne sont jamais recréées, seulement déplacées : tout reste vivant. Le sélecteur « Disposition » en haut à droite fait la même chose, et garde votre choix.</p>
+
+    <a class="direction" href="../index.html?disposition=bandeau">
+      <span class="nom">Bandeau</span><span class="fleche">→</span>
+      <span class="quoi">Le résultat quitte sa colonne étroite et prend toute la largeur en tête : score, courbe et commandes sur une ligne. Dessous, trois colonnes — le catalogue, le personnage, puis les réglages rangés par onglets.</span>
+    </a>
+
+    <a class="direction" href="../index.html?disposition=atelier">
+      <span class="nom">Atelier</span><span class="fleche">→</span>
+      <span class="quoi">Le catalogue passe dans un tiroir, ouvert par la touche C. Fermé, il rend sa place au personnage, qui double de taille, et à la courbe. Deux volets seulement restent à l’écran.</span>
+    </a>
+
+    <a class="direction" href="../index.html?disposition=entree-sortie">
+      <span class="nom">Entrée / sortie</span><span class="fleche">→</span>
+      <span class="quoi">L’écran se coupe selon le travail réel : à gauche ce que vous réglez, à droite ce que cela donne. Le catalogue gagne toute la largeur de sa moitié et montre trois fois plus de pièces d’un coup.</span>
+    </a>
+  </section>
+
+  <section>
+    <h2>Refontes complètes <span class="etat">maquettes statiques</span></h2>
+    <p>Chaque page est remplie avec le build Xélor 190 en cours. Aucune ne touche à l’application.</p>
+
+    <a class="direction" href="atelier.html">
+      <span class="nom">Atelier</span><span class="fleche">→</span>
+      <span class="quoi">Le personnage devient le sujet. Le catalogue passe dans une palette appelée au clavier, les statistiques dans un panneau unique.</span>
+    </a>
+
+    <a class="direction" href="cockpit.html">
+      <span class="nom">Cockpit</span><span class="fleche">→</span>
+      <span class="quoi">Aucune carte. Le résultat occupe un bandeau pleine largeur, les trois zones de travail se lisent dessous, séparées par un filet. Une version applicable existe plus bas.</span>
+    </a>
+
+    <a class="direction" href="studio.html">
+      <span class="nom">Studio</span><span class="fleche">→</span>
+      <span class="quoi">Fond clair, grille asymétrique. La taille d’un panneau dit son importance, et le choix entre plusieurs builds passe au premier plan.</span>
+    </a>
+  </section>
+
+  <section>
+    <h2>Thèmes <span class="etat">appliqués à l’application</span></h2>
+    <p>Ces liens ouvrent l’application réelle dans le thème indiqué, sans changer votre choix courant. Pour le garder, prenez la liste déroulante en haut à droite. Un thème se combine avec n’importe quelle disposition : ajoutez par exemple <code>&amp;disposition=bandeau</code> à l’adresse.</p>
+
+    <a class="direction" href="../index.html?theme=cockpit">
+      <span class="nom"><span class="pastille cockpit"></span>Cockpit</span><span class="fleche">→</span>
+      <span class="quoi">La maquette Cockpit portée sur l’application, avec toute son information. Les cadres tombent, les filets les remplacent, et le résultat passe en bandeau pleine largeur au-dessus des quatre colonnes.</span>
+    </a>
+
+    <a class="direction" href="../index.html?theme=papier">
+      <span class="nom"><span class="pastille papier"></span>Papier</span><span class="fleche">→</span>
+      <span class="quoi">Une fiche technique d’atelier. Fond papier gris-bleu, cartes blanches, une seule encre bleue, filets fins. Le seul thème clair.</span>
+    </a>
+
+    <a class="direction" href="../index.html?theme=forge">
+      <span class="nom"><span class="pastille forge"></span>Forge</span><span class="fleche">→</span>
+      <span class="quoi">L’atelier d’un forgeron, la plus proche de l’univers du jeu. Anthracite brun, laiton, titres à empattements, lueur basse.</span>
+    </a>
+
+    <a class="direction" href="../index.html?theme=console">
+      <span class="nom"><span class="pastille console"></span>Console</span><span class="fleche">→</span>
+      <span class="quoi">Un instrument de mesure. Graphite très sombre, trame millimétrée, angles vifs, chasse fixe du titre au dernier chiffre.</span>
+    </a>
+
+    <a class="direction" href="../index.html?theme=nuit">
+      <span class="nom"><span class="pastille nuit"></span>Nuit</span><span class="fleche">→</span>
+      <span class="quoi">L’habillage d’aujourd’hui, gardé comme point de comparaison. Bleu nuit froid, accent indigo, appuis ambre.</span>
+    </a>
+  </section>
+
+  <footer>
+    Cette page vit sous <code>/web/maquettes/</code> ; <code>/web/maquettes</code> suffit. L’application accepte <code>?theme=</code> et <code>?disposition=</code> dans son adresse : ces deux paramètres montrent un réglage sans enregistrer le vôtre.
+  </footer>
+</main>
+<script src="navigation.js"></script>
+</body>
+</html>

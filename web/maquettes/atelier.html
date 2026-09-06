@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copyroxx — direction Atelier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ============================================================
+   Direction « Atelier »
+   Le personnage equipe est le sujet de l'ecran. Tout le reste
+   s'ecarte : le catalogue devient une palette qu'on appelle, les
+   statistiques passent dans un panneau unique, et la scene garde
+   la lumiere. Une seule couleur vive, posee sur ce qui gagne.
+   ============================================================ */
+
+:root {
+  --nuit:      #090c0d;
+  --scene:     #0d1213;
+  --surface:   #12191a;
+  --surface-2: #182123;
+  --trait:     rgba(255,255,255,.07);
+  --trait-net: rgba(255,255,255,.14);
+
+  --encre:     #e9f0ef;
+  --demi:      #97a7a5;
+  --faible:    #6b7b7a;
+
+  --jade:      #5fbfa0;
+  --jade-vif:  #7fdcbd;
+  --or:        #d9c27e;
+  --rouge:     #e07a72;
+
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --sans:  Manrope, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--nuit); color: var(--encre);
+  font: 400 14px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  display: grid; grid-template-columns: 68px minmax(0,1fr) 372px; height: 100vh; overflow: hidden;
+}
+
+/* ---------- Rail : la navigation tient sur une colonne d'icones ---------- */
+.rail {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 18px 0; border-right: 1px solid var(--trait); background: var(--nuit);
+}
+.marque {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  background: linear-gradient(150deg, var(--jade), #2c6d5c); color: #04100c;
+  font: 700 15px/1 var(--sans); margin-bottom: 22px;
+}
+.onglet-rail {
+  width: 42px; height: 42px; border: none; background: none; border-radius: 12px;
+  color: var(--faible); display: grid; place-items: center; cursor: pointer;
+  transition: color .16s ease, background .16s ease;
+}
+.onglet-rail:hover { color: var(--demi); background: var(--surface); }
+.onglet-rail[aria-current="true"] { color: var(--jade-vif); background: var(--surface-2); }
+.onglet-rail svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+.rail .espace { flex: 1; }
+.rail .compte { font: 500 9px/1.3 var(--mono); color: var(--faible); text-align: center; letter-spacing: .04em; }
+
+/* ---------- Scene ---------- */
+.scene { position: relative; display: flex; flex-direction: column; background: var(--scene); min-width: 0; }
+
+.entete {
+  display: flex; align-items: center; gap: 16px; padding: 20px 30px 0;
+}
+.entete h1 { align-self: baseline; }
+.entete h1 { margin: 0; font: 400 27px/1 var(--serif); letter-spacing: .2px; }
+.entete .niveau {
+  font: 500 11px/1 var(--mono); color: var(--jade);
+  border: 1px solid rgba(95,191,160,.3); border-radius: 999px; padding: 5px 10px;
+}
+.entete .etat { margin-left: auto; font-size: 12px; color: var(--faible); }
+.entete .etat b { color: var(--demi); font-weight: 500; }
+
+/* Le plateau porte le personnage et ses pieces, en deux arcs. */
+.plateau {
+  flex: 1; position: relative; display: grid; place-items: center; min-height: 0;
+  padding: 4px 34px 0;
+}
+.lumiere {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(46% 42% at 50% 46%, rgba(158,214,199,.10), transparent 70%),
+    radial-gradient(30% 12% at 50% 82%, rgba(95,191,160,.13), transparent 75%);
+}
+.corps { position: relative; width: min(468px, 100%); aspect-ratio: 1 / 1.02; }
+.corps img.perso {
+  position: absolute; left: 50%; top: 47%; transform: translate(-50%,-50%);
+  height: 70%; filter: drop-shadow(0 26px 34px rgba(0,0,0,.55));
+}
+.sol {
+  position: absolute; left: 50%; top: 80%; transform: translate(-50%,-50%);
+  width: 186px; height: 22px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(95,191,160,.22), transparent 72%);
+  filter: blur(1px);
+}
+
+/* Chaque piece est posee sur un arc : le decalage horizontal suit la courbe. */
+.piece {
+  position: absolute; width: 56px; height: 56px; border-radius: 15px;
+  background: var(--surface); border: 1px solid var(--trait);
+  display: grid; place-items: center; cursor: pointer;
+  transition: transform .2s cubic-bezier(.2,.8,.3,1), border-color .2s ease, background .2s ease;
+}
+.piece img { width: 40px; height: 40px; object-fit: contain; }
+.piece:hover { transform: scale(1.09); border-color: var(--trait-net); background: var(--surface-2); }
+.piece.verrou { border-color: rgba(217,194,126,.45); }
+.piece.verrou::after {
+  content: ''; position: absolute; right: -3px; top: -3px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--or);
+}
+.piece .infobulle {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font: 500 11px/1 var(--sans); color: var(--demi);
+  opacity: 0; transition: opacity .18s ease; pointer-events: none;
+}
+.piece:hover .infobulle { opacity: 1; }
+.piece.g .infobulle { right: calc(100% + 12px); }
+.piece.d .infobulle { left: calc(100% + 12px); }
+
+/* Les artefacts se rangent sous la scene, sur une seule ligne. */
+.artefacts { display: flex; gap: 8px; justify-content: center; padding: 0 30px 26px; }
+.artefacts .piece { position: static; width: 46px; height: 46px; border-radius: 13px; }
+.artefacts .piece img { width: 32px; height: 32px; }
+
+/* ---------- Carte du resultat, posee sur la scene ---------- */
+.resultat {
+  position: absolute; right: 30px; bottom: 18px; width: 232px; padding: 18px 20px 16px;
+  border-radius: 20px; border: 1px solid var(--trait);
+  background: rgba(18,25,26,.72); backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
+}
+.resultat .cle { font: 500 9px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--faible); }
+.resultat .valeur {
+  font: 400 62px/1 var(--serif); color: var(--encre); margin: 9px 0 2px;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.resultat .delta { font: 500 11px/1 var(--mono); color: var(--jade); }
+.resultat .delta span { color: var(--faible); font-weight: 400; font-size: 10px; }
+.resultat svg.courbe { display: block; width: 100%; height: 46px; margin: 14px 0 10px; overflow: visible; }
+.resultat .pied {
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid var(--trait); padding-top: 11px;
+  font: 400 9.5px/1 var(--mono); color: var(--faible); white-space: nowrap;
+}
+.resultat .pied b { color: var(--demi); font-weight: 500; }
+
+/* ---------- Palette de commande : le catalogue vient a la demande ---------- */
+.palette {
+  flex: 0 1 300px; display: flex; align-items: center; gap: 10px;
+  padding: 9px 13px; border-radius: 11px;
+  border: 1px solid var(--trait); background: var(--surface);
+  color: var(--faible); font-size: 12.5px; cursor: text;
+  transition: border-color .18s ease, background .18s ease;
+}
+.palette:hover { background: var(--surface-2); }
+.palette:hover { border-color: var(--trait-net); }
+.palette svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; flex: none; }
+.palette .raccourci {
+  margin-left: auto; font: 500 10px/1 var(--mono); color: var(--faible);
+  border: 1px solid var(--trait); border-radius: 6px; padding: 4px 7px;
+}
+
+/* ---------- Panneau lateral ---------- */
+.panneau { border-left: 1px solid var(--trait); background: var(--nuit); overflow-y: auto; }
+.panneau::-webkit-scrollbar { width: 9px; }
+.panneau::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 9px; border: 3px solid var(--nuit); }
+
+.bandeau-onglets { display: flex; gap: 2px; padding: 18px 20px 0; }
+.bandeau-onglets button {
+  border: none; background: none; cursor: pointer; padding: 7px 12px; border-radius: 9px;
+  font: 500 12px/1 var(--sans); color: var(--faible);
+}
+.bandeau-onglets button[aria-selected="true"] { color: var(--encre); background: var(--surface); }
+
+.section { padding: 22px 20px; border-bottom: 1px solid var(--trait); }
+.section:last-child { border-bottom: none; }
+.section > h2 {
+  margin: 0 0 15px; font: 500 10px/1 var(--sans); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--faible);
+}
+
+/* Les chiffres qui comptent sont grands ; les autres restent en liste. */
+.vedettes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--trait); border-radius: 14px; overflow: hidden; }
+.vedette { background: var(--nuit); padding: 13px 12px; }
+.vedette .n { font: 400 26px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.vedette .l { font: 500 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--faible); margin-top: 6px; }
+
+.liste { display: grid; gap: 9px; }
+.ligne { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.ligne .nom { color: var(--demi); }
+.ligne .fil { flex: 1; height: 1px; background: var(--trait); }
+.ligne .val { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Une condition tenue se lit d'un coup d'oeil : la pastille suffit. */
+.condition { display: grid; grid-template-columns: 9px 1fr auto; gap: 11px; align-items: center; padding: 9px 0; }
+.condition + .condition { border-top: 1px solid var(--trait); }
+.pastille { width: 7px; height: 7px; border-radius: 50%; background: var(--jade); }
+.pastille.manque { background: var(--rouge); }
+.condition .nom { font-size: 13px; }
+.condition .chiffres { font: 400 12px/1 var(--mono); color: var(--demi); font-variant-numeric: tabular-nums; }
+.condition .chiffres b { color: var(--encre); font-weight: 500; }
+
+/* L'apport de chaque piece : la barre porte la comparaison, pas la couleur. */
+.apport { display: grid; grid-template-columns: 26px 1fr auto; gap: 11px; align-items: center; padding: 7px 0; }
+.apport img { width: 24px; height: 24px; object-fit: contain; }
+.apport .nom { font-size: 12.5px; color: var(--demi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apport .barre { grid-column: 2 / 4; height: 2px; background: var(--trait); border-radius: 2px; margin-top: -3px; }
+.apport .barre i { display: block; height: 100%; background: var(--jade); border-radius: 2px; }
+.apport .val { font: 500 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+
+.action {
+  width: 100%; margin-top: 4px; padding: 12px; border-radius: 12px; cursor: pointer;
+  border: none; background: var(--jade); color: #04100c; font: 600 13px/1 var(--sans);
+  transition: background .16s ease;
+}
+.action:hover { background: var(--jade-vif); }
+.action.secondaire { background: var(--surface); color: var(--encre); border: 1px solid var(--trait); margin-top: 8px; }
+.action.secondaire:hover { background: var(--surface-2); }
+</style>
+</head>
+<body>
+
+<nav class="rail">
+  <div class="marque">C</div>
+  <button class="onglet-rail" aria-current="true" title="Personnage">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+  </button>
+  <button class="onglet-rail" title="Catalogue">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+  </button>
+  <button class="onglet-rail" title="Conditions">
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/></svg>
+  </button>
+  <button class="onglet-rail" title="Sorts">
+    <svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>
+  </button>
+  <button class="onglet-rail" title="Analyse">
+    <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V4M16 19v-7M22 19H2"/></svg>
+  </button>
+  <div class="espace"></div>
+  <div class="compte">3822<br>items</div>
+</nav>
+
+<main class="scene">
+  <header class="entete">
+    <h1>Xélor</h1>
+    <span class="niveau">niveau 190</span>
+    <div class="palette">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Chercher une pièce, un sort…
+      <span class="raccourci">⌘K</span>
+    </div>
+    <span class="etat"><b>15</b> / 16 pièces · <b>3</b> conditions tenues</span>
+  </header>
+
+  <div class="plateau">
+    <div class="lumiere"></div>
+    <div class="corps">
+      <div class="sol"></div>
+      <img class="perso" src="../assets/renders/5.png" alt="Xélor">
+
+      <!-- Arc gauche -->
+      <div class="piece g" style="left:9%;  top:6%;">  <img src="https://api.dofusdb.fr/img/items/16634.png" alt=""><span class="infobulle">Bandeau de Spiritueur</span></div>
+      <div class="piece g" style="left:2%;  top:26%;"> <img src="https://api.dofusdb.fr/img/items/1334.png"  alt=""><span class="infobulle">Collier du YeCh'Ti</span></div>
+      <div class="piece g" style="left:0%;  top:46%;"> <img src="https://api.dofusdb.fr/img/items/9396.png"  alt=""><span class="infobulle">Mitaine du YeCh'Ti</span></div>
+      <div class="piece g" style="left:3%;  top:66%;"> <img src="https://api.dofusdb.fr/img/items/9228.png"  alt=""><span class="infobulle">Bague de Boréale</span></div>
+      <div class="piece g" style="left:11%; top:85%;"> <img src="https://api.dofusdb.fr/img/items/10198.png" alt=""><span class="infobulle">Ceinture Bine</span></div>
+
+      <!-- Arc droit -->
+      <div class="piece d verrou" style="right:9%;  top:6%;">  <img src="https://api.dofusdb.fr/img/items/17215.png" alt=""><span class="infobulle">Cape Peupret · verrouillée</span></div>
+      <div class="piece d" style="right:2%;  top:26%;"> <img src="https://api.dofusdb.fr/img/items/19047.png" alt=""><span class="infobulle">Hache du Guerrier Zoth</span></div>
+      <div class="piece d" style="right:0%;  top:46%;"> <img src="https://api.dofusdb.fr/img/items/82559.png" alt=""><span class="infobulle">Bras du YeCh'Ti</span></div>
+      <div class="piece d" style="right:3%;  top:66%;"> <img src="https://api.dofusdb.fr/img/items/11192.png" alt=""><span class="infobulle">Bottes de Boréale</span></div>
+      <div class="piece d" style="right:11%; top:85%;"> <img src="https://api.dofusdb.fr/img/items/97177.png" alt=""><span class="infobulle">Volkorne Ébène</span></div>
+    </div>
+
+    <section class="resultat">
+      <div class="cle">Dégâts du combo</div>
+      <div class="valeur">3 193</div>
+      <div class="delta">+286 <span>depuis le dernier essai</span></div>
+      <svg class="courbe" viewBox="0 0 220 46" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="aire" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5fbfa0" stop-opacity=".26"/>
+            <stop offset="1" stop-color="#5fbfa0" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 44 L0 41 C14 39 22 25 36 15 C50 6 62 9 78 7 C96 5 120 6 148 5 C176 4 198 4 220 4 L220 46 Z" fill="url(#aire)"/>
+        <path d="M0 41 C14 39 22 25 36 15 C50 6 62 9 78 7 C96 5 120 6 148 5 C176 4 198 4 220 4"
+              fill="none" stroke="#5fbfa0" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="219" cy="4" r="2.6" fill="#7fdcbd"/>
+      </svg>
+      <div class="pied"><span><b>597</b> générations</span><span><b>1</b> fil · en pause</span></div>
+    </section>
+  </div>
+
+  <div class="artefacts">
+    <div class="piece"><img src="https://api.dofusdb.fr/img/items/23001.png" alt=""></div>
+    <div class="piece"><img src="https://api.dofusdb.fr/img/items/23003.png" alt=""></div>
+    <div class="piece"><img src="https://api.dofusdb.fr/img/items/23005.png" alt=""></div>
+    <div class="piece"><img src="https://api.dofusdb.fr/img/items/23006.png" alt=""></div>
+    <div class="piece"><img src="https://api.dofusdb.fr/img/items/23023.png" alt=""></div>
+    <div class="piece" style="opacity:.35"></div>
+  </div>
+
+</main>
+
+<aside class="panneau">
+  <div class="bandeau-onglets">
+    <button aria-selected="true">Résumé</button>
+    <button>Analyse</button>
+    <button>Sorts</button>
+  </div>
+
+  <section class="section">
+    <h2>Le build en trois chiffres</h2>
+    <div class="vedettes">
+      <div class="vedette"><div class="n">12</div><div class="l">PA</div></div>
+      <div class="vedette"><div class="n">5</div><div class="l">PM</div></div>
+      <div class="vedette"><div class="n">49<span style="font-size:15px">%</span></div><div class="l">Critique</div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Conditions</h2>
+    <div class="condition"><i class="pastille"></i><span class="nom">Points d'action</span><span class="chiffres"><b>12</b> / 12</span></div>
+    <div class="condition"><i class="pastille"></i><span class="nom">Points de mouvement</span><span class="chiffres"><b>5</b> / 5</span></div>
+    <div class="condition"><i class="pastille"></i><span class="nom">Sagesse</span><span class="chiffres"><b>600</b> / 600</span></div>
+  </section>
+
+  <section class="section">
+    <h2>Ce qui porte les dégâts</h2>
+    <div class="liste" style="gap:11px">
+      <div class="apport">
+        <img src="https://api.dofusdb.fr/img/items/17215.png" alt="">
+        <span class="nom">Cape Peupret</span><span class="val">+552</span>
+        <span class="barre"><i style="width:100%"></i></span>
+      </div>
+      <div class="apport">
+        <img src="https://api.dofusdb.fr/img/items/1334.png" alt="">
+        <span class="nom">Collier du YeCh'Ti</span><span class="val">+548</span>
+        <span class="barre"><i style="width:99%"></i></span>
+      </div>
+      <div class="apport">
+        <img src="https://api.dofusdb.fr/img/items/11192.png" alt="">
+        <span class="nom">Bottes de Boréale</span><span class="val">+536</span>
+        <span class="barre"><i style="width:97%"></i></span>
+      </div>
+      <div class="apport">
+        <img src="https://api.dofusdb.fr/img/items/10198.png" alt="">
+        <span class="nom">Ceinture Bine</span><span class="val">+421</span>
+        <span class="barre"><i style="width:76%"></i></span>
+      </div>
+      <div class="apport">
+        <img src="https://api.dofusdb.fr/img/items/9396.png" alt="">
+        <span class="nom">Mitaine du YeCh'Ti</span><span class="val">+408</span>
+        <span class="barre"><i style="width:74%"></i></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Où investir</h2>
+    <div class="liste">
+      <div class="ligne"><span class="nom">+1 % dommages sorts</span><i class="fil"></i><span class="val">+78</span></div>
+      <div class="ligne"><span class="nom">+1 % dommages mêlée</span><i class="fil"></i><span class="val">+78</span></div>
+      <div class="ligne"><span class="nom">+10 puissance</span><i class="fil"></i><span class="val">+76</span></div>
+      <div class="ligne"><span class="nom">+1 % dommages finaux</span><i class="fil"></i><span class="val">+71</span></div>
+      <div class="ligne"><span class="nom">+1 dommages</span><i class="fil"></i><span class="val">+26</span></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <button class="action">Lancer la recherche</button>
+    <button class="action secondaire">Repartir de zéro</button>
+  </section>
+</aside>
+
+<script src="navigation.js"></script>
+</body>
+</html>

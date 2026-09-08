@@ -26,6 +26,26 @@ export function buildLayout() {
 }
 
 /**
+ * Dit si une arme respecte les bornes demandees.
+ *
+ * Une arme se juge aussi a ce qu'elle prend au tour : son cout en PA et le
+ * nombre de fois qu'elle frappe. Une borne a zero ne filtre rien, et un
+ * chiffre absent du catalogue ne fait jamais ecarter l'arme : on ne refuse
+ * pas une piece sur une valeur qu'on n'a pas.
+ *
+ * @param {any} item
+ * @param {{paMax?: number, lancersMin?: number}} contraintes
+ */
+function armeAcceptee(item, contraintes) {
+  const paMax = Number(contraintes.paMax) || 0;
+  const lancersMin = Number(contraintes.lancersMin) || 0;
+
+  if (paMax > 0 && Number.isFinite(item.apCost) && item.apCost > paMax) return false;
+  if (lancersMin > 1 && Number.isFinite(item.usesPerTurn) && item.usesPerTurn < lancersMin) return false;
+  return true;
+}
+
+/**
  * Prepare les pools d'items utilisables par case, apres filtrage.
  *
  * @param {any[]} items Catalogue complet.
@@ -34,10 +54,13 @@ export function buildLayout() {
  * @param {Set<number>} [constraints.banned] Items exclus.
  * @param {Set<string>} [constraints.allowedSlots] Emplacements autorises.
  * @param {boolean} [constraints.allowUnobtainable] Autorise les objets de service.
+ * @param {{paMax?: number, lancersMin?: number}} [constraints.armeContraintes]
+ *   Bornes que toute arme proposee doit respecter.
  * @returns {{layout: any[], pools: any[][], pool: any[]}}
  */
 export function buildPools(items, {
   level, banned = new Set(), allowedSlots = null, allowUnobtainable = false,
+  armeContraintes = null,
 }) {
   const layout = buildLayout();
 
@@ -47,6 +70,7 @@ export function buildPools(items, {
     if (allowedSlots && !allowedSlots.has(item.slot)) return false;
     // Les objets reserves aux equipes du jeu fausseraient le resultat.
     if (!allowUnobtainable && !estObtenable(item)) return false;
+    if (armeContraintes && item.slot === 'arme' && !armeAcceptee(item, armeContraintes)) return false;
     return true;
   });
 

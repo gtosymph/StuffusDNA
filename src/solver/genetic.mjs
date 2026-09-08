@@ -312,7 +312,11 @@ export function solve(input, options = {}, onProgress) {
   }
 
   const random = createRandom(settings.seed);
-  const { layout, pools } = buildPools(items, { level, banned, allowedSlots });
+  // Les bornes de l'arme voyagent dans l'objectif : il traverse deja le fil
+  // de calcul sans plomberie supplementaire.
+  const { layout, pools } = buildPools(items, {
+    level, banned, allowedSlots, armeContraintes: objective.arme ?? null,
+  });
 
   // Les items imposes occupent leur case avant toute evolution.
   const lockedItems = lockedIds

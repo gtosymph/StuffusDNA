@@ -278,5 +278,14 @@ export function computeSpellDetail(spell, stats) {
     parLigne.push(ligne);
   }
 
-  return { ...moyennes, ...bornes, parLigne, critRate: rate };
+  // « casts » dit ce que le tour permet ; « comptes » dit ce que le score
+  // additionne vraiment. Les deux different des qu'un combo, ou la main, a
+  // fixe un nombre de lancers plus bas que la limite du jeu.
+  const comptes = Number.isFinite(spell.repeats) && spell.repeats > 0
+    ? Math.floor(spell.repeats) : 1;
+
+  return {
+    ...moyennes, ...bornes, parLigne, critRate: rate,
+    comptes, total: moyennes.average * comptes,
+  };
 }

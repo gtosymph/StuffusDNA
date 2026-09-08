@@ -1,9 +1,10 @@
 /* Disposition « Bandeau ».
 
    Le resultat quitte sa colonne etroite et prend toute la largeur en tete :
-   c'est ce que l'on regarde le plus souvent. Dessous, trois colonnes — la
-   matiere a gauche, le personnage au centre, les reglages a droite, ranges
-   par onglets pour supprimer le defilement sans fin.
+   c'est ce que l'on regarde le plus souvent. Dessous, la disposition en
+   colonnes reste, avec deux corrections : les reglages — conditions et sorts —
+   se suivent dans une meme colonne, et les chiffres du personnage se lisent
+   ensemble au lieu d'etre separes par deux colonnes d'ecart.
 
    Cette feuille ne pose aucune couleur : elle n'agit que sur les places. */
 
@@ -64,11 +65,14 @@
 /* Le score porte le bandeau : il grandit, quel que soit le theme. */
 .score { font-size: 44px; line-height: .95; }
 
-/* ---------- Les trois colonnes ---------- */
+/* ---------- Les quatre colonnes ---------- */
 
 .grille-atelier {
   display: grid;
-  grid-template-columns: 210px minmax(320px, 480px) minmax(340px, 1fr);
+  /* Le catalogue reste etroit ; les reglages et les chiffres prennent la
+     largeur libre ; la scene garde une taille bornee, elle n'a pas besoin
+     de plus. */
+  grid-template-columns: 206px minmax(290px, 1.05fr) minmax(270px, 430px) minmax(330px, 1.15fr);
   gap: var(--gap-atelier, 8px);
   padding: var(--gap-atelier, 8px);
   align-items: start;
@@ -76,37 +80,44 @@
 }
 .grille-atelier > * { min-width: 0; }
 .grille-atelier .colonne-catalogue { position: sticky; top: 46px; }
-.grille-atelier .grille-items { max-height: calc(100vh - 320px); }
 
-/* ---------- Le panneau a onglets ---------- */
-
-.panneau { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
-
-.onglets-panneau {
-  display: flex; flex-wrap: wrap; gap: 3px;
-  padding-bottom: 2px;
+/* Tiroir ferme : la grille perd sa premiere piste, les trois autres prennent
+   la place. Le bandeau du resultat, lui, ne bouge pas. */
+:root[data-catalogue="ferme"] .grille-atelier {
+  grid-template-columns: minmax(290px, 1.05fr) minmax(270px, 430px) minmax(330px, 1.15fr);
 }
-.onglet-panneau {
-  padding: 6px 12px; font-size: 11px; border-radius: var(--r, 5px);
-  background: var(--bouton, transparent); border: 1px solid var(--bord);
-  color: var(--faible); cursor: pointer;
-}
-.onglet-panneau:hover { color: var(--texte); }
-.onglet-panneau[aria-selected="true"] {
-  background: var(--accent-doux); border-color: var(--accent);
-  color: var(--sur-accent, #fff); font-weight: 600;
-}
-.volet { display: flex; flex-direction: column; gap: var(--gap-atelier, 8px); min-width: 0; }
-.volet[hidden] { display: none; }
+.grille-atelier .grille-items { max-height: calc(100vh - 330px); }
 
-/* Le volet des statistiques tient sur deux colonnes quand la place le permet. */
-@media (min-width: 1500px) {
-  .volet[data-volet="stats"] { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
-  .volet[data-volet="degats"] { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+/* Les chiffres du personnage se rangent en deux colonnes quand l'ecran le
+   permet : caracteristiques et dommages arrivent alors cote a cote. */
+@media (min-width: 1600px) {
+  .grille-atelier { grid-template-columns: 206px minmax(300px, 1fr) minmax(280px, 440px) minmax(420px, 1.4fr); }
+  :root[data-catalogue="ferme"] .grille-atelier {
+    grid-template-columns: minmax(300px, 1fr) minmax(280px, 440px) minmax(420px, 1.4fr);
+  }
+  .colonne-chiffres {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: var(--gap-atelier, 8px);
+  }
+  /* L'analyse et les options gardent toute la largeur : leurs lignes sont
+     longues, deux colonnes les hacheraient. */
+  .colonne-chiffres > #bloc-analyse,
+  .colonne-chiffres > .bloc:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1280px) {
+  .grille-atelier { grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr); }
+  .grille-atelier .colonne-chiffres { grid-column: 2 / -1; }
+  :root[data-catalogue="ferme"] .grille-atelier { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  :root[data-catalogue="ferme"] .grille-atelier .colonne-chiffres { grid-column: 1 / -1; }
 }
 
 @media (max-width: 1100px) {
-  .grille-atelier { grid-template-columns: minmax(0, 1fr); }
+  .grille-atelier,
+  :root[data-catalogue="ferme"] .grille-atelier { grid-template-columns: minmax(0, 1fr); }
+  .grille-atelier .colonne-chiffres { grid-column: auto; }
   .grille-atelier .colonne-catalogue { position: static; }
   .atelier > .bloc-recherche { grid-template-columns: minmax(0, 1fr); }
   .atelier > .bloc-recherche > * { grid-column: 1 !important; }

@@ -351,9 +351,10 @@ function detailSort(detail) {
         ? el('span', { title: 'Moyenne par point d\'action' },
             el('b', { text: entier(detail.perAp) }), ' par PA')
         : null,
-      detail.casts > 1
-        ? el('span', { title: `${detail.casts} lancers par tour` },
-            el('b', { text: entier(detail.parTour) }), ` par tour (×${detail.casts})`)
+      detail.comptes > 1
+        ? el('span', { title: `${detail.comptes} lancer(s) comptes dans le score.\n`
+            + `Le tour en permet ${detail.casts}.` },
+            el('b', { text: entier(detail.total) }), ` au total (×${detail.comptes})`)
         : null,
     ),
   );
@@ -425,8 +426,8 @@ export function renderSorts(root, sorts, degats, {
       class: 'cellule-sort', title: aide ?? titre,
     }, el('span', { class: 'legende', text: titre }), controle);
 
-    const champ = (cle, titre, aide) => cellule(titre, el('input', {
-      type: 'number', value: String(sort[cle] ?? 0),
+    const champ = (cle, titre, aide, defaut = 0) => cellule(titre, el('input', {
+      type: 'number', value: String(sort[cle] ?? defaut),
       onChange: (ev) => onChange(index, cle, Number(ev.target.value)),
     }), aide);
     const champLigne = (rang, ligne, cle, titre, aide) => cellule(titre, el('input', {
@@ -453,7 +454,14 @@ export function renderSorts(root, sorts, degats, {
       ),
       el('div', { class: 'sort-grille' },
         champ('apCost', 'PA', 'Cout du sort en points d\'action'),
-        champ('castsPerTurn', 'Lancers/tour', 'Nombre maximal de lancers par tour'),
+        // Deux nombres voisins mais distincts : « Max/tour » borne
+        // l'optimisateur de combo, « Lancers » compte les degats.
+        champ('castsPerTurn', 'Max/tour',
+          'Nombre maximal de lancers par tour.\n'
+          + 'L\'optimisateur de combo ne depasse jamais cette limite.'),
+        champ('repeats', 'Lancers',
+          'Nombre de lancers comptes dans les degats.\n'
+          + '« Appliquer aux sorts » y met le nombre retenu par le combo.', 1),
         champ('baseCrit', 'Crit +%', 'Bonus de critique propre au sort'),
         cellule('1 max au combo', el('input', {
           type: 'checkbox', ...(sort.unParTour ? { checked: true } : {}),

@@ -3,7 +3,9 @@
  * L'etat reste immuable : chaque changement produit un nouvel objet.
  */
 import { loadCatalog } from './catalog-web.mjs';
-import { CLASSES } from './classes.mjs';
+import { avatarDeClasse, CLASSES, classeConnue, emblemeDeClasse, nomDeClasse } from './classes.mjs';
+import { ajouterSimulation } from './simulations.mjs';
+import { installerSimulations } from './simulations-panel.mjs';
 import { defaultThreadCount, runSearch } from './solver-client.mjs';
 import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
@@ -49,6 +51,12 @@ const OPTIONS = [
   { cle: 'arme', libelle: 'Degats de l\'arme',
     aide: 'Ajoute les degats de l\'arme equipee au total optimise.\n'
       + 'L\'arme frappe autant de fois que ses utilisations par tour.' },
+  { cle: 'armePaMax', libelle: 'PA de l\'arme (max)', type: 'nombre', min: 0, max: 12,
+    aide: 'Le solveur ne propose que des armes qui coutent au plus ce nombre de PA.\n'
+      + 'Zero : aucune limite. Une arme chere prend le tour aux sorts.' },
+  { cle: 'armeLancersMin', libelle: 'Lancers de l\'arme (min)', type: 'nombre', min: 0, max: 4,
+    aide: 'Le solveur ne propose que des armes qui frappent au moins ce nombre\n'
+      + 'de fois par tour. Zero ou un : aucune limite.' },
   { cle: 'maitriseArme', libelle: 'Maitrise d\'arme',
     aide: 'Compte le bonus de maitrise d\'arme : de 300 a 360 de puissance\n'
       + 'sur les coups d\'arme, selon le taux critique.' },
@@ -78,6 +86,9 @@ const OPTIONS = [
 /** Options numeriques qui n'ont de sens que quand le combo est actif. */
 const OPTIONS_DU_COMBO = new Set(['paReserves', 'comboElements']);
 
+/** Options qui n'ont de sens que quand les degats de l'arme comptent. */
+const OPTIONS_DE_L_ARME = new Set(['armePaMax', 'armeLancersMin']);
+
 let etat = {
   niveau: 190, classe: 5, sexe: 0,
   filtre: null, filtreType: null, recherche: '', filtrePk: false,
@@ -94,6 +105,8 @@ let etat = {
     distance: false, arme: false, maitriseArme: true, passifs: true, toursSuivants: false,
     cibleTelefrag: false,
     combo: false, paReserves: 0, comboElements: 0, comboUnLancer: false,
+    // Bornes imposees aux armes que le solveur peut proposer. Zero : aucune.
+    armePaMax: 0, armeLancersMin: 0,
   },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
@@ -215,7 +228,7 @@ function reprendreEtat() {
   etat = {
     ...etat,
     ...(Number.isFinite(data.niveau) ? { niveau: data.niveau } : {}),
-    ...(Number.isFinite(data.classe) ? { classe: data.classe } : {}),
+    ...(Number.isFinite(data.classe) ? { classe: classeConnue(data.classe) } : {}),
     ...(Number.isFinite(data.sexe) ? { sexe: data.sexe } : {}),
     ...(Array.isArray(data.conditions) ? { conditions: data.conditions } : {}),
     ...(Array.isArray(data.sorts) ? { sorts: data.sorts } : {}),
@@ -395,6 +408,11 @@ function objectif() {
     // Le solveur ajoute lui-meme l'attaque de l'arme de chaque build essaye.
     useWeapon: etat.options.arme,
     maitriseArme: etat.options.maitriseArme,
+    // Bornes du choix des armes : elles ecartent les armes trop cheres ou
+    // trop lentes avant toute evaluation.
+    arme: etat.options.arme
+      ? { paMax: etat.options.armePaMax, lancersMin: etat.options.armeLancersMin }
+      : null,
     combo: etat.options.combo
       ? {
         actif: true,
@@ -564,9 +582,15 @@ function changerCondition(index, cle, valeur) {
   setEtat({ conditions });
 }
 
+/** Champs d'un sort qui comptent des lancers : jamais moins d'un. */
+const LANCERS_MINIMUM = new Set(['repeats', 'castsPerTurn']);
+
 function changerSort(index, cle, valeur) {
   const sorts = etat.sorts.map((sort, i) => {
     if (i !== index) return sort;
+    // Un sort lance zero fois n'a pas de sens : le calcul retomberait sur
+    // un lancer, et le champ montrerait un autre nombre que le total.
+    if (LANCERS_MINIMUM.has(cle)) return { ...sort, [cle]: Math.max(1, Number(valeur) || 1) };
     if (!cle.startsWith('line.')) return { ...sort, [cle]: valeur };
     // "line.<rang>.<champ>" modifie une ligne de degats precise.
     const [, rang, champ] = cle.split('.');
@@ -587,6 +611,14 @@ function changerLignes(index, transformer) {
 function render() {
   const build = buildCourant();
   const stats = build?.stats ?? null;
+
+  // Les champs du personnage suivent l'etat, et pas seulement l'inverse :
+  // « Annuler » et la remise d'une simulation le changent sans saisie. Le
+  // champ en cours de frappe est laisse tranquille.
+  for (const [id, valeur] of [['niveau', etat.niveau], ['classe', etat.classe], ['sexe', etat.sexe]]) {
+    const champ = $(id);
+    if (champ !== document.activeElement && champ.value !== String(valeur)) champ.value = String(valeur);
+  }
 
   vue.renderOnglets($('onglets-slot'), etat.filtre,
     (key, type) => setEtat({ filtre: key, filtreType: type ?? null }), etat.filtreType);
@@ -633,15 +665,13 @@ function render() {
   vue.renderCases($('slots-droite'), plan.SLOTS_DROITE, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
   vue.renderCases($('slots-artefacts'), plan.SLOTS_ARTEFACTS, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
 
-  const classe = classeCourante();
+  // L'avatar vient des planches de l'encyclopedie Dofus 3, pas du composeur
+  // de look d'Ankama : depuis Dofus 3 celui-ci rend le corps sans la tete.
   const image = $('avatar-image');
-  if (classe?.render) {
-    image.src = classe.render;
-    image.alt = classe.fr;
-    image.hidden = false;
-  } else {
-    image.hidden = true;
-  }
+  const avatar = avatarDeClasse(etat.classe, etat.sexe);
+  if (image.getAttribute('src') !== avatar) image.src = avatar;
+  image.alt = nomDeClasse(etat.classe);
+  image.hidden = false;
   $('avatar-note').textContent = `${etat.equipped.size} / 16 pieces`;
 
   $('compte-conditions').textContent = String(etat.conditions.length);
@@ -699,6 +729,8 @@ function render() {
     actif: etat.options[o.cle],
     // Le champ des PA reserves ne sert que quand le combo est actif.
     ...(OPTIONS_DU_COMBO.has(o.cle) ? { inactif: !etat.options.combo } : {}),
+    // Les bornes de l'arme ne servent que si l'arme compte dans les degats.
+    ...(OPTIONS_DE_L_ARME.has(o.cle) ? { inactif: !etat.options.arme } : {}),
   })),
     (cle, actif) => setEtat({ options: { ...etat.options, [cle]: actif } }));
 
@@ -760,9 +792,14 @@ function montrerScore(detail, build) {
 }
 
 /**
- * Sorts retenus par le combo, au format de la liste : chaque sort garde sa
- * definition et prend le nombre de lancers du combo. L'attaque de l'arme
- * ne se transpose pas, elle n'est pas un sort.
+ * Sorts retenus par le combo, au format de la liste.
+ *
+ * Chaque sort prend le nombre de lancers que le combo lui a donne, dans
+ * « repeats » : c'est ce champ que les degats comptent, combo decoche
+ * compris. « castsPerTurn » reste la limite du jeu, elle n'est pas touchee.
+ *
+ * L'attaque de l'arme ne se transpose pas, elle n'est pas un sort : ses
+ * lancers se reglent sur sa propre carte.
  */
 function sortsDuCombo(combo) {
   const parId = new Map(etat.sorts.map((s) => [s.id, s]));
@@ -770,7 +807,7 @@ function sortsDuCombo(combo) {
   return combo.lancers
     .map((lancer) => {
       const base = parId.get(lancer.id);
-      return base ? { ...base, castsPerTurn: lancer.lancers } : null;
+      return base ? { ...base, repeats: lancer.lancers } : null;
     })
     .filter(Boolean);
 }
@@ -867,6 +904,9 @@ async function lancer(choix = {}) {
     const { best, candidats } = await recherche.promise;
     if (best.score > meilleurApplique) appliquer(best);
     if (Array.isArray(candidats)) setEtat({ candidats });
+    // Une recherche mise en pause laisse une trace : c'est la version que
+    // l'on voudra comparer au prochain essai.
+    garderSimulation({ siNouvelle: true, silencieux: true });
     message(`Recherche en pause apres ${generationMax.toLocaleString('fr-FR')} generations sur ${fils} fil(s).`, 'info');
     $('compteur-generations').textContent =
       `generation ${generationMax.toLocaleString('fr-FR')} — en pause`;
@@ -964,6 +1004,111 @@ function appliquer(resultat) {
       [...equipped.values()].some((piece) => piece.id === id))),
     ...(resultat.allocation ? { allocation: { ...etat.allocation, ...resultat.allocation } } : {}),
   });
+}
+
+/* ------------------------------------------------ Simulations gardees --- */
+
+/** Panneau des simulations, installe une fois le document pret. */
+let panneauSimulations = null;
+
+/**
+ * Instantane du moment : de quoi revenir exactement a cet etat.
+ *
+ * Les pieces partent avec leur emplacement : sans lui, deux anneaux ne se
+ * remettent pas a la meme place. Les statistiques partent entieres, pour que
+ * la comparaison de deux simulations n'ait rien a recalculer.
+ *
+ * @returns {any|null} Instantane, ou null tant que le catalogue manque.
+ */
+function instantane() {
+  const build = buildCourant();
+  if (!build) return null;
+
+  const detail = scoreBuild(build.stats, { ...objectif(), spells: attaquesAffichees() });
+
+  return {
+    nom: '',
+    niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
+    score: detail.score,
+    tenu: detail.satisfied,
+    manquantes: detail.unmet?.length ?? 0,
+    pieces: [...etat.equipped.entries()].map(([cle, piece]) => ({ cle, id: piece.id })),
+    stats: { ...build.stats },
+    conditions: etat.conditions,
+    sorts: etat.sorts,
+    options: etat.options,
+    allocation: etat.allocation,
+    scrolls: etat.scrolls,
+    bannis: [...etat.bannis],
+    verrous: [...etat.verrous],
+  };
+}
+
+/**
+ * Range le build porte dans la liste des simulations.
+ *
+ * @param {{siNouvelle?: boolean, silencieux?: boolean}} [choix]
+ */
+function garderSimulation(choix = {}) {
+  const releve = instantane();
+  if (!releve) {
+    message('Rien a garder : le catalogue n\'est pas encore charge.', 'info');
+    return;
+  }
+
+  let ajoutee = null;
+  try {
+    ({ ajoutee } = ajouterSimulation(releve, { siNouvelle: choix.siNouvelle }));
+  } catch (erreur) {
+    message(erreur.message, 'erreur');
+    return;
+  }
+
+  panneauSimulations?.rafraichir();
+  if (choix.silencieux || !ajoutee) return;
+  message(`Simulation gardee a ${Math.floor(ajoutee.score).toLocaleString('fr-FR')} degats.`, 'info');
+}
+
+/**
+ * Remet une simulation en place : build, reglages et pieces bannies.
+ *
+ * Le retour passe par setEtat, donc « Annuler » defait la remise : reprendre
+ * un ancien essai ne perd jamais celui en cours.
+ *
+ * @param {any} simulation
+ */
+function restaurerSimulation(simulation) {
+  if (!catalogue) return;
+
+  const equipped = new Map();
+  let manquantes = 0;
+  for (const { cle, id } of simulation.pieces ?? []) {
+    const piece = catalogue.itemById.get(id);
+    if (piece) equipped.set(cle, piece);
+    else manquantes += 1;
+  }
+
+  setEtat({
+    niveau: simulation.niveau ?? etat.niveau,
+    classe: classeConnue(simulation.classe),
+    sexe: simulation.sexe ?? etat.sexe,
+    equipped,
+    // Les pieces viennent d'un instantane, aucune n'est posee a la main.
+    posees: new Set(),
+    conditions: simulation.conditions ?? etat.conditions,
+    sorts: simulation.sorts ?? etat.sorts,
+    options: { ...etat.options, ...(simulation.options ?? {}) },
+    allocation: { ...etat.allocation, ...(simulation.allocation ?? {}) },
+    scrolls: { ...etat.scrolls, ...(simulation.scrolls ?? {}) },
+    bannis: new Set(simulation.bannis ?? []),
+    verrous: new Set(simulation.verrous ?? []),
+    candidats: [],
+  });
+
+  message(manquantes === 0
+    ? 'Simulation remise en place. « Annuler » revient au build d\'avant.'
+    : `Simulation remise en place. ${manquantes} piece(s) introuvable(s) au catalogue.`,
+  manquantes === 0 ? 'info' : 'erreur');
 }
 
 function brancher() {
@@ -1119,6 +1264,18 @@ async function main() {
     const nbSorts = classesSorts.reduce((n, c) => n + c.spells.length, 0);
     $('etiquette-items').textContent =
       `${catalogue.items.length.toLocaleString('fr-FR')} items · ${nbSorts} sorts`;
+    panneauSimulations = installerSimulations($('simulations'), {
+      compteur: $('compte-simulations'),
+      itemById: () => catalogue?.itemById ?? new Map(),
+      libelles: STAT_LABELS,
+      // Les options se lisent par leur libelle, pas par leur cle interne.
+      libellesOptions: Object.fromEntries(OPTIONS.map((o) => [o.cle, o.libelle])),
+      nomDeClasse,
+      embleme: emblemeDeClasse,
+      onRestaurer: restaurerSimulation,
+      onGarder: () => garderSimulation(),
+      onMessage: (texte) => message(texte, 'info'),
+    });
     message('');
     render();
   } catch (error) {

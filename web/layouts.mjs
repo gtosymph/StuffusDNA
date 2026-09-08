@@ -15,7 +15,6 @@
  */
 
 const CLE = 'copyroxx_disposition';
-const CLE_VOLET = 'copyroxx_volet';
 const ID_FEUILLE = 'feuille-disposition';
 
 /** Etat d'origine de l'atelier, releve au premier appel. */
@@ -37,6 +36,7 @@ function briques() {
     sorts: bloc('#liste-sorts'),
     personnage: bloc('.scene'),
     recherche: document.querySelector('.bloc-recherche'),
+    simulations: document.getElementById('bloc-simulations'),
     candidats: document.getElementById('bloc-candidats'),
     panoplies: bloc('#panoplies'),
     analyse: document.getElementById('bloc-analyse'),
@@ -61,159 +61,41 @@ function colonne(classe, sections) {
   return hote;
 }
 
-/**
- * Panneau a onglets.
- *
- * Chaque volet garde ses sections dans le document meme quand il est cache :
- * l'application continue de les remplir, et le passage d'un onglet a l'autre
- * ne coute aucun rendu.
- */
-function panneau(nom, volets) {
-  const hote = creer('div', 'panneau');
-  const barre = creer('div', 'onglets-panneau');
-  barre.setAttribute('role', 'tablist');
-  hote.append(barre);
-
-  const gardes = [];
-  for (const volet of volets) {
-    const sections = volet.sections.filter(Boolean);
-    if (sections.length === 0) continue;
-
-    const corps = creer('div', 'volet');
-    corps.dataset.volet = volet.cle;
-    for (const section of sections) corps.append(section);
-    hote.append(corps);
-
-    const bouton = creer('button', 'onglet-panneau');
-    bouton.type = 'button';
-    bouton.textContent = volet.nom;
-    bouton.dataset.volet = volet.cle;
-    bouton.setAttribute('role', 'tab');
-    barre.append(bouton);
-
-    gardes.push({ cle: volet.cle, bouton, corps });
-  }
-
-  const montrer = (cle) => {
-    const vise = gardes.some((g) => g.cle === cle) ? cle : gardes[0]?.cle;
-    for (const garde of gardes) {
-      const actif = garde.cle === vise;
-      garde.corps.hidden = !actif;
-      garde.bouton.setAttribute('aria-selected', String(actif));
-    }
-    try { localStorage.setItem(`${CLE_VOLET}_${nom}`, vise); } catch { /* stockage refuse */ }
-  };
-
-  for (const garde of gardes) garde.bouton.addEventListener('click', () => montrer(garde.cle));
-
-  let depart = null;
-  try { depart = localStorage.getItem(`${CLE_VOLET}_${nom}`); } catch { /* stockage refuse */ }
-  montrer(depart);
-
-  return hote;
-}
-
 /* ---------------------------------------------------------------- Plans --- */
 
 /**
- * « Bandeau » : le resultat en tete, sur toute la largeur.
+ * « Bandeau » : le resultat en tete, les colonnes dessous.
  *
  * Le score, la courbe et les commandes sont ce que l'on regarde le plus
- * souvent ; ils quittent leur colonne etroite. Dessous, trois colonnes : la
- * matiere a gauche, le personnage au centre, les reglages a droite.
+ * souvent ; ils quittent leur colonne etroite et prennent toute la largeur.
+ * Le reste garde la disposition en colonnes, avec deux changements : les
+ * reglages se suivent dans une meme colonne, et les chiffres du personnage
+ * — caracteristiques, secondaires, dommages, resistances — se lisent enfin
+ * ensemble au lieu d'etre separes par deux colonnes d'ecart.
+ *
+ * Aucun onglet : un onglet cache ce que l'on veut comparer, et coute un clic
+ * pour retrouver ce que l'on voyait. Le pliage d'une section rend le meme
+ * service sans rien imposer.
  */
 function planBandeau(atelier, b) {
   const grille = creer('div', 'grille-atelier');
   grille.append(
     colonne('colonne-catalogue', [b.catalogue, b.bannis]),
-    colonne('colonne-scene colonne-perso', [b.personnage, b.candidats, b.panoplies]),
-    panneau('bandeau', [
-      { cle: 'reglages', nom: 'Conditions et sorts', sections: [b.conditions, b.sorts] },
-      { cle: 'stats', nom: 'Statistiques', sections: [b.principales, b.caracteristiques, b.points, b.secondaires] },
-      { cle: 'degats', nom: 'Dommages', sections: [b.dommages, b.resistances, b.options] },
-      { cle: 'analyse', nom: 'Analyse', sections: [b.analyse] },
+    colonne('colonne-reglages', [b.conditions, b.sorts]),
+    colonne('colonne-scene colonne-perso', [b.personnage, b.simulations, b.candidats, b.panoplies]),
+    colonne('colonne-chiffres', [
+      b.principales, b.caracteristiques, b.secondaires,
+      b.dommages, b.resistances,
+      b.points, b.analyse, b.options,
     ]),
   );
   atelier.append(b.recherche, grille);
-}
-
-/**
- * « Atelier » : le catalogue passe dans un tiroir.
- *
- * Le catalogue occupe une colonne entiere toute la journee alors qu'il ne sert
- * que par moments. Ferme, il rend sa place au personnage et au resultat.
- */
-function planAtelier(atelier, b) {
-  const tiroir = creer('aside', 'tiroir');
-  tiroir.append(b.catalogue, b.bannis);
-
-  const poignee = creer('button', 'poignee-tiroir');
-  poignee.type = 'button';
-  poignee.textContent = 'Catalogue';
-  poignee.title = 'Ouvre ou ferme le catalogue (touche C)';
-  poignee.addEventListener('click', () => {
-    const ouvert = atelier.classList.toggle('tiroir-ouvert');
-    poignee.setAttribute('aria-expanded', String(ouvert));
-  });
-  poignee.setAttribute('aria-expanded', 'false');
-
-  const grille = creer('div', 'grille-atelier');
-  grille.append(
-    colonne('colonne-scene colonne-perso', [b.recherche, b.personnage, b.panoplies]),
-    panneau('atelier', [
-      { cle: 'reglages', nom: 'Conditions et sorts', sections: [b.conditions, b.sorts] },
-      { cle: 'stats', nom: 'Statistiques', sections: [b.principales, b.caracteristiques, b.points, b.secondaires] },
-      { cle: 'degats', nom: 'Dommages', sections: [b.dommages, b.resistances, b.options] },
-      { cle: 'analyse', nom: 'Analyse', sections: [b.analyse, b.candidats] },
-    ]),
-  );
-  atelier.append(tiroir, poignee, grille);
-}
-
-/**
- * « Entree et sortie » : ce que je regle a gauche, ce que cela donne a droite.
- *
- * La separation suit le travail reel : on modifie une condition, un sort, une
- * piece, puis on lit le score, les degats et l'analyse. Les deux moities ne se
- * melangent plus.
- */
-function planEntreeSortie(atelier, b) {
-  const grille = creer('div', 'grille-atelier');
-
-  const gauche = creer('div', 'volets-entree');
-  const titreEntree = creer('div', 'titre-moitie');
-  titreEntree.textContent = 'Ce que je regle';
-  gauche.append(titreEntree, panneau('entree', [
-    { cle: 'catalogue', nom: 'Catalogue', sections: [b.catalogue, b.bannis] },
-    { cle: 'conditions', nom: 'Conditions', sections: [b.conditions] },
-    { cle: 'sorts', nom: 'Sorts', sections: [b.sorts] },
-    { cle: 'points', nom: 'Points', sections: [b.points, b.options] },
-  ]));
-
-  const droite = creer('div', 'volets-sortie');
-  const titreSortie = creer('div', 'titre-moitie');
-  titreSortie.textContent = 'Ce que cela donne';
-  droite.append(
-    titreSortie,
-    b.recherche,
-    creer('div', 'paire-sortie'),
-  );
-  droite.querySelector('.paire-sortie').append(
-    colonne('colonne-perso', [b.personnage, b.panoplies]),
-    colonne('', [b.principales, b.caracteristiques, b.secondaires, b.dommages, b.resistances]),
-  );
-  droite.append(b.candidats, b.analyse);
-
-  grille.append(gauche, droite);
-  atelier.append(grille);
 }
 
 /** Dispositions proposees. La premiere est celle de la feuille de base. */
 export const DISPOSITIONS = [
   { cle: 'colonnes', nom: 'Colonnes', fichier: null, plan: null },
   { cle: 'bandeau', nom: 'Bandeau', fichier: 'dispositions/bandeau.css', plan: planBandeau },
-  { cle: 'atelier', nom: 'Atelier', fichier: 'dispositions/atelier.css', plan: planAtelier },
-  { cle: 'entree-sortie', nom: 'Entree / sortie', fichier: 'dispositions/entree-sortie.css', plan: planEntreeSortie },
 ];
 
 /* ----------------------------------------------------------- Mecanique --- */
@@ -288,15 +170,6 @@ export function dispositionGardee() {
 export function installerDisposition(hote) {
   const courante = dispositionGardee();
   appliquerDisposition(courante);
-
-  // La touche C ouvre le catalogue quand il est en tiroir, hors zone de saisie.
-  window.addEventListener('keydown', (evenement) => {
-    if (evenement.key !== 'c' && evenement.key !== 'C') return;
-    if (evenement.metaKey || evenement.ctrlKey || evenement.altKey) return;
-    const cible = evenement.target;
-    if (cible instanceof HTMLElement && cible.closest('input, select, textarea')) return;
-    document.querySelector('.poignee-tiroir')?.click();
-  });
 
   if (!hote) return;
 

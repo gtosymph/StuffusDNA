@@ -28,6 +28,7 @@
 
 <header class="barre">
   <div class="logo"><span class="losange"></span> Copyroxx</div>
+  <div class="barre-menus" id="barre-menus"></div>
   <div class="barre-info" id="barre-info">Solveur de stuff — moteur local</div>
   <div class="barre-actions">
     <span class="etiquette" id="etiquette-items">—</span>
@@ -189,6 +190,11 @@
       <div id="carte-combo"></div>
     </section>
 
+    <section class="bloc" id="bloc-simulations">
+      <h2>Simulations <span class="compteur" id="compte-simulations">0</span></h2>
+      <div id="simulations"></div>
+    </section>
+
     <section class="bloc" id="bloc-candidats" hidden>
       <h2>Autres builds trouves <span class="compteur" id="compte-candidats">0</span></h2>
       <p class="note">Chaque ligne montre les pieces a changer pour passer du build porte a celui-ci.</p>
@@ -232,11 +238,20 @@
 <script type="module">
   import { installerTheme } from './theme.mjs';
   import { installerDisposition } from './layouts.mjs';
+  import { installerPliage } from './pliage.mjs';
+  import { installerRappelScore } from './barre.mjs';
+  import { installerTiroir } from './tiroir.mjs';
   const barre = document.querySelector('.barre-actions');
   // La disposition passe en premier : elle deplace les sections, le theme
-  // ne fait que les habiller.
+  // ne fait que les habiller. Le pliage vient ensuite : il equipe les titres,
+  // qui suivent leur section quelle que soit la disposition.
   installerDisposition(barre);
   installerTheme(barre);
+  // Le tiroir vient apres la disposition : la colonne du catalogue doit avoir
+  // pris sa place avant qu'on la referme.
+  installerTiroir(document.getElementById('barre-menus'));
+  installerPliage();
+  installerRappelScore();
 </script>
 <script type="module" src="app.mjs"></script>
 </body>

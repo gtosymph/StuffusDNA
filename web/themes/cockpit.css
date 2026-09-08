@@ -100,7 +100,7 @@
 .bloc { border: none; border-radius: 0; }
 .bloc + .bloc { border-top: 1px solid var(--bord); }
 
-/* Le titre porte un filet qui court jusqu'au bord de la colonne. */
+/* Le filet du titre s'arrete avant le compteur et le chevron. */
 .bloc > h2 {
   border-left: none;
   padding-left: 0;
@@ -115,7 +115,7 @@
   flex: 1; height: 1px; margin-left: 2px;
   background: var(--bord);
 }
-.compteur { flex: none; order: 9; font-size: 10px; color: var(--faible); }
+.compteur { flex: none; order: 9; font-size: 10px; color: var(--faible); margin-left: 0; }
 .sous-titre { letter-spacing: .2em; color: #5f6971; }
 
 /* ---------- Barre d'identite ---------- */

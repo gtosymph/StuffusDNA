@@ -11,6 +11,7 @@
     "data:effects": "node scripts/fetch-effects.mjs",
     "data:items": "node scripts/fetch-items.mjs",
     "data:sets": "node scripts/fetch-sets.mjs",
+    "data:avatars": "node scripts/fetch-avatars.mjs",
     "data:all": "npm run data:effects && npm run data:sets && npm run data:items",
     "test": "node --test test/*.test.mjs",
     "bench": "node scripts/bench-convergence.mjs",

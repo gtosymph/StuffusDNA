@@ -254,7 +254,6 @@ async function main() {
     fr: classe.name,
     role: classe.role ?? '',
     icon: icone(classe.icon, 'breeds'),
-    render: icone(classe.render_file, 'renders'),
     spells: (classe.spells ?? []).map((sort) => {
       const sortRoxx = roxxParId.get(sort.id)
         ?? roxxParNom.get(`${normaliser(classe.name)}:${normaliser(sort.name)}`)

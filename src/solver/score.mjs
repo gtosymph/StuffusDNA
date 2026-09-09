@@ -130,18 +130,30 @@ export function scoreBuild(stats, objective) {
 
   const satisfied = penalty === 0;
 
-  // Mode caracteristiques : la somme ponderee des ecarts fait office de score.
+  // Mode caracteristiques : la somme ponderee des depassements mesure le build.
   if (mode === SEARCH_MODES.STATS) {
     let somme = 0;
     for (const raw of conditions) {
       const condition = normalizeCondition(raw);
       const brut = conditionValue(condition.stat, stats);
-      // Le maximum tronque la valeur : il evite de sur-investir sans rien bloquer.
-      const retenue = Number.isFinite(condition.max) ? Math.min(brut, condition.max) : brut;
+      // Le maximum tronque la valeur : il evite de sur-investir sans rien
+      // bloquer. Place sous l'objectif il se contredirait lui-meme, et
+      // rendrait negative la somme d'un build pourtant satisfait : il ne
+      // descend donc jamais sous l'objectif.
+      const plafond = Math.max(condition.max, condition.target);
+      const retenue = Number.isFinite(plafond) ? Math.min(brut, plafond) : brut;
       somme += (retenue - condition.target) * condition.weight;
     }
 
-    return { score: somme, penalty, damage: 0, weighted: somme, satisfied, unmet, details };
+    // Meme ordre lexicographique qu'en mode degats : la somme ne departage
+    // que des builds qui tiennent toutes leurs conditions. Sans cela, un
+    // depassement paie un manque — six cents points de Chance en trop
+    // effacent le point de portee absent — et le solveur rend un build qui
+    // ne respecte pas ce qui lui a ete demande.
+    return {
+      score: satisfied ? somme : -penalty,
+      penalty, damage: 0, weighted: somme, satisfied, unmet, details,
+    };
   }
 
   // Combo actif : le score retient le meilleur enchainement sous le budget

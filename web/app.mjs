@@ -760,11 +760,17 @@ function montrerScore(detail, build) {
   const noeud = $('score');
   noeud.textContent = Math.round(detail.score).toLocaleString('fr-FR');
   noeud.className = `score ${detail.satisfied ? 'pos' : 'neg'}`;
-  $('score-libelle').textContent = detail.satisfied ? 'Degats totaux' : 'Conditions non satisfaites';
+  // Sans sort ni arme, le score ne mesure pas des degats mais la marge prise
+  // sur les conditions : l'annoncer « degats totaux » trompait la lecture.
+  const enDegats = objectif().mode === SEARCH_MODES.DAMAGE;
+  $('score-libelle').textContent = detail.satisfied
+    ? (enDegats ? 'Degats totaux' : 'Marge sur les conditions')
+    : 'Conditions non satisfaites';
 
   const invalides = build?.invalid?.length ?? 0;
+  const marge = enDegats ? '' : ' Le score somme ce que le build depasse.';
   $('score-note').textContent = detail.satisfied
-    ? `Toutes les conditions sont tenues.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
+    ? `Toutes les conditions sont tenues.${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
     : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
 
   vue.renderCombo($('carte-combo'), detail.combo ?? null, {

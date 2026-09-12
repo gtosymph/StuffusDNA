@@ -3,31 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Copyroxx — solveur de stuff</title>
+<title>The Best Roxxeur — solveur de stuff</title>
 <link rel="stylesheet" href="styles.css">
 <script>
   // Le theme garde se pose avant le premier rendu : sans cela, la page
   // clignote sur le theme de depart le temps de charger le module.
   try {
     var adresse = new URLSearchParams(location.search);
-    var poser = function (dossier, cle, defaut, id) {
-      var choix = adresse.get(cle) || localStorage.getItem('copyroxx_' + cle);
-      if (!choix || !/^[a-z-]+$/.test(choix) || choix === defaut) return;
+    // « base » nomme l'habillage porte par la feuille de depart : lui seul
+    // n'a pas de feuille propre a poser. « defaut » est celui d'un visiteur
+    // qui n'a encore rien choisi.
+    var poser = function (dossier, cle, base, defaut, id) {
+      var choix = adresse.get(cle) || localStorage.getItem('copyroxx_' + cle) || defaut;
+      if (!choix || !/^[a-z-]+$/.test(choix) || choix === base) return;
       var feuille = document.createElement('link');
       feuille.id = id;
       feuille.rel = 'stylesheet';
       feuille.href = dossier + '/' + choix + '.css';
       document.head.appendChild(feuille);
     };
-    poser('themes', 'theme', 'nuit', 'feuille-theme');
-    poser('dispositions', 'disposition', 'colonnes', 'feuille-disposition');
+    poser('themes', 'theme', 'nuit', 'cockpit', 'feuille-theme');
+    poser('dispositions', 'disposition', 'colonnes', 'colonnes', 'feuille-disposition');
   } catch (erreur) { /* stockage refuse : l'habillage de depart s'applique */ }
 </script>
 </head>
 <body>
 
 <header class="barre">
-  <div class="logo"><span class="losange"></span> Copyroxx</div>
+  <div class="logo"><span class="losange"></span> The Best Roxxeur</div>
   <div class="barre-menus" id="barre-menus"></div>
   <div class="barre-info" id="barre-info">Solveur de stuff — moteur local</div>
   <div class="barre-actions">
@@ -179,10 +182,16 @@
       <canvas id="graphe" class="graphe" height="130"></canvas>
       <div class="rangee-reglages">
         <div><label for="fils">Fils</label><input id="fils" type="number" min="1" max="8" value="4"></div>
+        <div><label for="intensite">Intensite</label>
+          <select id="intensite" title="Part du temps ou les fils calculent. Une intensite basse laisse souffler le processeur : la recherche avance moins vite, la machine chauffe moins.">
+            <option value="1">Maximale</option>
+            <option value="0.7">Menagee</option>
+            <option value="0.4">Basse</option>
+          </select></div>
         <div class="compteur-generations note" id="compteur-generations">La recherche continue jusqu'a la pause.</div>
         <button class="primaire" id="lancer" type="button">Lancer</button>
         <button id="recommencer" type="button"
-          title="Repart de zero : population neuve, sans le build courant en graine">Recommencer</button>
+          title="Repart de zero : coupe la recherche en cours, population neuve, sans le build courant en graine">Recommencer</button>
         <button id="arreter" type="button" disabled>Pause</button>
       </div>
       <div class="fils" id="etat-fils"></div>
@@ -241,6 +250,7 @@
   import { installerPliage } from './pliage.mjs';
   import { installerRappelScore } from './barre.mjs';
   import { installerTiroir } from './tiroir.mjs';
+  import { installerProfil } from './profil-panel.mjs';
   const barre = document.querySelector('.barre-actions');
   // La disposition passe en premier : elle deplace les sections, le theme
   // ne fait que les habiller. Le pliage vient ensuite : il equipe les titres,
@@ -250,6 +260,7 @@
   // Le tiroir vient apres la disposition : la colonne du catalogue doit avoir
   // pris sa place avant qu'on la referme.
   installerTiroir(document.getElementById('barre-menus'));
+  installerProfil(document.getElementById('barre-menus'));
   installerPliage();
   installerRappelScore();
 </script>

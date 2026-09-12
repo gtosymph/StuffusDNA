@@ -11,21 +11,18 @@
  * alors la premiere piste de sa grille, et les autres colonnes prennent la
  * place. Le choix se garde d'une visite a l'autre.
  */
+import { CLES, ecrire, lireTexte } from './stockage.mjs';
 
-const CLE = 'copyroxx_catalogue';
+const CLE = CLES.catalogue;
 
 /** Lit le choix garde. Le catalogue reste ouvert tant qu'on n'a rien dit. */
 function lire() {
-  try {
-    return localStorage.getItem(CLE) === 'ferme' ? 'ferme' : 'ouvert';
-  } catch {
-    return 'ouvert';
-  }
+  return lireTexte(CLE) === 'ferme' ? 'ferme' : 'ouvert';
 }
 
 /** Garde le choix. */
 function garder(etat) {
-  try { localStorage.setItem(CLE, etat); } catch { /* stockage refuse */ }
+  ecrire(CLE, etat);
 }
 
 /**

@@ -36,7 +36,7 @@ import { loadCatalog } from '../src/data/catalog-node.mjs';
 import { normalizePassives } from '../src/data/passives.mjs';
 import { configPassifsDefaut } from '../src/data/passives-defaults.mjs';
 import { STAT_KEYS } from '../src/data/stats.mjs';
-import { solve } from '../src/solver/genetic.mjs';
+import { preparerRecherche, solve } from '../src/solver/genetic.mjs';
 import { solveParallel } from '../src/solver/parallel.mjs';
 import { SEARCH_MODES } from '../src/solver/score.mjs';
 
@@ -113,6 +113,8 @@ const base = {
 
 /** Rejoue la boucle du navigateur : vagues de 40 generations, graines transmises. */
 function rejouerVagues(seed) {
+  // Comme un fil du navigateur : la preparation ne se refait pas a chaque vague.
+  const contexte = preparerRecherche(base);
   let graines = [];
   let meilleur = Number.NEGATIVE_INFINITY;
   // Sous budget de temps, la boucle s'arrete au chronometre : le nombre de
@@ -126,7 +128,7 @@ function rejouerVagues(seed) {
   for (let vague = 0; vague < vagues; vague += 1) {
     if (budgetSecondes > 0 && (performance.now() - debut) / 1000 >= budgetSecondes) break;
     const result = solve(
-      { ...base, allocation: {}, seedGenomes: graines },
+      { ...base, allocation: {}, seedGenomes: graines, contexte },
       {
         maxGenerations: GENERATIONS_PAR_VAGUE,
         stagnationLimit: Number.POSITIVE_INFINITY,

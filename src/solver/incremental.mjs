@@ -23,14 +23,16 @@ export const DIFF_MAX = 8;
 
 /** Ajoute les apports d'une source dans un porteur, en place. */
 function ajouter(cible, source) {
-  for (const [cle, valeur] of Object.entries(source)) {
+  for (const cle in source) {
+    const valeur = source[cle];
     if (valeur) cible[cle] = (cible[cle] ?? 0) + valeur;
   }
 }
 
 /** Retire les apports d'une source d'un porteur, en place. */
 function retirer(cible, source) {
-  for (const [cle, valeur] of Object.entries(source)) {
+  for (const cle in source) {
+    const valeur = source[cle];
     if (valeur) cible[cle] = (cible[cle] ?? 0) - valeur;
   }
 }

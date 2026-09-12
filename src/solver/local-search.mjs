@@ -246,6 +246,12 @@ export function improve(genome, contexte, options = {}) {
   const depart = score;
   let passes = 0;
 
+  // Tampon d'essai, alloue une seule fois. La boucle interne essaie des
+  // dizaines de pieces par case et par passe : y copier le genome creait
+  // autant de tableaux jetables, tous rendus aussitot au ramasse-miettes.
+  // Personne ne garde de reference sur un essai : seul son index est retenu.
+  const essai = new Array(courant.length);
+
   for (; passes < reglages.maxPasses; passes += 1) {
     let ameliore = false;
 
@@ -256,17 +262,21 @@ export function improve(genome, contexte, options = {}) {
       if (locks && locks.has(cellule)) continue;
 
       const ordre = rankings[cellule] ?? pool.map((_, i) => i);
-      const essais = ordre.slice(0, reglages.candidatesPerSlot);
-      if (reglages.tryEmpty) essais.push(EMPTY);
+      const nbEssais = Math.min(reglages.candidatesPerSlot, ordre.length);
 
       const avant = courant[cellule];
       let meilleurIndex = avant;
       let meilleurScore = score;
 
-      for (const candidat of essais) {
+      // La case vide s'essaie en dernier : un emplacement libre vaut parfois
+      // mieux que la meilleure piece disponible.
+      for (let rang = 0; rang <= nbEssais; rang += 1) {
+        const dernier = rang === nbEssais;
+        if (dernier && !reglages.tryEmpty) break;
+        const candidat = dernier ? EMPTY : ordre[rang];
         if (candidat === avant) continue;
 
-        const essai = [...courant];
+        for (let k = 0; k < courant.length; k += 1) essai[k] = courant[k];
         essai[cellule] = candidat;
         // La reparation ecarte les doublons et le conflit arme a deux mains.
         repair(essai, layout, pools, locks);

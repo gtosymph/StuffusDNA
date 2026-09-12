@@ -96,6 +96,12 @@ export function createRandom(seed) {
  */
 const CACHE_EVALUATIONS = 4096;
 
+/** Options de score de la boucle chaude : pas de detail par condition. */
+const SANS_DETAILS = Object.freeze({ details: false });
+
+/** Options de score des resultats rendus : detail complet. */
+const AVEC_DETAILS = Object.freeze({ details: true });
+
 /**
  * Prepare la fonction d'evaluation d'un genome.
  *
@@ -127,8 +133,14 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
   };
 
   // Note un build deja agrege : score des sorts et penalites.
-  const noterBuild = (items, stats, invalid) => {
-    const detail = scoreBuild(stats, { ...objective, spells: spellsAvecArme(items) });
+  // « details » reste faux : la boucle ne lit que le score, et le detail par
+  // condition coutait un objet par condition et par evaluation.
+  const noterBuild = (items, stats, invalid, options = SANS_DETAILS) => {
+    const spells = spellsAvecArme(items);
+    // Sans arme comptee, l'objectif passe tel quel : une copie par evaluation
+    // pour rien pesait sur le ramasse-miettes.
+    const cible = spells === objective.spells ? objective : { ...objective, spells };
+    const detail = scoreBuild(stats, cible, options);
     const violations = maxViolations(objective.conditions, stats);
 
     // Un item interdit ou un maximum franchi rend le build irrealisable en jeu.
@@ -155,6 +167,17 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
     if (cache.size >= CACHE_EVALUATIONS) cache.delete(cache.keys().next().value);
     cache.set(cle, resultat);
     return resultat;
+  };
+
+  // Les resultats rendus a l'appelant portent le detail par condition, que la
+  // boucle ne calcule pas. Le cache garde la version allegee : ce chemin la
+  // contourne, il ne sert qu'une poignee de fois par recherche.
+  evaluate.complet = (genome) => {
+    const items = decode(genome, pools);
+    const { stats, invalid } = computeBuild(
+      { items, level, allocation: porteur.allocation, scrolls, passives, profile }, setById,
+    );
+    return noterBuild(items, stats, invalid, AVEC_DETAILS);
   };
 
   evaluate.invalidate = () => { cache.clear(); };
@@ -296,12 +319,27 @@ function secouer(genome, pools, random, guidage, locks = null, force = 0) {
  * @param {(progress: {generation: number, best: number}) => void} [onProgress]
  * @returns {{items: any[], stats: any, score: number, detail: any, generations: number}}
  */
-export function solve(input, options = {}, onProgress) {
-  const settings = { ...DEFAULT_OPTIONS, ...options };
+/**
+ * Prepare tout ce qu'une recherche reutilise d'une vague a l'autre.
+ *
+ * Les pools, les verrous, l'evaluateur et les classements ne dependent que de
+ * la demande, jamais du tirage. Le navigateur cherche par vagues de quelques
+ * dizaines de generations : sans ce contexte, chaque vague refaisait ce
+ * travail, dont le classement des pieces qui coute a lui seul un dixieme du
+ * temps d'une vague. Le cache d'evaluation survit aussi aux vagues.
+ *
+ * Gardez un contexte tant que la demande ne change pas — meme catalogue, meme
+ * niveau, meme objectif, memes bannis et memes verrous. Au moindre changement,
+ * preparez-en un neuf : le contexte ne se remet pas a jour tout seul.
+ *
+ * @param {object} input Meme forme que l'entree de `solve`.
+ * @returns {object} Contexte a passer dans `input.contexte`.
+ */
+export function preparerRecherche(input) {
   const {
     items, setById, level, objective,
     allocation = {}, scrolls = {}, passives = null, profile = {},
-    lockedIds = [], banned = new Set(), allowedSlots = null, seedGenomes = [], seedItems = [],
+    lockedIds = [], banned = new Set(), allowedSlots = null,
   } = input;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -311,7 +349,6 @@ export function solve(input, options = {}, onProgress) {
     throw new Error('Objectif invalide : la liste des conditions est absente.');
   }
 
-  const random = createRandom(settings.seed);
   // Les bornes de l'arme voyagent dans l'objectif : il traverse deja le fil
   // de calcul sans plomberie supplementaire.
   const { layout, pools } = buildPools(items, {
@@ -332,11 +369,11 @@ export function solve(input, options = {}, onProgress) {
   // Repartit les points au service du meilleur genome, puis rejoue les scores
   // de la population : tous les individus se comparent a points egaux.
   const repartirPoints = (reference) => {
-    const items = decode(reference.genome, pools);
-    const { stats: raw } = aggregate({ items, level, allocation: {}, scrolls, passives }, setById);
+    const itemsRef = decode(reference.genome, pools);
+    const { stats: raw } = aggregate({ items: itemsRef, level, allocation: {}, scrolls, passives }, setById);
     // L'arme du build de reference compte dans les degats vises par les points.
     const { allocation: proposee } = optimiserAllocation({
-      raw, level, objective: { ...objective, spells: evaluate.spellsAvecArme(items) },
+      raw, level, objective: { ...objective, spells: evaluate.spellsAvecArme(itemsRef) },
     });
 
     const changee = SCROLLABLE_KEYS.some((c) => (proposee[c] ?? 0) !== (porteur.allocation[c] ?? 0));
@@ -352,11 +389,39 @@ export function solve(input, options = {}, onProgress) {
   // posees et degats des sorts retenus. Il sert aux mutations orientees comme
   // a la descente locale.
   const rankings = buildRankings(pools, objective);
-  const guidage = { rankings, rate: settings.guidedMutationRate, size: settings.guidedPoolSize };
   const panoplies = indexerPanoplies(pools);
-  const contexteLocal = {
-    layout, pools, rankings, evaluate, evaluateur: evaluate.incremental(), panoplies, locks,
+
+  return {
+    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, rankings,
+    contexteLocal: {
+      layout, pools, rankings, evaluate, evaluateur: evaluate.incremental(), panoplies, locks,
+    },
   };
+}
+
+/** Vrai quand deux repartitions de points investissent la meme chose. */
+function memeAllocation(a, b) {
+  return SCROLLABLE_KEYS.every((c) => (a[c] ?? 0) === (b[c] ?? 0));
+}
+
+export function solve(input, options = {}, onProgress) {
+  const settings = { ...DEFAULT_OPTIONS, ...options };
+  const { allocation = {}, seedGenomes = [], seedItems = [] } = input;
+
+  const random = createRandom(settings.seed);
+  const prepare = input.contexte ?? preparerRecherche(input);
+  const {
+    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, rankings, contexteLocal,
+  } = prepare;
+
+  // Un contexte reutilise garde la repartition de la vague precedente. Quand
+  // l'appelant en impose une autre, les scores en cache sont perimes.
+  if (input.contexte && !memeAllocation(porteur.allocation, allocation)) {
+    porteur.allocation = { ...allocation };
+    evaluate.invalidate();
+  }
+
+  const guidage = { rankings, rate: settings.guidedMutationRate, size: settings.guidedPoolSize };
 
   // Les builds distincts croises en chemin : le gagnant n'est pas toujours
   // celui que le joueur veut porter.
@@ -519,7 +584,7 @@ export function solve(input, options = {}, onProgress) {
   // Les points se recalent une derniere fois sur le build retenu.
   if (settings.optimiserPoints) repartirPoints(best);
 
-  const final = evaluate(best.genome);
+  const final = evaluate.complet(best.genome);
   archive.proposer(best.genome, final.score);
   for (const individu of population.slice(0, 40)) {
     archive.proposer(individu.genome, individu.score);
@@ -528,7 +593,7 @@ export function solve(input, options = {}, onProgress) {
   // Chaque candidat repart avec de quoi etre compare : ses pieces, son score
   // et le detail de ses conditions.
   const candidats = archive.liste().map(({ genome }) => {
-    const vue = evaluate(genome);
+    const vue = evaluate.complet(genome);
     return {
       genome: [...genome],
       itemIds: vue.items.map((item) => item.id),

@@ -12,8 +12,8 @@ import { el } from './render.mjs';
 import { STAT_KEYS } from '../src/data/stats.mjs';
 import { cacherBulle, montrerBulle, suivreBulle } from './hover-card.mjs';
 import {
-  comparer, enleverSimulation, libelle, lireSimulations,
-  renommerSimulation, viderSimulations,
+  basculerFavori, comparer, enleverSimulation, favorisEnTete, libelle,
+  lireSimulations, renommerSimulation, viderSimulations,
 } from './simulations.mjs';
 
 /**
@@ -164,6 +164,9 @@ export function installerSimulations(racine, options) {
   /** Lignes cochees pour la comparaison, au plus deux. */
   const cochees = new Set();
 
+  /** Vrai quand la liste ne montre que les favoris. Etat d'ecran, non range. */
+  let favorisSeuls = false;
+
   /**
    * Met les coches a jour sans reconstruire la liste.
    *
@@ -198,9 +201,12 @@ export function installerSimulations(racine, options) {
   const comparerLesDeux = (liste) => {
     const choisies = liste.filter((s) => cochees.has(s.id));
     if (choisies.length !== 2) return;
-    // La liste va du plus recent au plus ancien : l'ecart se lit dans le sens
-    // du temps, de l'essai d'avant vers celui d'apres.
-    ouvrirComparaison(choisies[1], choisies[0], {
+    // L'ecart se lit dans le sens du temps, de l'essai d'avant vers celui
+    // d'apres. Les favoris remontent en tete de la liste montree : l'ordre
+    // des lignes ne dit plus l'anciennete, la date si.
+    const [avant, apres] = [...choisies]
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    ouvrirComparaison(avant, apres, {
       itemById: itemById(), libelles, libellesOptions, nomDeClasse, onRestaurer,
     });
   };
@@ -210,11 +216,26 @@ export function installerSimulations(racine, options) {
     const nom = libelle(simulation, nomDeClasse);
     const catalogue = itemById();
 
-    return el('div', { class: `simulation ${cochees.has(simulation.id) ? 'cochee' : ''}`.trim(),
-      'data-simulation': simulation.id },
+    const marques = [
+      'simulation',
+      cochees.has(simulation.id) ? 'cochee' : '',
+      simulation.favori ? 'favori' : '',
+    ].filter(Boolean).join(' ');
+
+    return el('div', { class: marques, 'data-simulation': simulation.id },
       el('label', { class: 'simulation-coche', title: 'Cocher deux simulations pour les comparer' },
         el('input', { type: 'checkbox', ...(cochees.has(simulation.id) ? { checked: true } : {}),
           onChange: () => basculer(simulation.id) })),
+
+      // L'etoile remonte l'essai en tete et le met a l'abri du menage : la
+      // liste est bornee, un favori ne part jamais pour faire de la place.
+      el('button', { class: `simulation-favori ${simulation.favori ? 'actif' : ''}`.trim(),
+        type: 'button', text: simulation.favori ? '\u2605' : '\u2606',
+        'aria-pressed': simulation.favori ? 'true' : 'false',
+        title: simulation.favori
+          ? 'Enlever des favoris'
+          : 'Mettre en favori : la simulation remonte en tete et reste gardee',
+        onClick: () => { basculerFavori(simulation.id); dessiner(); } }),
 
       el('img', { class: 'simulation-embleme', src: embleme(simulation.classe),
         alt: '', title: nomDeClasse(simulation.classe), decoding: 'async' }),
@@ -263,9 +284,25 @@ export function installerSimulations(racine, options) {
   }
 
   function dessiner() {
-    const liste = lireSimulations();
-    for (const id of [...cochees]) if (!liste.some((s) => s.id === id)) cochees.delete(id);
-    if (compteur) compteur.textContent = String(liste.length);
+    const rangees = lireSimulations();
+    for (const id of [...cochees]) if (!rangees.some((s) => s.id === id)) cochees.delete(id);
+
+    const favoris = rangees.filter((s) => s.favori);
+    // Le filtre ne tient que tant qu'il reste un favori : sinon la liste
+    // paraitrait vide alors que des essais sont gardes.
+    if (favorisSeuls && favoris.length === 0) favorisSeuls = false;
+
+    // Les favoris passent devant : ce sont les essais que l'on revient voir.
+    const liste = favorisEnTete(favorisSeuls ? favoris : rangees);
+
+    if (compteur) {
+      compteur.textContent = favoris.length > 0
+        ? `${rangees.length} · ${favoris.length} ★`
+        : String(rangees.length);
+    }
+
+    // Un menage garde les favoris : seuls les essais ordinaires partent.
+    const aEnlever = rangees.length - favoris.length;
 
     racine.replaceChildren(
       el('div', { class: 'rangee-ajout' },
@@ -278,14 +315,25 @@ export function installerSimulations(racine, options) {
             ? 'Compare les deux simulations cochees'
             : 'Cochez deux simulations',
           onClick: () => comparerLesDeux(liste) }),
-        liste.length === 0 ? null : el('button', { class: 'mini', type: 'button', text: 'Tout enlever',
-          title: 'Enleve toutes les simulations gardees',
+        favoris.length === 0 ? null : el('label', {
+          class: `filtre-case ${favorisSeuls ? 'actif' : ''}`.trim(),
+          title: 'Ne montrer que les simulations mises en favori' },
+          el('input', { type: 'checkbox', ...(favorisSeuls ? { checked: true } : {}),
+            onChange: () => { favorisSeuls = !favorisSeuls; dessiner(); } }),
+          ' Favoris'),
+        aEnlever === 0 ? null : el('button', { class: 'mini', type: 'button',
+          text: favoris.length > 0 ? 'Enlever les autres' : 'Tout enlever',
+          title: favoris.length > 0
+            ? 'Enleve les simulations qui ne sont pas en favori'
+            : 'Enleve toutes les simulations gardees',
           onClick: () => {
-            if (!window.confirm(`Enlever les ${liste.length} simulation(s) gardees ?`)) return;
+            if (!window.confirm(`Enlever ${aEnlever} simulation(s) gardees ?`)) return;
             viderSimulations();
             cochees.clear();
             dessiner();
-            onMessage('Simulations enlevees.');
+            onMessage(favoris.length > 0
+              ? 'Simulations enlevees. Les favoris restent.'
+              : 'Simulations enlevees.');
           } })),
 
       liste.length === 0

@@ -10,25 +10,22 @@
  * lit encore, seule la matiere disparait. L'etat tient par titre, donc il
  * survit au changement de disposition, qui deplace les sections.
  */
+import { CLES, ecrireJson, lireJson } from './stockage.mjs';
 
-const CLE = 'copyroxx_plie';
+const CLE = CLES.plie;
 
 /** Sections que le pliage laisse tranquilles : leur titre est leur contenu. */
 const JAMAIS = new Set(['Catalogue']);
 
 /** Lit l'ensemble des sections repliees. */
 function lire() {
-  try {
-    const brut = JSON.parse(localStorage.getItem(CLE) ?? '[]');
-    return new Set(Array.isArray(brut) ? brut : []);
-  } catch {
-    return new Set();
-  }
+  const brut = lireJson(CLE, []);
+  return new Set(Array.isArray(brut) ? brut : []);
 }
 
 /** Garde l'ensemble des sections repliees. */
 function garder(plies) {
-  try { localStorage.setItem(CLE, JSON.stringify([...plies])); } catch { /* stockage refuse */ }
+  ecrireJson(CLE, [...plies]);
 }
 
 /**

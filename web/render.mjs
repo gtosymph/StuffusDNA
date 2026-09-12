@@ -7,6 +7,7 @@ import { LIBELLE_CASE } from './layout.mjs';
 import { iconeStat } from './icons.mjs';
 import { cacherBulle, montrerBulle, suivreBulle } from './hover-card.mjs';
 import { COULEUR_ELEMENT, iconeElement } from './icons.mjs';
+import { porteeMax } from '../src/solver/genome.mjs';
 
 /** Nombre de cases montrees dans le catalogue. */
 const MAX_CASES = 300;
@@ -365,6 +366,42 @@ function detailSort(detail) {
  * @param {{element: string, steal?: boolean}} ligne
  * @param {string} texte
  */
+/**
+ * Resume le cout et la cadence d'une arme, pour un titre ou une infobulle.
+ *
+ * Une arme ne se juge pas a ses seuls degats : ce qu'elle coute en PA, la
+ * distance a laquelle elle atteint et le nombre de fois qu'elle frappe dans le
+ * tour decident de sa place dans un build. Ces chiffres se lisent donc partout
+ * ou l'arme se montre.
+ *
+ * @param {any} item Arme du catalogue.
+ * @returns {string} Resume vide quand l'arme ne declare aucun chiffre.
+ */
+export function resumeArme(item) {
+  const parties = [];
+
+  const pa = Number(item?.apCost);
+  if (Number.isFinite(pa) && pa > 0) parties.push(`${pa} PA`);
+
+  // La portee dit d'un coup d'oeil si l'arme se joue au contact ou de loin.
+  const portee = porteeMax(item);
+  if (Number.isFinite(portee) && portee > 0) {
+    parties.push(`portee ${portee} case${portee > 1 ? 's' : ''}`);
+  }
+
+  const lancers = Number(item?.usesPerTurn);
+  if (Number.isFinite(lancers) && lancers > 0) {
+    parties.push(`${lancers} lancer${lancers > 1 ? 's' : ''} par tour`);
+  }
+
+  const crit = Number(item?.critProbability);
+  if (Number.isFinite(crit) && crit > 0) {
+    parties.push(`${crit} % critique (+${item.critBonus ?? 0})`);
+  }
+
+  return parties.join(' · ');
+}
+
 export function ligneArme(ligne, texte) {
   const icone = iconeElement(ligne.element);
   return el('span', {
@@ -411,9 +448,13 @@ export function renderArme(root, attaque, detail) {
  * @param {(index: number) => void} actions.onRemove
  * @param {(index: number) => void} [actions.onAjouterLigne] Ajoute une ligne de degats.
  * @param {(index: number, rang: number) => void} [actions.onEnleverLigne]
+ * @param {boolean} [actions.compterDiffere] Vrai quand les lignes des tours
+ *   suivants entrent dans le total. Le signal visuel suit ce choix : une ligne
+ *   estompee dit « ne compte pas », elle mentirait si elle comptait.
  */
 export function renderSorts(root, sorts, degats, {
   onChange, onRemove, onAjouterLigne = null, onEnleverLigne = null,
+  compterDiffere = false,
 }) {
   if (sorts.length === 0) {
     fill(root, el('p', { class: 'note', text: 'Aucun sort. Le solveur ne vise que les conditions.' }));
@@ -471,7 +512,8 @@ export function renderSorts(root, sorts, degats, {
       // Une rangee editable par ligne de degats : element, plage, plage critique.
       sort.lines.map((ligne, rang) => el('div', {
         class: ['sort-grille', 'ligne-sort',
-          ligne.differe > 0 ? 'differee' : '',
+          ligne.differe > 0 && !compterDiffere ? 'differee' : '',
+          ligne.differe > 0 && compterDiffere ? 'differee-comptee' : '',
           onEnleverLigne && sort.lines.length > 1 ? 'otable' : ''].filter(Boolean).join(' ') },
         cellule(ligne.differe > 0 ? `Element · T+${ligne.differe}` : 'Element',
           el('select', {
@@ -479,7 +521,10 @@ export function renderSorts(root, sorts, degats, {
             ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
               value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
           ligne.differe > 0
-            ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer`
+            ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer.`
+              + (compterDiffere
+                ? ' Elle compte dans le score : l\'option « sorts des tours suivants » est cochee.'
+                : ' Elle ne compte pas dans le score : cochez « sorts des tours suivants ».')
             : 'Element de la ligne de degats'),
         champLigne(rang, ligne, 'min', 'Min', 'Degats de base minimaux'),
         champLigne(rang, ligne, 'max', 'Max', 'Degats de base maximaux'),
@@ -697,7 +742,23 @@ export function renderPanoplies(root, panoplies, setById, libelles, contexte = {
 
 /** Remplit la liste des options. */
 export function renderOptions(root, options, onToggle) {
-  fill(root, options.map(({ cle, libelle, actif, aide, type, min, max, inactif }) => {
+  fill(root, options.map(({ cle, libelle, actif, aide, type, min, max, choix, inactif }) => {
+    // Une option a plusieurs reponses montre une liste : trois etats ne
+    // tiennent pas dans une case a cocher.
+    if (type === 'liste') {
+      return el('label', { class: `option liste ${inactif ? 'off' : ''}`.trim(), title: aide ?? '' },
+        el('span', { text: libelle }),
+        el('select', {
+          ...(inactif ? { disabled: true } : {}),
+          onChange: (ev) => onToggle(cle, ev.target.value),
+        }, (choix ?? []).map((option) => el('option', {
+          value: option.valeur,
+          text: option.nom,
+          ...(String(actif ?? '') === String(option.valeur) ? { selected: true } : {}),
+        }))),
+      );
+    }
+
     // Une option numerique montre un champ au lieu d'une case a cocher.
     if (type === 'nombre') {
       return el('label', { class: `option nombre ${inactif ? 'off' : ''}`.trim(), title: aide ?? '' },

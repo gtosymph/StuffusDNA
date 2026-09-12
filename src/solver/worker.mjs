@@ -14,7 +14,7 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { loadCatalog } from '../data/catalog-node.mjs';
 import { normalizePassives } from '../data/passives.mjs';
 import { STAT_KEYS } from '../data/stats.mjs';
-import { solve } from './genetic.mjs';
+import { preparerRecherche, solve } from './genetic.mjs';
 
 const {
   level, objective, allocation, scrolls, passivesConfig, bannedIds, allowedSlots,
@@ -28,6 +28,9 @@ const preparation = (async () => {
   return { catalog, passives };
 })();
 
+/** Contexte de recherche, prepare a la premiere vague et garde ensuite. */
+let contexte = null;
+
 parentPort.on('message', async (message) => {
   if (message?.type === 'fin') {
     parentPort.close();
@@ -38,19 +41,24 @@ parentPort.on('message', async (message) => {
   try {
     const { catalog, passives } = await preparation;
 
+    const demande = {
+      items: catalog.items,
+      setById: catalog.setById,
+      level,
+      allocation,
+      scrolls,
+      passives,
+      banned: new Set(bannedIds ?? []),
+      allowedSlots: allowedSlots ? new Set(allowedSlots) : null,
+      objective,
+    };
+
+    // La demande ne bouge pas d'une vague a l'autre : pools, verrous,
+    // classements et cache d'evaluation se preparent une seule fois.
+    contexte ??= preparerRecherche(demande);
+
     const result = solve(
-      {
-        items: catalog.items,
-        setById: catalog.setById,
-        level,
-        allocation,
-        scrolls,
-        passives,
-        banned: new Set(bannedIds ?? []),
-        allowedSlots: allowedSlots ? new Set(allowedSlots) : null,
-        seedGenomes: message.seedGenomes ?? [],
-        objective,
-      },
+      { ...demande, seedGenomes: message.seedGenomes ?? [], contexte },
       { ...message.options, seed: message.seed },
     );
 

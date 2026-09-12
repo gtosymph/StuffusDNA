@@ -13,30 +13,49 @@
  * Le module ne touche pas au document : il ne fait que ranger et relire. La
  * liste vit dans le navigateur, la plus recente en tete.
  */
+import { CLES, ecrireJson, lireJson } from './stockage.mjs';
 
-const CLE = 'copyroxx_simulations';
+const CLE = CLES.simulations;
 
 /** Au dela, les plus anciennes partent : le rangement du navigateur est borne. */
 export const MAX_SIMULATIONS = 40;
 
 /** Lit la liste rangee, de la plus recente a la plus ancienne. */
 export function lireSimulations() {
-  try {
-    const brut = JSON.parse(localStorage.getItem(CLE) ?? '[]');
-    return Array.isArray(brut) ? brut.filter((s) => s && typeof s.id === 'string') : [];
-  } catch {
-    // Un rangement illisible ne doit pas bloquer l'interface.
-    return [];
-  }
+  const brut = lireJson(CLE, []);
+  return Array.isArray(brut) ? brut.filter((s) => s && typeof s.id === 'string') : [];
+}
+
+/**
+ * Borne la liste sans perdre les favoris.
+ *
+ * Un essai mis en favori est celui que l'on veut retrouver dans une semaine :
+ * il ne sort jamais pour laisser la place a une recherche du jour. Seules les
+ * simulations ordinaires partent, de la plus ancienne a la plus recente.
+ *
+ * Quand les favoris a eux seuls passent la borne, ils restent tous : le choix
+ * de l'utilisateur passe avant la limite.
+ *
+ * @param {any[]} liste Du plus recent au plus ancien.
+ * @param {number} [max]
+ * @returns {any[]} Meme ordre, sans les simulations en trop.
+ */
+export function borner(liste, max = MAX_SIMULATIONS) {
+  if (liste.length <= max) return liste;
+
+  const favoris = liste.filter((s) => s.favori);
+  if (favoris.length >= max) return favoris;
+
+  const place = max - favoris.length;
+  const ordinaires = new Set(liste.filter((s) => !s.favori).slice(0, place));
+  return liste.filter((s) => s.favori || ordinaires.has(s));
 }
 
 /** Ecrit la liste, bornee. */
 function ecrire(liste) {
-  const gardees = liste.slice(0, MAX_SIMULATIONS);
-  try {
-    localStorage.setItem(CLE, JSON.stringify(gardees));
-  } catch (erreur) {
-    throw new Error(`Enregistrement impossible : ${erreur.message}`);
+  const gardees = borner(liste);
+  if (!ecrireJson(CLE, gardees)) {
+    throw new Error('Enregistrement impossible : le rangement du navigateur est plein ou refuse d\'ecrire.');
   }
   return gardees;
 }
@@ -90,9 +109,40 @@ export function renommerSimulation(id, nom) {
   return ecrire(lireSimulations().map((s) => (s.id === id ? { ...s, nom: propre } : s)));
 }
 
-/** Enleve toutes les simulations. */
-export function viderSimulations() {
-  return ecrire([]);
+/**
+ * Met une simulation en favori, ou l'en enleve.
+ *
+ * @param {string} id
+ * @returns {any[]} Liste rangee.
+ */
+export function basculerFavori(id) {
+  return ecrire(lireSimulations().map((s) => (s.id === id ? { ...s, favori: !s.favori } : s)));
+}
+
+/**
+ * Enleve les simulations.
+ *
+ * Les favoris restent par defaut : un nettoyage de fin de session ne doit pas
+ * emporter les essais que l'utilisateur a marques.
+ *
+ * @param {{garderFavoris?: boolean}} [choix]
+ */
+export function viderSimulations(choix = {}) {
+  if (choix.garderFavoris === false) return ecrire([]);
+  return ecrire(lireSimulations().filter((s) => s.favori));
+}
+
+/**
+ * Range les favoris en tete, sans changer l'ordre a l'interieur de chaque groupe.
+ *
+ * La liste reste chronologique : le tri ne sert qu'a montrer d'abord ce qui
+ * compte. Un tri stable garde donc la plus recente en tete de chaque groupe.
+ *
+ * @param {any[]} liste
+ * @returns {any[]}
+ */
+export function favorisEnTete(liste) {
+  return [...liste].sort((a, b) => Number(Boolean(b.favori)) - Number(Boolean(a.favori)));
 }
 
 /**

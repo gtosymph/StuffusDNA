@@ -5,8 +5,10 @@
  * reprennent d'une simulation a l'autre.
  */
 
+import { CLES as CLES_RANGEMENT, ecrireJson, lireJson } from './stockage.mjs';
+
 /** Cle de rangement, par nature de jeu. */
-const CLES = Object.freeze({ sorts: 'copyroxx_sets_sorts', conditions: 'copyroxx_sets_conditions' });
+const CLES = Object.freeze({ sorts: CLES_RANGEMENT.setsSorts, conditions: CLES_RANGEMENT.setsConditions });
 
 /**
  * Lit les jeux enregistres d'une nature donnee.
@@ -14,14 +16,8 @@ const CLES = Object.freeze({ sorts: 'copyroxx_sets_sorts', conditions: 'copyroxx
  * @returns {{nom: string, date: string, contenu: any}[]}
  */
 export function lireSets(nature) {
-  try {
-    const brut = localStorage.getItem(CLES[nature]);
-    const liste = brut ? JSON.parse(brut) : [];
-    return Array.isArray(liste) ? liste : [];
-  } catch {
-    // Un rangement illisible ne doit pas bloquer l'interface.
-    return [];
-  }
+  const liste = lireJson(CLES[nature], []);
+  return Array.isArray(liste) ? liste : [];
 }
 
 /**
@@ -39,10 +35,8 @@ export function enregistrerSet(nature, nom, contenu) {
   liste.push({ nom: propre, date: new Date().toISOString(), contenu });
   liste.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 
-  try {
-    localStorage.setItem(CLES[nature], JSON.stringify(liste));
-  } catch (error) {
-    throw new Error(`Enregistrement impossible : ${error.message}`);
+  if (!ecrireJson(CLES[nature], liste)) {
+    throw new Error('Enregistrement impossible : le rangement du navigateur est plein ou refuse d\'ecrire.');
   }
   return liste;
 }
@@ -54,7 +48,7 @@ export function enregistrerSet(nature, nom, contenu) {
  */
 export function enleverSet(nature, nom) {
   const liste = lireSets(nature).filter((s) => s.nom !== nom);
-  localStorage.setItem(CLES[nature], JSON.stringify(liste));
+  ecrireJson(CLES[nature], liste);
   return liste;
 }
 

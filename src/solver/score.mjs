@@ -67,6 +67,32 @@ export function normalizeCondition(condition) {
 }
 
 /**
+ * Conditions deja normalisees, gardees par tableau d'origine.
+ *
+ * L'objectif ne bouge pas pendant une recherche, mais le score se calcule des
+ * centaines de milliers de fois : normaliser a chaque appel refaisait le meme
+ * travail et allouait un objet par condition.
+ *
+ * ATTENTION : le cache tient sur l'identite du tableau. Ne modifiez jamais un
+ * tableau de conditions en place ; construisez-en un nouveau.
+ */
+const CONDITIONS_NORMALISEES = new WeakMap();
+
+/**
+ * Normalise une liste de conditions, une seule fois par liste.
+ * @param {any[]} conditions
+ * @returns {ReturnType<typeof normalizeCondition>[]}
+ */
+export function normalizeConditions(conditions) {
+  const connu = CONDITIONS_NORMALISEES.get(conditions);
+  if (connu) return connu;
+
+  const normalisees = conditions.map(normalizeCondition);
+  CONDITIONS_NORMALISEES.set(conditions, normalisees);
+  return normalisees;
+}
+
+/**
  * Evalue une condition sur un build.
  * @param {{stat: string, target: number, weight: number, max: number, absolute: boolean}} condition
  * @param {Record<string, number>} stats
@@ -109,20 +135,24 @@ export function damageValue(spells, stats) {
  * @param {any[]} objective.conditions
  * @param {any[]} [objective.spells]
  * @param {string} [objective.mode]
+ * @param {{details?: boolean}} [options] details : mettre faux dans la boucle
+ *   du solveur, qui ne lit que le score. Le detail par condition coute un
+ *   objet par condition et par evaluation, pour rien.
  * @returns {{score: number, penalty: number, damage: number, satisfied: boolean, unmet: any[], details: any[]}}
  */
-export function scoreBuild(stats, objective) {
+export function scoreBuild(stats, objective, options = {}) {
   const { conditions, spells = [], mode = SEARCH_MODES.DAMAGE } = objective;
+  const avecDetails = options.details !== false;
+  const normalisees = normalizeConditions(conditions);
   let penalty = 0;
   const unmet = [];
   const details = [];
 
-  for (const raw of conditions) {
-    const condition = normalizeCondition(raw);
+  for (const condition of normalisees) {
     const result = evaluateCondition(condition, stats);
 
     penalty += result.penalty;
-    details.push({ stat: condition.stat, weight: condition.weight, ...result });
+    if (avecDetails) details.push({ stat: condition.stat, weight: condition.weight, ...result });
     if (!result.met) {
       unmet.push({ stat: condition.stat, missing: result.missing, weight: condition.weight });
     }
@@ -133,8 +163,7 @@ export function scoreBuild(stats, objective) {
   // Mode caracteristiques : la somme ponderee des depassements mesure le build.
   if (mode === SEARCH_MODES.STATS) {
     let somme = 0;
-    for (const raw of conditions) {
-      const condition = normalizeCondition(raw);
+    for (const condition of normalisees) {
       const brut = conditionValue(condition.stat, stats);
       // Le maximum tronque la valeur : il evite de sur-investir sans rien
       // bloquer. Place sous l'objectif il se contredirait lui-meme, et
@@ -207,8 +236,7 @@ function objectiveCombo(objective, stats, spells) {
 export function maxViolations(conditions, stats) {
   const violations = [];
 
-  for (const raw of conditions) {
-    const condition = normalizeCondition(raw);
+  for (const condition of normalizeConditions(conditions)) {
     if (!condition.absolute || !Number.isFinite(condition.max)) continue;
 
     const value = conditionValue(condition.stat, stats);

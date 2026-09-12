@@ -7,6 +7,8 @@ import { avatarDeClasse, CLASSES, classeConnue, emblemeDeClasse, nomDeClasse } f
 import { ajouterSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
 import { defaultThreadCount, runSearch } from './solver-client.mjs';
+import { normaliserIntensite } from '../src/solver/intensite.mjs';
+import { CLES, ecrireJson, lireJson } from './stockage.mjs';
 import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
 import { dessinerEvolution } from './chart.mjs';
@@ -51,12 +53,38 @@ const OPTIONS = [
   { cle: 'arme', libelle: 'Degats de l\'arme',
     aide: 'Ajoute les degats de l\'arme equipee au total optimise.\n'
       + 'L\'arme frappe autant de fois que ses utilisations par tour.' },
+  { cle: 'armePaMin', libelle: 'PA de l\'arme (min)', type: 'nombre', min: 0, max: 12,
+    aide: 'Le solveur ne propose que des armes qui coutent au moins ce nombre de PA.\n'
+      + 'Zero : aucune limite. Une arme chere frappe fort : ce plancher ecarte\n'
+      + 'les petites armes quand les PA sont la pour elle.' },
   { cle: 'armePaMax', libelle: 'PA de l\'arme (max)', type: 'nombre', min: 0, max: 12,
     aide: 'Le solveur ne propose que des armes qui coutent au plus ce nombre de PA.\n'
       + 'Zero : aucune limite. Une arme chere prend le tour aux sorts.' },
   { cle: 'armeLancersMin', libelle: 'Lancers de l\'arme (min)', type: 'nombre', min: 0, max: 4,
     aide: 'Le solveur ne propose que des armes qui frappent au moins ce nombre\n'
       + 'de fois par tour. Zero ou un : aucune limite.' },
+  { cle: 'armePortee', libelle: 'Portee de l\'arme', type: 'liste',
+    choix: [
+      { valeur: '', nom: 'Indifferente' },
+      { valeur: 'melee', nom: 'Corps a corps' },
+      { valeur: 'distance', nom: 'A distance' },
+    ],
+    aide: 'Le solveur ne propose que des armes de cette portee.\n'
+      + 'Une arme de portee superieure a une case frappe a distance :\n'
+      + 'arcs, baguettes et dagues longues. Le calcul suit deja l\'arme choisie,\n'
+      + 'ce reglage ne fait que restreindre le choix.' },
+  { cle: 'armePorteeMin', libelle: 'Portee de l\'arme (min)', type: 'nombre', min: 0, max: 20,
+    aide: 'Le solveur ne propose que des armes qui atteignent au moins ce nombre\n'
+      + 'de cases. Trois pour une arme qui frappe jusqu\'a 3 PO.\n'
+      + 'Zero : aucune limite.' },
+  { cle: 'armeElementsMin', libelle: 'Elements de l\'arme (min)', type: 'nombre', min: 0, max: 5,
+    aide: 'Le solveur ne propose que des armes qui frappent au moins ce nombre\n'
+      + 'd\'elements differents. Trois pour une arme feu, eau et air.\n'
+      + 'Zero : aucune limite.' },
+  { cle: 'armeElementsMax', libelle: 'Elements de l\'arme (max)', type: 'nombre', min: 0, max: 5,
+    aide: 'Le solveur ne propose que des armes qui frappent au plus ce nombre\n'
+      + 'd\'elements differents. Un pour une arme mono-element, qui profite\n'
+      + 'pleinement d\'une seule caracteristique. Zero : aucune limite.' },
   { cle: 'maitriseArme', libelle: 'Maitrise d\'arme',
     aide: 'Compte le bonus de maitrise d\'arme : de 300 a 360 de puissance\n'
       + 'sur les coups d\'arme, selon le taux critique.' },
@@ -87,7 +115,10 @@ const OPTIONS = [
 const OPTIONS_DU_COMBO = new Set(['paReserves', 'comboElements']);
 
 /** Options qui n'ont de sens que quand les degats de l'arme comptent. */
-const OPTIONS_DE_L_ARME = new Set(['armePaMax', 'armeLancersMin']);
+const OPTIONS_DE_L_ARME = new Set([
+  'armePaMin', 'armePaMax', 'armeLancersMin', 'armePortee', 'armePorteeMin',
+  'armeElementsMin', 'armeElementsMax',
+]);
 
 let etat = {
   niveau: 190, classe: 5, sexe: 0,
@@ -106,7 +137,9 @@ let etat = {
     cibleTelefrag: false,
     combo: false, paReserves: 0, comboElements: 0, comboUnLancer: false,
     // Bornes imposees aux armes que le solveur peut proposer. Zero : aucune.
-    armePaMax: 0, armeLancersMin: 0,
+    armePaMin: 0, armePaMax: 0, armeLancersMin: 0,
+    armePortee: '', armePorteeMin: 0,
+    armeElementsMin: 0, armeElementsMax: 0,
   },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
@@ -115,6 +148,16 @@ let etat = {
 let catalogue = null;
 let classesSorts = null;
 let recherche = null;
+/**
+ * Promesse de la boucle de recherche en cours.
+ *
+ * Elle se resout quand la boucle a fini son menage, donc apres « recherche =
+ * null ». Un depart de zero l'attend : sans cela, il relancerait avant que la
+ * boucle precedente ait rendu la main, et le nouveau depart serait refuse.
+ */
+let boucle = null;
+/** Numero du dernier depart demande : il departage deux clics rapproches. */
+let departs = 0;
 /** Historique du score par fil, pour la courbe. */
 let historiques = [];
 /** Vrai pendant une recherche : la courbe se redessine a chaque avancee. */
@@ -154,59 +197,62 @@ function annuler() {
 }
 
 /** Cle de l'etat persistant dans le navigateur. */
-const CLE_ETAT = 'copyroxx_etat';
+const CLE_ETAT = CLES.etat;
 
 /** Enregistre l'etat courant : un rechargement ne perd plus le travail. */
 function sauverEtat() {
-  try {
-    localStorage.setItem(CLE_ETAT, JSON.stringify({
-      niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
-      conditions: etat.conditions, sorts: etat.sorts, options: etat.options,
-      allocation: etat.allocation, scrolls: etat.scrolls,
-      bannis: [...etat.bannis],
-      verrous: [...etat.verrous],
-      equipped: [...etat.equipped.entries()].map(([cle, piece]) => [cle, piece.id]),
-      posees: [...etat.posees],
-    }));
-  } catch { /* Stockage indisponible : l'etat reste en memoire. */ }
+  ecrireJson(CLE_ETAT, {
+    niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
+    conditions: etat.conditions, sorts: etat.sorts, options: etat.options,
+    allocation: etat.allocation, scrolls: etat.scrolls,
+    bannis: [...etat.bannis],
+    verrous: [...etat.verrous],
+    equipped: [...etat.equipped.entries()].map(([cle, piece]) => [cle, piece.id]),
+    posees: [...etat.posees],
+  });
 }
 
 /** Cle du dernier resultat de recherche dans le navigateur. */
-const CLE_RESULTAT = 'copyroxx_resultat';
+const CLE_RESULTAT = CLES.resultat;
 
 /** Nombre maximal de points de courbe gardes par fil dans le navigateur. */
 const POINTS_GARDES = 600;
+
+/** Delai minimal entre deux dessins du graphe pendant une recherche. */
+const INTERVALLE_GRAPHE_MS = 250;
+
+/** Delai minimal entre deux enregistrements de la courbe pendant une recherche. */
+const INTERVALLE_ENREGISTREMENT_MS = 3000;
 
 /**
  * Enregistre la courbe et le compteur : un rechargement garde le resultat.
  * Les courbes sont echantillonnees pour rester legeres.
  */
 function sauverResultat(generationMax, fils) {
-  try {
-    localStorage.setItem(CLE_RESULTAT, JSON.stringify({
-      generationMax,
-      fils,
-      historiques: historiques.map(({ seed, history }) => {
-        const pas = Math.max(1, Math.ceil(history.length / POINTS_GARDES));
-        const points = [];
-        for (let i = 0; i < history.length; i += pas) points.push(history[i]);
-        if (history.length > 0 && points[points.length - 1] !== history[history.length - 1]) {
-          points.push(history[history.length - 1]);
-        }
-        return { seed, history: points };
-      }),
-    }));
-  } catch { /* Stockage indisponible : le resultat reste en memoire. */ }
+  ecrireJson(CLE_RESULTAT, {
+    generationMax,
+    fils,
+    intensite: $('intensite').value,
+    historiques: historiques.map(({ seed, history }) => {
+      const pas = Math.max(1, Math.ceil(history.length / POINTS_GARDES));
+      const points = [];
+      for (let i = 0; i < history.length; i += pas) points.push(history[i]);
+      if (history.length > 0 && points[points.length - 1] !== history[history.length - 1]) {
+        points.push(history[history.length - 1]);
+      }
+      return { seed, history: points };
+    }),
+  });
 }
 
 /** Reprend le dernier resultat de recherche enregistre. */
 function reprendreResultat() {
-  let data = null;
-  try { data = JSON.parse(localStorage.getItem(CLE_RESULTAT) ?? 'null'); } catch { return; }
+  const data = lireJson(CLE_RESULTAT, null);
   if (!data || !Array.isArray(data.historiques)) return;
 
   historiques = data.historiques.filter((h) => Array.isArray(h?.history));
   if (Number.isFinite(data.fils) && data.fils >= 1) $('fils').value = String(data.fils);
+  if (data.intensite != null) $('intensite').value = String(data.intensite);
   if (Number.isFinite(data.generationMax) && data.generationMax > 0) {
     $('compteur-generations').textContent =
       `generation ${data.generationMax.toLocaleString('fr-FR')} — en pause`;
@@ -215,8 +261,7 @@ function reprendreResultat() {
 
 /** Reprend l'etat enregistre, une fois le catalogue disponible. */
 function reprendreEtat() {
-  let data = null;
-  try { data = JSON.parse(localStorage.getItem(CLE_ETAT) ?? 'null'); } catch { return; }
+  const data = lireJson(CLE_ETAT, null);
   if (!data || typeof data !== 'object') return;
 
   const equipped = new Map();
@@ -264,10 +309,11 @@ function sortsCalcules() {
 
     return {
       ...sort,
+      // Une ligne differee touche aux tours suivants. Elle reste dans le sort
+      // pour rester lisible, et le moteur decide de la compter ou non : le
+      // sort porte le choix, la ligne ne porte que le fait.
+      compterDiffere: etat.options.toursSuivants === true,
       lines: sort.lines
-        // Une ligne differee touche aux tours suivants : elle ne compte que
-        // si l'option la prend en compte.
-        .filter((ligne) => etat.options.toursSuivants || !(ligne.differe > 0))
         .map((ligne, rang) => ({
           ...ligne,
           ...(bonus > 0 && rang === 0 ? {
@@ -411,7 +457,15 @@ function objectif() {
     // Bornes du choix des armes : elles ecartent les armes trop cheres ou
     // trop lentes avant toute evaluation.
     arme: etat.options.arme
-      ? { paMax: etat.options.armePaMax, lancersMin: etat.options.armeLancersMin }
+      ? {
+        paMin: etat.options.armePaMin,
+        paMax: etat.options.armePaMax,
+        lancersMin: etat.options.armeLancersMin,
+        portee: etat.options.armePortee,
+        porteeMin: etat.options.armePorteeMin,
+        elementsMin: etat.options.armeElementsMin,
+        elementsMax: etat.options.armeElementsMax,
+      }
       : null,
     combo: etat.options.combo
       ? {
@@ -691,6 +745,7 @@ function render() {
     onRemove: (i) => setEtat({ sorts: etat.sorts.filter((_, j) => j !== i) }),
     onAjouterLigne: (i) => changerLignes(i, ajouterLigne),
     onEnleverLigne: (i, rang) => changerLignes(i, (sort) => enleverLigne(sort, rang)),
+    compterDiffere: etat.options.toursSuivants === true,
   });
 
   const arme = attaqueArme();
@@ -824,13 +879,30 @@ function sortsDuCombo(combo) {
  *   build courant en graine — pour repartir apres un changement de reglages.
  */
 async function lancer(choix = {}) {
-  if (!catalogue || recherche) return;
+  if (!catalogue) return;
   const deZero = choix.deZero === true;
 
+  const jeton = (departs += 1);
+
+  // Une recherche tourne deja. « Lancer » n'a alors rien a dire, mais
+  // « Recommencer » veut justement couper celle-ci pour repartir de zero.
+  if (recherche) {
+    if (!deZero) return;
+    recherche.abandon();
+    await boucle;
+    // Deux clics rapproches attendent la meme boucle : seul le dernier part.
+    if (jeton !== departs) return;
+  }
+
+  let finBoucle;
+  boucle = new Promise((resolve) => { finBoucle = resolve; });
+
   const fils = Math.max(1, Math.min(8, Number($('fils').value) || 1));
+  const intensite = normaliserIntensite($('intensite').value);
 
   $('lancer').disabled = true;
-  $('recommencer').disabled = true;
+  // « Recommencer » reste actif : il coupe la recherche en cours et repart.
+  $('recommencer').disabled = false;
   $('arreter').disabled = false;
   message(deZero ? 'Nouvelle recherche, population neuve.' : '');
   $('etat-fils').replaceChildren();
@@ -851,6 +923,8 @@ async function lancer(choix = {}) {
 
   // Meilleur score deja applique a l'interface : le build ne bouge que s'il monte.
   let meilleurApplique = Number.NEGATIVE_INFINITY;
+  let dernierGraphe = 0;
+  let dernierEnregistrement = 0;
   let generationMax = decalage;
   $('compteur-generations').textContent = decalage > 0
     ? `reprise a la generation ${decalage.toLocaleString('fr-FR')}…`
@@ -875,6 +949,7 @@ async function lancer(choix = {}) {
       // Une reprise seme le build courant ; un depart de zero ne seme rien.
       currentItemIds: deZero ? [] : [...etat.equipped.values()].map((piece) => piece.id),
       objective: objectif(),
+      intensite,
       options: { populationSize: 160 },
     },
     {
@@ -893,9 +968,21 @@ async function lancer(choix = {}) {
         if (!courbes.has(vague.seed)) courbes.set(vague.seed, []);
         courbes.get(vague.seed).push(...(vague.history ?? []));
         historiques = [...courbes.entries()].map(([seed, history]) => ({ seed, history }));
-        dessinerEvolution($('graphe'), historiques, { enCours: true });
         montrerFils();
-        sauverResultat(generationMax, fils);
+
+        // Chaque fil rend une vague par seconde environ. Repeindre le graphe
+        // et reecrire les courbes a chaque fois occupait le fil principal
+        // pour rien : l'oeil ne suit pas, et l'enregistrement traverse tout
+        // l'historique. Les deux se font donc au rythme qui se voit.
+        const maintenant = Date.now();
+        if (maintenant - dernierGraphe >= INTERVALLE_GRAPHE_MS) {
+          dernierGraphe = maintenant;
+          dessinerEvolution($('graphe'), historiques, { enCours: true });
+        }
+        if (maintenant - dernierEnregistrement >= INTERVALLE_ENREGISTREMENT_MS) {
+          dernierEnregistrement = maintenant;
+          sauverResultat(generationMax, fils);
+        }
 
         // Le meilleur build du moment s'applique en direct au personnage.
         if (vague.resume && vague.resume.score > meilleurApplique) {
@@ -907,7 +994,9 @@ async function lancer(choix = {}) {
   );
 
   try {
-    const { best, candidats } = await recherche.promise;
+    const { best, candidats, abandonnee } = await recherche.promise;
+    // Un abandon jette la recherche : rien a appliquer, rien a garder.
+    if (abandonnee) return;
     if (best.score > meilleurApplique) appliquer(best);
     if (Array.isArray(candidats)) setEtat({ candidats });
     // Une recherche mise en pause laisse une trace : c'est la version que
@@ -926,6 +1015,7 @@ async function lancer(choix = {}) {
     $('arreter').disabled = true;
     dessinerEvolution($('graphe'), historiques, { enCours: false });
     sauverResultat(generationMax, fils);
+    finBoucle();
   }
 }
 

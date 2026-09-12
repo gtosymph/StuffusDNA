@@ -96,8 +96,13 @@ export const STAT_LABELS = Object.freeze(
  * Cree un porteur de statistiques a zero.
  * @returns {Record<string, number>}
  */
+/**
+ * Gabarit a zero, construit une seule fois.
+ * Le copier donne un objet de forme connue d'avance : le moteur n'a pas a
+ * rejouer soixante transitions de forme a chaque evaluation.
+ */
+const GABARIT_STATS = Object.freeze(Object.fromEntries(STAT_KEYS.map((key) => [key, 0])));
+
 export function emptyStats() {
-  const stats = {};
-  for (const key of STAT_KEYS) stats[key] = 0;
-  return stats;
+  return { ...GABARIT_STATS };
 }

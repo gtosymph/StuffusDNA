@@ -2,7 +2,7 @@
  * Fiche detaillee d'un equipement.
  * Elle s'ouvre au clic ou au toucher, sur une piece du catalogue ou du build.
  */
-import { el, ligneArme } from './render.mjs';
+import { el, ligneArme, resumeArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
 import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
@@ -104,8 +104,7 @@ export function ouvrirFiche(item, actions = {}) {
     Array.isArray(item.weapon) && item.weapon.length > 0
       ? el('div', { class: 'fiche-arme' },
           el('div', { class: 'titre-arme', text: `Degats de l'arme`
-            + `${item.apCost ? ` — ${item.apCost} PA` : ''}`
-            + `${item.critProbability ? ` · ${item.critProbability} % critique (+${item.critBonus ?? 0})` : ''}` }),
+            + `${resumeArme(item) ? ` — ${resumeArme(item)}` : ''}` }),
           el('div', { class: 'lignes-arme' },
             item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`))))
       : null,

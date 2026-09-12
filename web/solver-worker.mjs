@@ -9,8 +9,9 @@
 import { loadCatalog } from './catalog-web.mjs';
 import { normalizePassives } from '../src/data/passives.mjs';
 import { STAT_KEYS } from '../src/data/stats.mjs';
-import { solve } from '../src/solver/genetic.mjs';
+import { preparerRecherche, solve } from '../src/solver/genetic.mjs';
 import { creerArchive } from '../src/solver/candidates.mjs';
+import { reposApresVague } from '../src/solver/intensite.mjs';
 
 /**
  * Generations par vague : le compromis entre reactivite et debit.
@@ -67,6 +68,11 @@ async function chercher(request) {
     objective: request.objective,
   };
 
+  // La demande ne bouge pas d'une vague a l'autre : pools, verrous,
+  // classements et cache d'evaluation se preparent une seule fois. Le
+  // classement des pieces coute a lui seul un dixieme du temps d'une vague.
+  const contexte = preparerRecherche(base);
+
   // Les candidats se cumulent sur toute la recherche : chaque vague repart
   // avec une archive neuve, celle-ci garde la memoire de toutes les vagues.
   const archive = creerArchive({ identite: (ids) => [...ids].sort((a, b) => a - b) });
@@ -80,9 +86,10 @@ async function chercher(request) {
   while (!arretDemande) {
     const apports = migrants.splice(0, 8);
     const debut = totalGenerations;
+    const departVague = Date.now();
 
     const result = solve(
-      { ...base, allocation, seedGenomes: [...graines, ...apports] },
+      { ...base, allocation, seedGenomes: [...graines, ...apports], contexte },
       {
         ...request.options,
         maxGenerations: GENERATIONS_PAR_VAGUE,
@@ -123,8 +130,10 @@ async function chercher(request) {
     });
 
     vague += 1;
-    // La pause laisse le fil traiter l'ordre d'arret et les migrants.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // La pause laisse le fil traiter l'ordre d'arret et les migrants. Sa
+    // duree suit l'intensite demandee : c'est elle qui menage le processeur.
+    const repos = reposApresVague(Date.now() - departVague, request.intensite);
+    await new Promise((resolve) => setTimeout(resolve, repos));
   }
 
   self.postMessage({

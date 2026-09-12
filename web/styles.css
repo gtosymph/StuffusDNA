@@ -124,6 +124,43 @@ body { margin: 0; background: var(--fond); color: var(--texte); font: var(--tail
   background: linear-gradient(currentColor, currentColor) center / 100% 1.5px no-repeat;
 }
 .bascule-tiroir[aria-expanded="true"] { color: var(--texte); border-color: var(--bord-clair); }
+/* ---------- Panneau du profil ---------- */
+
+.menu-profil { position: relative; }
+.bascule-profil { padding-left: 22px; }
+/* Un disque : la marque convenue d'un compte, ici d'un profil local. */
+.bascule-profil::before {
+  content: ''; position: absolute; left: 9px; top: 50%;
+  width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+  border: 1.5px solid currentColor; background: none; box-shadow: none;
+}
+.bascule-profil.alerte { color: var(--alerte); border-color: var(--alerte); }
+
+.panneau-profil {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  width: 320px; max-width: calc(100vw - 24px);
+  padding: 12px; border: 1px solid var(--bord-clair); border-radius: var(--r);
+  background: var(--fond-carte, var(--champ)); box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
+  display: grid; gap: 8px;
+}
+/* « display: grid » l'emporterait sur le « display: none » de [hidden]. */
+.panneau-profil[hidden] { display: none; }
+.profil-titre { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.profil-place { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; color: var(--faible); }
+.profil-place strong { font-family: var(--chiffre); color: var(--texte); font-weight: 500; }
+.profil-place strong.alerte { color: var(--alerte); }
+.profil-note { margin: 0; font-size: 10px; line-height: 1.5; color: var(--faible); }
+.profil-alerte, .profil-succes {
+  font-size: 10px; line-height: 1.5; padding: 6px 8px; border-radius: var(--r);
+  border: 1px solid var(--bord);
+}
+.profil-alerte { color: var(--alerte); border-color: var(--alerte); }
+.profil-succes { color: var(--texte); }
+.profil-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.profil-actions button { font-size: 11px; }
+.profil-actions .danger { grid-column: 1 / -1; color: var(--alerte); border-color: var(--bord); }
+.profil-actions .danger:hover { border-color: var(--alerte); }
+
 .compte-tiroir:not(:empty) {
   font-family: var(--chiffre); font-size: 10px; color: var(--alerte);
   border-left: 1px solid var(--bord); padding-left: 6px;
@@ -273,7 +310,11 @@ button.pleine-largeur { width: 100%; margin-top: 6px; }
 .jauge { height: 3px; background: var(--bord); border-radius: 999px; overflow: hidden; margin: 7px 0; }
 .jauge > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--positif)); transition: width .2s ease; }
 
-.rangee-reglages { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto; gap: 5px; align-items: end; }
+/* Trois colonnes, deux rangees : Fils, intensite et compteur au-dessus des
+   trois boutons. Sur une seule rangee, le selecteur d'intensite et le champ
+   Fils se retrouvaient tronques. */
+.rangee-reglages { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1.3fr); gap: 5px; align-items: end; }
+.rangee-reglages select, .rangee-reglages input { min-width: 0; max-width: 100%; }
 .fils { display: grid; gap: 2px; margin-top: 7px; }
 .fil { display: flex; font-family: var(--chiffre); font-size: 10px; color: var(--faible); }
 .fil .valeur { margin-left: auto; color: var(--texte); }
@@ -529,7 +570,9 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 
 .fiche-arme { margin-top: 7px; }
 .titre-arme { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
-.bulle-arme { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0; }
+.bulle-arme { margin: 4px 0; }
+.bulle-arme-cout { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
+.bulle-arme-lignes { display: flex; flex-wrap: wrap; gap: 3px; }
 .bulle-arme .ligne-arme { font-size: 9px; padding: 0 6px; }
 
 /* ---------- Detail des sorts et carte d'arme ---------- */
@@ -686,8 +729,13 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 
 /* ---------- Combo optimise ---------- */
 
-.option.nombre { justify-content: space-between; }
-.option.nombre.off { opacity: 0.45; }
+.option.nombre, .option.liste { justify-content: space-between; }
+.option.nombre.off, .option.liste.off { opacity: 0.45; }
+.option.liste select {
+  max-width: 116px; padding: 2px 5px; border-radius: 4px;
+  border: 1px solid var(--bord); background: var(--champ); color: var(--texte);
+  font-size: 11px;
+}
 .option.nombre input {
   width: 52px; padding: 2px 5px; border-radius: 4px;
   border: 1px solid var(--bord); background: var(--champ); color: var(--texte);
@@ -719,6 +767,10 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 /* ---------- Lignes differees (tours suivants) ---------- */
 
 .ligne-sort.differee select, .ligne-sort.differee input { opacity: 0.75; }
+
+/* Comptee, la ligne n'est plus estompee : elle pese dans le score comme les
+   autres. Seule sa pastille « T+N » rappelle a quel tour elle tombe. */
+.ligne-sort.differee-comptee select, .ligne-sort.differee-comptee input { opacity: 1; }
 .marque-differe {
   font-family: var(--chiffre); font-size: 9px; font-weight: 600;
   color: var(--ambre); border: 1px solid var(--ambre); border-radius: 999px;
@@ -894,13 +946,23 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 
 .simulation {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
   align-items: center; gap: 8px;
   padding: 5px 6px; border: 1px solid var(--bord); border-radius: 5px;
   background: var(--carte-haute);
 }
 .simulation:hover { border-color: var(--bord-clair); }
 .simulation.cochee { border-color: var(--accent); background: var(--couple-fond); }
+
+/* Un favori se repere avant d'etre lu : le liseré le signale dans la pile. */
+.simulation.favori { border-left: 3px solid var(--ambre); }
+
+.simulation-favori {
+  padding: 0 3px; border: none; background: none; cursor: pointer;
+  font-size: 14px; line-height: 1; color: var(--faible);
+}
+.simulation-favori:hover { color: var(--ambre); }
+.simulation-favori.actif { color: var(--ambre); }
 
 .simulation-coche { display: flex; align-items: center; }
 .simulation-coche input { accent-color: var(--accent); margin: 0; }
@@ -919,6 +981,10 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .simulation-sous { font-size: 10px; color: var(--faible); }
 
 .simulation-actions { display: flex; gap: 4px; }
+
+/* Le filtre des favoris tient sur la meme ligne que les boutons. */
+.rangee-ajout .filtre-case { flex: none; white-space: nowrap; }
+.rangee-ajout .filtre-case.actif { color: var(--ambre); }
 
 /* ---------- Comparaison de deux simulations ---------- */
 

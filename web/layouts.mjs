@@ -14,7 +14,9 @@
  * donc son conteneur, jamais les sections qu'il porte.
  */
 
-const CLE = 'copyroxx_disposition';
+import { CLES, ecrire, lireTexte } from './stockage.mjs';
+
+const CLE = CLES.disposition;
 const ID_FEUILLE = 'feuille-disposition';
 
 /** Etat d'origine de l'atelier, releve au premier appel. */
@@ -159,11 +161,7 @@ export function appliquerDisposition(cle) {
 export function dispositionGardee() {
   const demande = new URLSearchParams(location.search).get('disposition');
   if (demande) return trouver(demande).cle;
-  try {
-    return trouver(localStorage.getItem(CLE)).cle;
-  } catch {
-    return DISPOSITIONS[0].cle;
-  }
+  return trouver(lireTexte(CLE)).cle;
 }
 
 /** Installe le selecteur dans la barre du haut et pose la disposition gardee. */
@@ -186,7 +184,7 @@ export function installerDisposition(hote) {
   choix.value = courante;
   choix.addEventListener('change', () => {
     if (!new URLSearchParams(location.search).has('disposition')) {
-      try { localStorage.setItem(CLE, choix.value); } catch { /* stockage refuse */ }
+      ecrire(CLE, choix.value);
     }
     appliquerDisposition(choix.value);
   });

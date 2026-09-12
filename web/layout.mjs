@@ -27,14 +27,23 @@ export const SECONDAIRES = Object.freeze([
   ['pods', 'Pods'], ['soins', 'Soins'],
 ]);
 
-/** Statistiques du panneau "Dommages". */
+/**
+ * Statistiques du panneau "Dommages", dans l'ordre de lecture.
+ *
+ * Le panneau se met sur deux paires par ligne quand la place le permet, et sur
+ * une seule quand la colonne se resserre. La liste suit donc un ordre lineaire :
+ * lue a la file ou par rangees de deux, elle garde ses groupes ensemble.
+ *
+ * Trois groupes se suivent : les dommages fixes par element, les dommages fixes
+ * lies au coup, puis les pourcentages.
+ */
 export const DOMMAGES = Object.freeze([
-  ['dommagesNeutre', 'Dommages Neutre'], ['dommagesCritiques', 'Dommages Critiques'],
-  ['dommagesTerre', 'Dommages Terre'], ['dommagesPoussee', 'Dommages Poussee'],
-  ['dommagesFeu', 'Dommages Feu'], ['pctDommagesArmes', '% Dommages Armes'],
-  ['dommagesEau', 'Dommages Eau'], ['pctDommagesSorts', '% Dommages Sorts'],
-  ['dommagesAir', 'Dommages Air'], ['pctDommagesMelee', '% Dommages Melee'],
-  ['dommages', 'Dommages'], ['pctDommagesDistance', '% Dommages Distance'],
+  ['dommages', 'Dommages'], ['dommagesNeutre', 'Dommages Neutre'],
+  ['dommagesTerre', 'Dommages Terre'], ['dommagesFeu', 'Dommages Feu'],
+  ['dommagesEau', 'Dommages Eau'], ['dommagesAir', 'Dommages Air'],
+  ['dommagesCritiques', 'Dommages Critiques'], ['dommagesPoussee', 'Dommages Poussee'],
+  ['pctDommagesArmes', '% Dommages Armes'], ['pctDommagesSorts', '% Dommages Sorts'],
+  ['pctDommagesMelee', '% Dommages Melee'], ['pctDommagesDistance', '% Dommages Distance'],
 ]);
 
 /** Statistiques du panneau "Resistances". */

@@ -165,19 +165,39 @@ export function computeLine(line, stats, critRate = criticalRate(stats)) {
  * @param {number} [spell.castsPerTurn] Lancers par tour.
  * @param {number} [spell.baseCrit] Bonus de critique propre au sort.
  * @param {number} [spell.apCost] Cout en points d'action.
+ * Une ligne differee touche N tours APRES le lancer : par defaut, elle ne
+ * compte pas dans les degats du tour. Sans cette regle, l'Epee du Jugement du
+ * Iop annoncait 26 a 30 sur sa fiche et pesait 67 a 74 dans le score, et le
+ * solveur choisissait un build pour des degats qui ne tombaient pas ce
+ * tour-la. Le differe reste lisible a part, dans « differe ».
+ *
+ * Un joueur qui vise le combat entier, et non le seul premier tour, demande
+ * l'inverse : `spell.compterDiffere` fait rentrer ces lignes dans le total.
+ * Le choix vient du sort, pas de la ligne : la ligne dit un fait du jeu,
+ * le sort porte ce que l'utilisateur veut compter.
+ *
+ * @param {boolean} [spell.compterDiffere] Compter les lignes des tours suivants.
  * @param {Record<string, number>} stats
- * @returns {{normal: number, critical: number, average: number, perAp: number|null}}
+ * @returns {{normal: number, critical: number, average: number, differe: number, perAp: number|null}}
  */
 export function computeSpell(spell, stats) {
   const lines = Array.isArray(spell.lines) ? spell.lines : [];
   const rate = criticalRate(stats, spell.baseCrit ?? 0);
+  const compterDiffere = spell.compterDiffere === true;
 
   let normal = 0;
   let critical = 0;
   let average = 0;
+  let differe = 0;
 
   for (const line of lines) {
     const result = computeLine(line, stats, rate);
+    if (line.differe > 0) {
+      differe += result.average;
+      // Le differe se lit toujours a part, meme quand il compte : c'est ce
+      // qui permet de montrer « dont tant aux tours suivants ».
+      if (!compterDiffere) continue;
+    }
     normal += result.normal;
     critical += result.critical;
     average += result.average;
@@ -191,6 +211,7 @@ export function computeSpell(spell, stats) {
     normal,
     critical,
     average,
+    differe,
     casts,
     parTour: average * casts,
     perAp: apCost ? average / apCost : null,
@@ -254,6 +275,7 @@ export function computeSpellDetail(spell, stats) {
   const lines = Array.isArray(spell.lines) ? spell.lines : [];
   const moyennes = computeSpell(spell, stats);
   const rate = criticalRate(stats, spell.baseCrit ?? 0);
+  const compterDiffere = spell.compterDiffere === true;
 
   const bornes = { normalMin: 0, normalMax: 0, critMin: 0, critMax: 0 };
   const parLigne = [];
@@ -265,16 +287,22 @@ export function computeSpellDetail(spell, stats) {
 
     const ligne = {
       element,
+      differe: line.differe > 0 ? line.differe : 0,
       normalMin: computeHit({ element, base: min, source, range, maitrise }, stats),
       normalMax: computeHit({ element, base: max, source, range, maitrise }, stats),
       critMin: computeHit({ element, base: critMin, critical: true, source, range, maitrise }, stats),
       critMax: computeHit({ element, base: critMax, critical: true, source, range, maitrise }, stats),
     };
 
-    bornes.normalMin += ligne.normalMin;
-    bornes.normalMax += ligne.normalMax;
-    bornes.critMin += ligne.critMin;
-    bornes.critMax += ligne.critMax;
+    // Les bornes montrees decrivent ce que le score additionne : une ligne
+    // differee ne les gonfle que si l'utilisateur la compte. Sinon elle se lit
+    // dans le detail, a part.
+    if (!ligne.differe || compterDiffere) {
+      bornes.normalMin += ligne.normalMin;
+      bornes.normalMax += ligne.normalMax;
+      bornes.critMin += ligne.critMin;
+      bornes.critMax += ligne.critMax;
+    }
     parLigne.push(ligne);
   }
 

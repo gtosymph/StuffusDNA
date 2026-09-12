@@ -10,7 +10,12 @@
  * dans `copyroxx_etat` : les deux ne se touchent jamais.
  */
 
-/** Themes proposes. Le premier est celui de la feuille de base. */
+import { CLES, ecrire, lireTexte } from './stockage.mjs';
+
+/**
+ * Themes proposes. Le premier porte la feuille de base : il n'a pas de
+ * feuille propre a poser.
+ */
 export const THEMES = [
   { cle: 'nuit', nom: 'Nuit', fichier: null },
   { cle: 'papier', nom: 'Papier', fichier: 'themes/papier.css' },
@@ -19,12 +24,21 @@ export const THEMES = [
   { cle: 'cockpit', nom: 'Cockpit', fichier: 'themes/cockpit.css' },
 ];
 
-const CLE = 'copyroxx_theme';
+/**
+ * Theme d'un visiteur qui n'a encore rien choisi.
+ * Le script d'amorce du document pose la meme feuille avant le premier
+ * rendu : gardez les deux d'accord.
+ */
+export const THEME_DEFAUT = 'cockpit';
+
+const CLE = CLES.theme;
 const ID_FEUILLE = 'feuille-theme';
 
-/** Rend le theme demande, ou celui de depart si la cle est inconnue. */
+/** Rend le theme demande, ou celui par defaut si la cle est inconnue. */
 function trouver(cle) {
-  return THEMES.find((t) => t.cle === cle) ?? THEMES[0];
+  return THEMES.find((t) => t.cle === cle)
+    ?? THEMES.find((t) => t.cle === THEME_DEFAUT)
+    ?? THEMES[0];
 }
 
 /**
@@ -37,11 +51,7 @@ function trouver(cle) {
 export function themeGarde() {
   const demande = new URLSearchParams(location.search).get('theme');
   if (demande) return trouver(demande).cle;
-  try {
-    return trouver(localStorage.getItem(CLE)).cle;
-  } catch {
-    return THEMES[0].cle;
-  }
+  return trouver(lireTexte(CLE)).cle;
 }
 
 /** Vrai quand le theme vient de l'adresse : le choix ne doit alors pas etre garde. */
@@ -88,7 +98,7 @@ export function appliquerTheme(cle) {
 
 /** Garde le choix, sans jamais faire echouer l'application. */
 function garder(cle) {
-  try { localStorage.setItem(CLE, cle); } catch { /* stockage refuse : le choix ne survit pas au rechargement */ }
+  ecrire(CLE, cle);
 }
 
 /** Installe le selecteur dans la barre du haut et pose le theme garde. */

@@ -44,6 +44,18 @@ const ELEMENT_EFFET = Object.freeze({
 /** Effets "meilleur element" du Huppermage : hors du perimetre de la refonte. */
 const EFFETS_BEST = new Set([2822, 2828]);
 
+/**
+ * Sorts dont les effets sont ALTERNATIFS et non cumules : le jeu en tire un
+ * seul a chaque lancer. Les additionner donnerait des degats fantomes — Rekop
+ * ressortait a 1 119 degats moyens pour quatre PA, la ou un sort de ce cout en
+ * fait une trentaine. Sans la probabilite de chaque effet, ces sorts ne se
+ * modelisent pas : mieux vaut ne pas les proposer que mentir sur leur valeur.
+ */
+const SORTS_ALTERNATIFS = new Map([
+  [12853, 'Rekop : soixante-treize effets tires au hasard, un seul se produit.'],
+  [12881, 'Tromperie : vol de vie ou soins selon la cible, jamais les deux.'],
+]);
+
 /** Charge les donnees Roxx locales, ou les recupere une premiere fois. */
 async function chargerRoxx() {
   try {
@@ -86,12 +98,14 @@ function indexerRoxx(brut) {
 /** Decompose un masque de cible en groupes et conditions d'etat. */
 function lireMasque(masque) {
   const jetons = String(masque ?? '').split(',').filter(Boolean);
+  const etats = jetons.filter((j) => /^E\d+$/.test(j));
   return {
     groupes: jetons.filter((j) => /^[A-Za-z]+$/.test(j)),
     // E majuscule sans etoile : la ligne exige un etat sur la cible
     // (Tempete de Puissance, Fleche Devorante). Les jetons etoiles *E<id>
     // portent au contraire les degats de base de certains sorts (Glas).
-    exigeEtat: jetons.some((j) => /^E\d+$/.test(j)),
+    exigeEtat: etats.length > 0,
+    etats,
   };
 }
 
@@ -113,9 +127,9 @@ function lignesRoxx(palier) {
   const normaux = (palier.effects ?? []).filter(garde);
   const critiques = (palier.criticalEffect ?? []).filter(garde);
 
-  const brutes = normaux.map((effet, rang) => {
+  const avecDegats = normaux.map((effet, rang) => {
     const crit = critiques[rang] ?? effet;
-    const { groupes, exigeEtat } = lireMasque(effet.targetMask);
+    const { groupes, exigeEtat, etats } = lireMasque(effet.targetMask);
     return {
       element: ELEMENT_EFFET[effet.effectId],
       min: effet.diceNum || effet.value || 0,
@@ -125,9 +139,28 @@ function lignesRoxx(palier) {
       differe: Number(effet.delay ?? 0),
       groupes,
       exigeEtat,
+      etats,
       masque: String(effet.targetMask ?? ''),
     };
-  }).filter((l) => l.max > 0 && !l.exigeEtat);
+  }).filter((l) => l.max > 0);
+
+  // Toutes les lignes sous un etat, et plusieurs etats distincts : ce ne sont
+  // pas des conditions mais des ALTERNATIVES. Traversee et Drain Elementaire
+  // du Huppermage frappent dans l'element de la rune posee, une seule des
+  // quatre lignes s'applique. Les cumuler quadruplait leurs degats.
+  const sousEtat = avecDegats.filter((l) => l.exigeEtat);
+  const distincts = new Set(sousEtat.flatMap((l) => l.etats));
+  if (sousEtat.length === avecDegats.length && distincts.size > 1) {
+    const meilleure = [...avecDegats].sort((a, b) => (b.min + b.max) - (a.min + a.max))[0];
+    return [{
+      element: meilleure.element,
+      min: meilleure.min, max: meilleure.max,
+      critMin: meilleure.critMin, critMax: meilleure.critMax,
+      ...(meilleure.differe > 0 ? { differe: meilleure.differe } : {}),
+    }];
+  }
+
+  const brutes = avecDegats.filter((l) => !l.exigeEtat);
 
   const surEnnemis = brutes.filter((l) => l.groupes.includes('A'));
   const retenues = surEnnemis.length > 0 ? surEnnemis : brutes;
@@ -151,6 +184,28 @@ function lignesRoxx(palier) {
     element, min, max, critMin, critMax,
     ...(differe > 0 ? { differe } : {}),
   }));
+}
+
+/**
+ * Cout en PA et lancers par tour, lus dans la source a jour.
+ *
+ * La source dofopti a perdu ces deux chiffres pour le Cra et l'Osamodas : tous
+ * leurs sorts sortaient a zero PA. Un sort gratuit fausse tout — l'optimisateur
+ * de combo le lance autant de fois qu'il veut. RoxxSolver les porte par palier.
+ *
+ * @param {any} sortRoxx
+ * @returns {{apCost: number, maxCast: number}} Zeros quand la source se tait.
+ */
+function coutRoxx(sortRoxx) {
+  const paliers = sortRoxx?.levels ?? [];
+  // Les paliers d'un meme sort partagent leur cout ; le dernier fait foi.
+  for (let i = paliers.length - 1; i >= 0; i -= 1) {
+    const pa = Number(paliers[i]?.apCost ?? 0);
+    if (pa > 0) {
+      return { apCost: pa, maxCast: Number(paliers[i]?.maxCastPerTurn ?? 0) };
+    }
+  }
+  return { apCost: 0, maxCast: 0 };
 }
 
 /** Palier Roxx qui correspond a un niveau de variante. */
@@ -248,6 +303,8 @@ async function main() {
   const { parId: roxxParId, parNom: roxxParNom } = indexerRoxx(await chargerRoxx());
   const telefragParCle = await chargerTelefrag();
   let enrichis = 0;
+  /** Sorts laisses de cote, avec la raison : le compte rendu les nomme. */
+  const ecartes = [];
 
   const classes = brut.classes.map((classe) => ({
     id: classe.id,
@@ -259,6 +316,7 @@ async function main() {
         ?? roxxParNom.get(`${normaliser(classe.name)}:${normaliser(sort.name)}`)
         ?? null;
       if (sortRoxx) enrichis += 1;
+      const cout = coutRoxx(sortRoxx);
       const paliers = variantes(sort.levels)
         .map((v) => (sortRoxx ? enrichirVariante(v, sortRoxx) : v))
         .map((v) => {
@@ -270,8 +328,9 @@ async function main() {
         id: sort.id,
         fr: sort.name,
         icon: icone(sort.icon, 'spells'),
-        apCost: Number(sort.ap_cost ?? 0),
-        maxCast: Number(sort.max_cast ?? 0),
+        // La source a jour prime : elle seule connait le jeu d'aujourd'hui.
+        apCost: cout.apCost || Number(sort.ap_cost ?? 0),
+        maxCast: cout.maxCast || Number(sort.max_cast ?? 0),
         maxCastPerTarget: Number(sort.max_cast_per_target ?? 0),
         range: Number(sort.range ?? 0),
         minRange: Number(sort.min_range ?? 0),
@@ -297,7 +356,16 @@ async function main() {
       };
     // Un sort reste des qu'une variante porte une ligne de degats, meme
     // entierement differee : ses totaux immediats peuvent valoir zero.
-    }).filter((s) => s.variants.some((v) => (v.lines ?? []).some((l) => l.max > 0))),
+    }).filter((s) => s.variants.some((v) => (v.lines ?? []).some((l) => l.max > 0)))
+      .filter((s) => {
+        // Un sort gratuit n'existe pas dans le jeu : ce sont les sorts que la
+        // refonte du Cra et de l'Osamodas a retires, restes dans la vieille
+        // source. Les garder ferait lancer l'infini a l'optimisateur de combo.
+        if (!(s.apCost > 0)) { ecartes.push(`${s.fr} (#${s.id}) — aucun cout en PA, sort retire du jeu`); return false; }
+        const raison = SORTS_ALTERNATIFS.get(s.id);
+        if (raison) { ecartes.push(`${s.fr} (#${s.id}) — ${raison}`); return false; }
+        return true;
+      }),
   }));
 
   await writeFile('data/spells.json', `${JSON.stringify(classes)}\n`, 'utf8');
@@ -306,6 +374,8 @@ async function main() {
   const tf = classes.flatMap((c) => c.spells).filter((s) => s.generatesTelefrag || s.consumesTelefrag);
   process.stdout.write(`Ecrit data/spells.json : ${classes.length} classes, ${total} sorts offensifs, ${enrichis} enrichis par Roxx.\n`);
   process.stdout.write(`  sorts lies au telefrag : ${tf.length}\n`);
+  process.stdout.write(`  sorts ecartes : ${ecartes.length}\n`);
+  for (const raison of ecartes) process.stdout.write(`   ${raison}\n`);
   for (const s of tf.slice(0, 6)) {
     process.stdout.write(`   ${s.fr} — genere:${s.generatesTelefrag} consomme:${s.consumesTelefrag} bonus:${s.bonusNeedsTelefrag}\n`);
   }

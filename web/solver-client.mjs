@@ -31,12 +31,17 @@ const DELAI_ARRET_MS = 20000;
  * @param {number} options.threads Nombre de fils.
  * @param {(info: {seed: number, generation: number, best: number}) => void} [options.onProgress]
  * @param {(vague: {seed: number, generation: number, best: number, history: number[], resume: any}) => void} [options.onWave]
- * @returns {{promise: Promise<any>, stop: () => void}}
+ * @returns {{promise: Promise<any>, stop: () => void, abandon: () => void}}
  */
 export function runSearch(request, { threads, onProgress, onWave }) {
   const fils = [];
   let arretEnvoye = false;
   let stopper = null;
+  let abandonner = null;
+  // Une recherche close ne rappelle plus personne : ni le suivi des vagues,
+  // ni la conclusion. Un abandon coupe les fils au milieu d'une vague, et
+  // les messages deja partis ne doivent pas repeindre l'interface.
+  let close = false;
 
   const promise = new Promise((resolve, reject) => {
     const resultats = [];
@@ -47,6 +52,8 @@ export function runSearch(request, { threads, onProgress, onWave }) {
     let minuteur = null;
 
     const conclure = () => {
+      if (close) return;
+      close = true;
       clearTimeout(minuteur);
       for (const { worker } of fils) worker.terminate();
 
@@ -85,6 +92,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       fils.push({ worker, seed });
 
       worker.addEventListener('message', (event) => {
+        if (close) return;
         const message = event.data;
 
         if (message.type === 'progress') {
@@ -122,6 +130,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       });
 
       worker.addEventListener('error', (event) => {
+        if (close) return;
         worker.terminate();
         onProgress?.({ seed, failed: true, message: event.message });
         terminerFil();
@@ -137,7 +146,19 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       // Un fil qui ne repond pas dans le delai n'empeche pas la conclusion.
       minuteur = setTimeout(conclure, DELAI_ARRET_MS);
     };
+
+    // L'abandon ne demande rien aux fils : il les coupe. La pause attend leur
+    // meilleur build parce qu'on veut le garder ; un depart de zero le jette
+    // de toute facon, et faire patienter l'utilisateur vingt secondes pour un
+    // resultat qu'on ecrase n'a pas de sens.
+    abandonner = () => {
+      if (close) return;
+      close = true;
+      clearTimeout(minuteur);
+      for (const { worker } of fils) worker.terminate();
+      resolve({ abandonnee: true, best: null, runs: [], candidats: [] });
+    };
   });
 
-  return { promise, stop: () => stopper?.() };
+  return { promise, stop: () => stopper?.(), abandon: () => abandonner?.() };
 }

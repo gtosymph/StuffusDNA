@@ -5,7 +5,7 @@
  * restant dans la fenetre. Le toucher ne la declenche pas : sur mobile, un
  * appui ouvre directement la fiche complete.
  */
-import { el, ligneArme } from './render.mjs';
+import { el, ligneArme, resumeArme } from './render.mjs';
 import { iconeStat } from './icons.mjs';
 import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
@@ -73,7 +73,11 @@ function garnir(noeud, item, contexte = {}) {
 
     Array.isArray(item.weapon) && item.weapon.length > 0
       ? el('div', { class: 'bulle-arme' },
-          item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`)))
+          resumeArme(item)
+            ? el('div', { class: 'bulle-arme-cout', text: resumeArme(item) })
+            : null,
+          el('div', { class: 'bulle-arme-lignes' },
+            item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`))))
       : null,
 
     blocArmeCalculee(item, contexte.stats ?? null),

@@ -3,12 +3,19 @@
  * quels emplacements de chaque cote du personnage.
  */
 
-/** Statistiques du panneau "Principales", lues deux par ligne. */
+/**
+ * Statistiques du panneau "Principales", dans l'ordre de lecture.
+ *
+ * Meme regle que le panneau "Dommages" : la liste se lit a la file ou par
+ * rangees de deux, elle garde donc ses groupes ensemble. Les points d'action
+ * et de deplacement, la portee et les invocations d'abord ; la vie, l'initiative,
+ * le critique et la prospection ensuite.
+ */
 export const PRINCIPALES = Object.freeze([
+  ['pa', 'PA'], ['pm', 'PM'],
+  ['po', 'PO'], ['invocations', 'Invocations'],
   ['pdv', 'Pdv'], ['initiative', 'Initiative'],
-  ['prospection', 'Prospection'], ['critique', '% Critique'],
-  ['pa', 'PA'], ['invocations', 'Invocations'],
-  ['pm', 'PM'], ['po', 'PO'],
+  ['critique', '% Critique'], ['prospection', 'Prospection'],
 ]);
 
 /** Statistiques du panneau "Caracteristiques". */

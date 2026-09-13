@@ -18,49 +18,102 @@
  * y faire.
  */
 
-/** Largeur d'une tranche d'endurance. */
+/** Largeur d'une tranche. */
 export const PAS_ENDURANCE = 250;
 
-/** Conditions qui parlent de la vie : la courbe les met de cote. */
-const STATS_DE_VIE = new Set(['vitalite', 'pdv', 'pdvEffectifs']);
-
-/** Statistique sur laquelle la courbe trace son axe. */
+/** Statistique qui porte l'endurance dans les statistiques derivees. */
 export const STAT_ENDURANCE = 'pdvEffectifs';
 
+/** Cle de condition qui porte les degats totaux. */
+export const STAT_DEGATS = 'degatsTotaux';
+
 /**
- * Tranche d'une endurance.
- * @param {number} endurance
+ * Axe de la courbe.
+ *
+ * Un axe dit trois choses : sur quoi la courbe tranche (`cle`), ce qu'elle
+ * maximise dans chaque tranche (`valeur`), et quelle condition du joueur elle
+ * met de cote — celle qui parle justement de l'axe (`conditions`).
+ *
+ * Les deux axes sont symetriques. En mode degats, la courbe tranche
+ * l'endurance et maximise les degats : « si je lache 500 pdv effectifs, je
+ * gagne combien ? ». En mode endurance, elle tranche les degats et maximise
+ * l'endurance : « si j'accepte 200 degats de moins, je tiens combien de plus ? ».
+ */
+export const AXE_ENDURANCE = Object.freeze({
+  cle: 'endurance',
+  valeur: 'damage',
+  stat: STAT_ENDURANCE,
+  pas: PAS_ENDURANCE,
+  conditions: Object.freeze(['vitalite', 'pdv', STAT_ENDURANCE]),
+});
+
+/** Axe du mode « maximiser les pdv effectifs ». */
+export const AXE_DEGATS = Object.freeze({
+  cle: 'damage',
+  valeur: 'endurance',
+  stat: STAT_DEGATS,
+  pas: PAS_ENDURANCE,
+  conditions: Object.freeze([STAT_DEGATS]),
+});
+
+/**
+ * Axe qui correspond a un mode de recherche.
+ * @param {string} [mode]
+ */
+export function axeDe(mode) {
+  return mode === 'endurance' ? AXE_DEGATS : AXE_ENDURANCE;
+}
+
+/** Vrai quand la condition parle de l'axe lui-meme. */
+const surLAxe = (stat, axe) => axe.conditions.includes(stat);
+
+/**
+ * Tranche d'une valeur d'axe.
+ * @param {number} valeur
  * @param {number} [pas]
  */
-export function trancheDe(endurance, pas = PAS_ENDURANCE) {
-  return Math.floor(endurance / pas);
+export function trancheDe(valeur, pas = PAS_ENDURANCE) {
+  return Math.floor(valeur / pas);
 }
 
 /**
- * Le meme objectif, sans les conditions qui parlent de la vie.
+ * Le meme objectif, sans les conditions qui parlent de l'axe.
  *
- * La repartition des points d'un palier de survie se calcule sur cet
- * objectif : sinon elle remonterait la vitalite jusqu'a la condition, et la
- * courbe ne montrerait jamais ce que rapportent les points laches.
+ * La repartition des points d'un palier se calcule sur cet objectif : sinon
+ * elle remonterait la vitalite jusqu'a la condition, et la courbe ne
+ * montrerait jamais ce que rapportent les points laches.
  *
  * @param {{conditions: any[]}} objective
+ * @param {typeof AXE_ENDURANCE} [axe]
  */
-export function sansConditionsDeVie(objective) {
+export function sansConditionsDAxe(objective, axe = AXE_ENDURANCE) {
   return {
     ...objective,
-    conditions: (objective.conditions ?? []).filter((c) => !STATS_DE_VIE.has(c.stat)),
+    conditions: (objective.conditions ?? []).filter((c) => !surLAxe(c.stat, axe)),
   };
 }
 
 /**
- * Vrai quand un build tient tout ce qu'on lui demande, la vie mise a part.
+ * Meme chose sur l'axe de l'endurance : le nom que l'ancien code attend.
+ * @param {{conditions: any[]}} objective
+ */
+export function sansConditionsDeVie(objective) {
+  return sansConditionsDAxe(objective, AXE_ENDURANCE);
+}
+
+/**
+ * Vrai quand un build tient tout ce qu'on lui demande, l'axe mis a part.
+ *
+ * Un manque sur l'axe est justement ce que la courbe mesure ; un manque de PA
+ * n'a rien a y faire.
  *
  * @param {{invalid: any[], violations: {stat: string}[], detail: {unmet: {stat: string}[]}}} vue
+ * @param {typeof AXE_ENDURANCE} [axe]
  */
-export function estTenable(vue) {
+export function estTenable(vue, axe = AXE_ENDURANCE) {
   if ((vue.invalid?.length ?? 0) > 0) return false;
-  if ((vue.violations ?? []).some((v) => !STATS_DE_VIE.has(v.stat))) return false;
-  return !(vue.detail?.unmet ?? []).some((u) => !STATS_DE_VIE.has(u.stat));
+  if ((vue.violations ?? []).some((v) => !surLAxe(v.stat, axe))) return false;
+  return !(vue.detail?.unmet ?? []).some((u) => !surLAxe(u.stat, axe));
 }
 
 /**
@@ -74,12 +127,12 @@ export function estTenable(vue) {
  *
  * @param {{pas?: number, garde?: number}} [reglage]
  */
-export function creerPaliersSurvie({ pas = PAS_ENDURANCE, garde = 2 } = {}) {
+export function creerPaliersSurvie({ pas = PAS_ENDURANCE, garde = 2, axe = AXE_ENDURANCE } = {}) {
   /** @type {Map<number, {genome: number[], damage: number, endurance: number, cle: string}[]>} */
   const pretendants = new Map();
 
-  const valide = (mesure) => Number.isFinite(mesure?.damage)
-    && Number.isFinite(mesure?.endurance) && mesure.endurance >= 0;
+  const valide = (mesure) => Number.isFinite(mesure?.[axe.valeur])
+    && Number.isFinite(mesure?.[axe.cle]) && mesure[axe.cle] >= 0;
 
   return {
     /**
@@ -90,13 +143,13 @@ export function creerPaliersSurvie({ pas = PAS_ENDURANCE, garde = 2 } = {}) {
     proposer(genome, mesure) {
       if (!valide(mesure)) return;
 
-      const tranche = trancheDe(mesure.endurance, pas);
+      const tranche = trancheDe(mesure[axe.cle], pas);
       const liste = pretendants.get(tranche) ?? [];
       const cle = genome.join(',');
       if (liste.some((entree) => entree.cle === cle)) return;
 
       liste.push({ genome: [...genome], damage: mesure.damage, endurance: mesure.endurance, cle });
-      liste.sort((a, b) => b.damage - a.damage);
+      liste.sort((a, b) => b[axe.valeur] - a[axe.valeur]);
       if (liste.length > garde) liste.length = garde;
       pretendants.set(tranche, liste);
     },
@@ -120,9 +173,9 @@ export function creerPaliersSurvie({ pas = PAS_ENDURANCE, garde = 2 } = {}) {
             : { damage: pretendant.damage, endurance: pretendant.endurance };
           if (!valide(description)) continue;
 
-          const tranche = trancheDe(description.endurance, pas);
+          const tranche = trancheDe(description[axe.cle], pas);
           const connu = meilleurs.get(tranche);
-          if (!connu || description.damage > connu.damage) {
+          if (!connu || description[axe.valeur] > connu[axe.valeur]) {
             meilleurs.set(tranche, { ...description, genome: pretendant.genome, tranche });
           }
         }
@@ -143,14 +196,14 @@ export function creerPaliersSurvie({ pas = PAS_ENDURANCE, garde = 2 } = {}) {
  * @param {{endurance: number, damage: number}[]} paliers
  * @returns {{endurance: number, damage: number}[]} De la plus haute endurance a la plus basse.
  */
-export function frontiereSurvie(paliers) {
-  const tries = [...paliers].sort((a, b) => b.endurance - a.endurance);
+export function frontiereSurvie(paliers, axe = AXE_ENDURANCE) {
+  const tries = [...paliers].sort((a, b) => b[axe.cle] - a[axe.cle]);
 
   const gardes = [];
   let plafond = Number.NEGATIVE_INFINITY;
   for (const palier of tries) {
-    if (!(palier.damage > plafond)) continue;
-    plafond = palier.damage;
+    if (!(palier[axe.valeur] > plafond)) continue;
+    plafond = palier[axe.valeur];
     gardes.push(palier);
   }
   return gardes;
@@ -169,10 +222,13 @@ export function frontiereSurvie(paliers) {
  * @param {number} plafond Endurance a ne pas depasser.
  * @param {number} pente Degats perdus par point d'endurance en trop.
  */
-export function noteSousPlafond(vue, plafond, pente) {
-  if (!estTenable(vue)) return -1e9 + vue.score;
-  const exces = Math.max(0, (vue.stats?.[STAT_ENDURANCE] ?? 0) - plafond);
-  return (vue.detail?.damage ?? 0) - exces * pente;
+export function noteSousPlafond(vue, plafond, pente, axe = AXE_ENDURANCE) {
+  if (!estTenable(vue, axe)) return -1e9 + vue.score;
+  const sur = axe === AXE_DEGATS
+    ? { tranche: vue.detail?.damage ?? 0, note: vue.stats?.[STAT_ENDURANCE] ?? 0 }
+    : { tranche: vue.stats?.[STAT_ENDURANCE] ?? 0, note: vue.detail?.damage ?? 0 };
+  const exces = Math.max(0, sur.tranche - plafond);
+  return sur.note - exces * pente;
 }
 
 /**
@@ -191,8 +247,17 @@ export function tranchesAVisiter(trancheGagnant, nombre) {
  * Vrai quand l'objectif demande de la vie : c'est alors qu'un compromis existe.
  * @param {{conditions?: any[]}} objective
  */
+export function aConditionDAxe(objective, axe = AXE_ENDURANCE) {
+  return (objective?.conditions ?? [])
+    .some((c) => surLAxe(c.stat, axe) && Number(c.target) > 0);
+}
+
+/**
+ * Meme chose sur l'axe de l'endurance : le nom que l'ancien code attend.
+ * @param {{conditions?: any[]}} objective
+ */
 export function aConditionDeVie(objective) {
-  return (objective?.conditions ?? []).some((c) => STATS_DE_VIE.has(c.stat) && Number(c.target) > 0);
+  return aConditionDAxe(objective, AXE_ENDURANCE);
 }
 
 /**
@@ -206,13 +271,13 @@ export function aConditionDeVie(objective) {
  * @param {number} tranche
  * @param {number} [pas]
  */
-export function objectifDeTranche(objective, tranche, pas = PAS_ENDURANCE) {
-  const sansVie = sansConditionsDeVie(objective);
+export function objectifDeTranche(objective, tranche, pas = PAS_ENDURANCE, axe = AXE_ENDURANCE) {
+  const sansAxe = sansConditionsDAxe(objective, axe);
   return {
-    ...sansVie,
+    ...sansAxe,
     conditions: [
-      ...sansVie.conditions,
-      { stat: STAT_ENDURANCE, target: 0, max: (tranche + 1) * pas - 1, absolute: true, weight: 1 },
+      ...sansAxe.conditions,
+      { stat: axe.stat, target: 0, max: (tranche + 1) * pas - 1, absolute: true, weight: 1 },
     ],
   };
 }

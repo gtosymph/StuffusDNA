@@ -7,6 +7,7 @@
  */
 
 import { creerArchive } from '../src/solver/candidates.mjs';
+import { axeDe } from '../src/solver/survie.mjs';
 
 /** Nombre de fils propose par defaut, selon le processeur. */
 export function defaultThreadCount() {
@@ -58,19 +59,20 @@ function fusionnerPaliers(runs) {
 }
 
 /**
- * Fond les paliers de survie de tous les fils : pour chaque tranche de points
- * de vie, le build le plus fort qu'un fil quelconque ait trouve. Aucune
- * reduction ici non plus : la frontiere se prend a l'affichage.
+ * Fond les paliers de survie de tous les fils : pour chaque tranche, le
+ * meilleur build qu'un fil quelconque ait trouve sur la mesure de l'axe.
+ * Aucune reduction ici non plus : la frontiere se prend a l'affichage.
  *
  * @param {any[]} runs
+ * @param {{cle: string, valeur: string}} axe
  * @returns {any[]}
  */
-function fusionnerSurvie(runs) {
+function fusionnerSurvie(runs, axe) {
   const meilleurs = new Map();
   for (const run of runs) {
     for (const palier of run.survie ?? []) {
       const connu = meilleurs.get(palier.tranche);
-      if (!connu || palier.damage > connu.damage) meilleurs.set(palier.tranche, palier);
+      if (!connu || palier[axe.valeur] > connu[axe.valeur]) meilleurs.set(palier.tranche, palier);
     }
   }
   return [...meilleurs.values()].sort((a, b) => a.tranche - b.tranche);
@@ -122,7 +124,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
         runs: retenus,
         candidats: archive.liste().map((entree) => entree.detail),
         paliers: fusionnerPaliers(retenus),
-        survie: fusionnerSurvie(retenus),
+        survie: fusionnerSurvie(retenus, axeDe(request.objective?.mode)),
       });
     };
 

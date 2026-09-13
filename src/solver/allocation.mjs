@@ -90,7 +90,7 @@ export function optimiserAllocation({ raw, level, objective }) {
   const scoreDe = (alloc) => {
     const stats = statsDe(alloc);
     const detail = scoreBuild(stats, objective);
-    const violations = maxViolations(objective.conditions, stats);
+    const violations = maxViolations(objective.conditions, stats, detail.damage);
     return detail.score - violations.length * PENALITE_MAX;
   };
 

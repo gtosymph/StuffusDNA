@@ -15,7 +15,7 @@ import { createIncrementalBuild } from './incremental.mjs';
 import { creerArchive } from './candidates.mjs';
 import { creerCompteur, creerPaliers, normaliserProximite } from './proximite.mjs';
 import {
-  creerPaliersSurvie, estTenable, noteSousPlafond, PAS_ENDURANCE, sansConditionsDeVie,
+  axeDe, creerPaliersSurvie, estTenable, noteSousPlafond, PAS_ENDURANCE, sansConditionsDAxe,
   STAT_ENDURANCE, trancheDe,
   tranchesAVisiter,
 } from './survie.mjs';
@@ -164,7 +164,7 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
     // pour rien pesait sur le ramasse-miettes.
     const cible = spells === objective.spells ? objective : { ...objective, spells };
     const detail = scoreBuild(stats, cible, options);
-    const violations = maxViolations(objective.conditions, stats);
+    const violations = maxViolations(objective.conditions, stats, detail.damage);
 
     // Pieces a acheter pour porter ce build. Le compte sert deux fois : il
     // penalise ce qui depasse la limite, et il range le build dans son palier.
@@ -545,12 +545,17 @@ export function solve(input, options = {}, onProgress) {
   // Paliers de survie : le build le plus fort de chaque tranche de points de
   // vie, parmi ceux qui tiennent tout sauf la vie. Ils n'ont de sens qu'en
   // mode degats : en mode caracteristiques, il n'y a rien a echanger.
-  const survie = input.objective?.mode !== SEARCH_MODES.STATS ? creerPaliersSurvie() : null;
+  // L'axe suit le mode : en mode degats la courbe tranche l'endurance, en
+  // mode endurance elle tranche les degats. Le moteur, lui, ne change pas.
+  const axe = axeDe(input.objective?.mode);
+  const survie = input.objective?.mode !== SEARCH_MODES.STATS
+    ? creerPaliersSurvie({ axe })
+    : null;
   const noterPalier = (genome) => {
     if (!paliers && !survie) return;
     const vue = evaluate(genome);
     if (paliers) paliers.proposer(genome, vue.score, vue.changements);
-    if (survie && estTenable(vue)) {
+    if (survie && estTenable(vue, axe)) {
       survie.proposer(genome, { damage: vue.detail.damage, endurance: vue.stats[STAT_ENDURANCE] });
     }
   };
@@ -687,11 +692,14 @@ export function solve(input, options = {}, onProgress) {
   if (survie) {
     const gagnant = evaluate(best.genome);
     const pente = Math.max(1, (gagnant.detail.damage ?? 0) / 1000);
-    for (const tranche of tranchesAVisiter(trancheDe(gagnant.stats[STAT_ENDURANCE]), TRANCHES_VISITEES)) {
+    const depart = axe.cle === 'damage'
+      ? (gagnant.detail.damage ?? 0)
+      : (gagnant.stats[STAT_ENDURANCE] ?? 0);
+    for (const tranche of tranchesAVisiter(trancheDe(depart), TRANCHES_VISITEES)) {
       const plafond = (tranche + 1) * PAS_ENDURANCE - 1;
       const affine = improve(best.genome, {
         ...contexteLocal,
-        evaluate: (g) => ({ score: noteSousPlafond(evaluate(g), plafond, pente) }),
+        evaluate: (g) => ({ score: noteSousPlafond(evaluate(g), plafond, pente, axe) }),
         evaluateur: null,
       }, { maxPasses: 2, candidatesPerSlot: 40 });
       noterPalier(affine.genome);
@@ -735,7 +743,7 @@ export function solve(input, options = {}, onProgress) {
       changements: vue.changements,
       pdv: vue.stats.pdv,
       endurance: vue.stats[STAT_ENDURANCE],
-      tenable: estTenable(vue),
+      tenable: estTenable(vue, axe),
     };
   };
 
@@ -774,7 +782,7 @@ export function solve(input, options = {}, onProgress) {
   // rejoint les pretendants, il est un build connu de la sienne.
   let parSurvie = [];
   if (survie) {
-    const sansVie = sansConditionsDeVie(input.objective);
+    const sansVie = sansConditionsDAxe(input.objective, axe);
     const definitifsSurvie = new Map();
     const decrireSurvie = (genome) => {
       const cle = genome.join(',');
@@ -796,10 +804,12 @@ export function solve(input, options = {}, onProgress) {
     // de depart de la courbe : c'est de la que le joueur lache de la vie.
     const reel = definitif(best.genome);
     if (reel.tenable) {
-      const tranche = trancheDe(reel.endurance);
+      const tranche = trancheDe(reel[axe.cle]);
       const occupant = parSurvie.findIndex((palier) => palier.tranche === tranche);
       if (occupant < 0) parSurvie.push({ ...reel, tranche });
-      else if (reel.damage > parSurvie[occupant].damage) parSurvie[occupant] = { ...reel, tranche };
+      else if (reel[axe.valeur] > parSurvie[occupant][axe.valeur]) {
+        parSurvie[occupant] = { ...reel, tranche };
+      }
     }
 
     parSurvie = parSurvie

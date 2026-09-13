@@ -277,9 +277,13 @@ export function renderCases(root, cles, equipped, posees, onPick, verrous = new 
 }
 
 /** Remplit le tableau des conditions. */
-export function renderConditions(root, conditions, stats, libelles, { onChange, onRemove }) {
+export function renderConditions(root, conditions, stats, libelles, options) {
+  const { onChange, onRemove, degats = 0 } = options;
   fill(root, conditions.map((condition, index) => {
-    const valeur = stats ? conditionValue(condition.stat, stats) : null;
+    // Les degats ne vivent pas dans les statistiques : une condition qui
+    // porte sur eux lirait zero sans cette valeur, et paraitrait manquee
+    // alors que le build frappe assez fort.
+    const valeur = stats ? conditionValue(condition.stat, stats, degats) : null;
     const manque = valeur == null ? null : Math.max(0, condition.target - valeur);
     const tenue = manque === 0;
     const icone = iconeStat(condition.stat);
@@ -770,9 +774,19 @@ export function renderPanoplies(root, panoplies, setById, libelles, contexte = {
   }));
 }
 
-/** Remplit la liste des options. */
-export function renderOptions(root, options, onToggle) {
-  fill(root, options.map(({ cle, libelle, actif, aide, type, min, max, choix, inactif }) => {
+/**
+ * Remplit la liste des options, rangees par groupe.
+ *
+ * `groupes` donne l'ordre et les titres ; une option sans groupe connu se
+ * range a la fin, sous aucun titre, plutot que de disparaitre.
+ *
+ * @param {HTMLElement} root
+ * @param {any[]} options
+ * @param {(cle: string, valeur: any) => void} onToggle
+ * @param {{cle: string, titre: string}[]} [groupes]
+ */
+export function renderOptions(root, options, onToggle, groupes = []) {
+  const champ = ({ cle, libelle, actif, aide, type, min, max, choix, inactif }) => {
     // Une option a plusieurs reponses montre une liste : trois etats ne
     // tiennent pas dans une case a cocher.
     if (type === 'liste') {
@@ -804,7 +818,31 @@ export function renderOptions(root, options, onToggle) {
         onChange: (ev) => onToggle(cle, ev.target.checked) }),
       el('span', { text: libelle }),
     );
-  }));
+  };
+
+  // Sans groupe declare, le panneau garde la liste a plat : l'appelant qui
+  // ne connait pas les groupes ne perd rien.
+  if (groupes.length === 0) {
+    fill(root, options.map(champ));
+    return;
+  }
+
+  const connus = new Set(groupes.map((g) => g.cle));
+  const orphelines = options.filter((o) => !connus.has(o.groupe));
+
+  fill(root, [
+    ...groupes.map((groupe) => {
+      const dedans = options.filter((o) => o.groupe === groupe.cle);
+      if (dedans.length === 0) return null;
+      return el('div', { class: 'groupe-options' },
+        el('h3', { class: 'titre-groupe', text: groupe.titre }),
+        el('div', { class: 'options-groupe' }, dedans.map(champ)));
+    }).filter(Boolean),
+    ...(orphelines.length > 0
+      ? [el('div', { class: 'groupe-options' },
+          el('div', { class: 'options-groupe' }, orphelines.map(champ)))]
+      : []),
+  ]);
 }
 
 /**

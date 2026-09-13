@@ -38,10 +38,13 @@ const CATALOGUE = {
   setById: new Map(),
 };
 
-/** Etat au niveau 200 avec un sort. */
+/** Etat au niveau 200 avec un sort, en recherche de degats. */
 function etatAvecSort(options = {}) {
   const etat = etatInitial();
-  return { ...etat, niveau: 200, sorts: [SORT], options: { ...etat.options, ...options } };
+  return {
+    ...etat, niveau: 200, mode: 'degats', sorts: [SORT],
+    options: { ...etat.options, ...options },
+  };
 }
 
 test('sortsCalcules', async (t) => {
@@ -73,11 +76,23 @@ test('sortsCalcules', async (t) => {
 });
 
 test('objectif', async (t) => {
-  await t.test('le mode suit la presence de degats a compter', () => {
+  await t.test('le mode suit le choix du joueur', () => {
     assert.equal(objectif(etatInitial()).mode, SEARCH_MODES.STATS);
     assert.equal(objectif(etatAvecSort()).mode, SEARCH_MODES.DAMAGE);
-    const armeSeule = { ...etatInitial(), options: { ...etatInitial().options, arme: true } };
+    assert.equal(objectif({ ...etatAvecSort(), mode: 'endurance' }).mode, SEARCH_MODES.ENDURANCE);
+    assert.equal(objectif({ ...etatAvecSort(), mode: 'caracteristiques' }).mode, SEARCH_MODES.STATS);
+
+    const armeSeule = {
+      ...etatInitial(), mode: 'degats', options: { ...etatInitial().options, arme: true },
+    };
     assert.equal(objectif(armeSeule).mode, SEARCH_MODES.DAMAGE);
+  });
+
+  await t.test('sans attaque, la recherche retombe sur les caracteristiques', () => {
+    // Maximiser des degats que personne ne calcule rendrait n'importe quoi.
+    const sansSort = { ...etatInitial(), mode: 'degats' };
+    assert.equal(objectif(sansSort).mode, SEARCH_MODES.STATS);
+    assert.equal(objectif({ ...sansSort, mode: 'endurance' }).mode, SEARCH_MODES.STATS);
   });
 
   await t.test('les bornes de l\'arme ne partent que si l\'arme compte', () => {

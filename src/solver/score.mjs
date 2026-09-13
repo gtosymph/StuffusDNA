@@ -24,13 +24,23 @@
  */
 import { computeSpell } from '../engine/damage.mjs';
 import { optimiserCombo } from './combo.mjs';
-import { conditionValue } from './condition-value.mjs';
+import { conditionValue, STAT_DEGATS } from './condition-value.mjs';
 
 /** Modes de recherche proposes par le solveur. */
 export const SEARCH_MODES = Object.freeze({
   DAMAGE: 'degats',
   STATS: 'caracteristiques',
+  /**
+   * Maximiser les points de vie effectifs.
+   *
+   * Les roles s'echangent : l'endurance devient le score, les degats
+   * deviennent une condition (STAT_DEGATS). L'ordre lexicographique ne bouge
+   * pas — un build qui manque une condition reste sous tous les autres.
+   */
+  ENDURANCE: 'endurance',
 });
+
+export { STAT_DEGATS };
 
 /** Valeur sentinelle utilisee pour "pas de maximum". */
 export const NO_MAX = 32767;
@@ -96,10 +106,11 @@ export function normalizeConditions(conditions) {
  * Evalue une condition sur un build.
  * @param {{stat: string, target: number, weight: number, max: number, absolute: boolean}} condition
  * @param {Record<string, number>} stats
+ * @param {number} [degats] Degats totaux du build.
  * @returns {{met: boolean, missing: number, penalty: number, value: number}}
  */
-export function evaluateCondition(condition, stats) {
-  const value = conditionValue(condition.stat, stats);
+export function evaluateCondition(condition, stats, degats = 0) {
+  const value = conditionValue(condition.stat, stats, degats);
   const missing = Math.max(0, condition.target - value);
 
   return { met: missing === 0, missing, penalty: missing * condition.weight, value };
@@ -148,8 +159,16 @@ export function scoreBuild(stats, objective, options = {}) {
   const unmet = [];
   const details = [];
 
+  // Les degats se calculent AVANT les conditions : une condition peut porter
+  // sur eux. Le mode caracteristiques ne lance aucun sort et n'en a pas
+  // besoin.
+  const combo = mode === SEARCH_MODES.STATS ? null : objectiveCombo(objective, stats, spells);
+  const damage = mode === SEARCH_MODES.STATS
+    ? 0
+    : (combo ? combo.total : damageValue(spells, stats).total);
+
   for (const condition of normalisees) {
-    const result = evaluateCondition(condition, stats);
+    const result = evaluateCondition(condition, stats, damage);
 
     penalty += result.penalty;
     if (avecDetails) details.push({ stat: condition.stat, weight: condition.weight, ...result });
@@ -164,7 +183,7 @@ export function scoreBuild(stats, objective, options = {}) {
   if (mode === SEARCH_MODES.STATS) {
     let somme = 0;
     for (const condition of normalisees) {
-      const brut = conditionValue(condition.stat, stats);
+      const brut = conditionValue(condition.stat, stats, damage);
       // Le maximum tronque la valeur : il evite de sur-investir sans rien
       // bloquer. Place sous l'objectif il se contredirait lui-meme, et
       // rendrait negative la somme d'un build pourtant satisfait : il ne
@@ -185,11 +204,24 @@ export function scoreBuild(stats, objective, options = {}) {
     };
   }
 
-  // Combo actif : le score retient le meilleur enchainement sous le budget
-  // de PA du build, moins la reserve demandee. Sinon, somme simple des sorts.
-  const combo = objectiveCombo(objective, stats, spells);
-  const damage = combo ? combo.total : damageValue(spells, stats).total;
+  // Mode endurance : le build le plus resistant gagne, tant qu'il tient ses
+  // conditions — dont, en general, un plancher de degats.
+  if (mode === SEARCH_MODES.ENDURANCE) {
+    const endurance = stats.pdvEffectifs ?? stats.pdv ?? 0;
+    return {
+      score: satisfied ? endurance : -penalty,
+      penalty,
+      damage,
+      endurance,
+      ...(combo ? { combo } : {}),
+      satisfied,
+      unmet,
+      details,
+    };
+  }
 
+  // Le score retient les degats : le combo optimise sous le budget de PA du
+  // build quand il est actif, la somme simple des sorts sinon.
   return {
     score: satisfied ? damage : -penalty,
     penalty,
@@ -231,15 +263,16 @@ function objectiveCombo(objective, stats, spells) {
  *
  * @param {any[]} conditions
  * @param {Record<string, number>} stats
+ * @param {number} [degats] Degats totaux du build.
  * @returns {{stat: string, value: number, max: number}[]}
  */
-export function maxViolations(conditions, stats) {
+export function maxViolations(conditions, stats, degats = 0) {
   const violations = [];
 
   for (const condition of normalizeConditions(conditions)) {
     if (!condition.absolute || !Number.isFinite(condition.max)) continue;
 
-    const value = conditionValue(condition.stat, stats);
+    const value = conditionValue(condition.stat, stats, degats);
     if (value > condition.max) violations.push({ stat: condition.stat, value, max: condition.max });
   }
 

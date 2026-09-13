@@ -117,6 +117,15 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
 
     <section class="bloc">
       <h2>Conditions <span class="compteur" id="compte-conditions">0</span></h2>
+      <label class="rangee-mode" for="mode-recherche"
+        title="Ce que la recherche maximise. Les conditions bornent le reste.">
+        <span>Maximiser</span>
+        <select id="mode-recherche">
+          <option value="degats">Les degats</option>
+          <option value="endurance">Les pdv effectifs</option>
+          <option value="caracteristiques">Les caracteristiques</option>
+        </select>
+      </label>
       <div class="defilable">
         <table class="conditions">
           <tbody id="corps-conditions"></tbody>
@@ -224,7 +233,7 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
     </section>
 
     <section class="bloc" id="bloc-survie" hidden>
-      <h2>Degats ou survie <span class="compteur" id="compte-survie">0</span></h2>
+      <h2><span id="titre-survie">Degats ou survie</span> <span class="compteur" id="compte-survie">0</span></h2>
       <div id="survie"></div>
     </section>
 

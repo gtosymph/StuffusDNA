@@ -18,7 +18,7 @@
  * coute en survie et ce qu'elle lui rapporte en degats.
  */
 import { el } from './render.mjs';
-import { frontiereSurvie } from '../src/solver/survie.mjs';
+import { AXE_ENDURANCE, frontiereSurvie } from '../src/solver/survie.mjs';
 
 const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
 const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleString('fr-FR')}`;
@@ -36,25 +36,43 @@ const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleS
  * @returns {{palier: any, porte: boolean, gainDegats: number|null,
  *            ecartEndurance: number|null, ecartPdv: number|null}[]}
  */
-export function lignesSurvie(paliers, porte) {
-  const mesurable = porte && Number.isFinite(porte.endurance) && Number.isFinite(porte.damage);
+export function lignesSurvie(paliers, porte, axe = AXE_ENDURANCE) {
+  const mesurable = porte
+    && Number.isFinite(porte[axe.cle]) && Number.isFinite(porte[axe.valeur]);
   // Un palier qui ne fait pas mieux que le build porte sur les deux mesures
   // n'a rien a dire — le build porte lui-meme compris, qui se retrouve dans
   // la courbe quand il vient du solveur.
   const utiles = mesurable
-    ? paliers.filter((p) => p.damage > porte.damage || p.endurance > porte.endurance)
+    ? paliers.filter((p) => p[axe.valeur] > porte[axe.valeur] || p[axe.cle] > porte[axe.cle])
     : paliers;
   const entrees = mesurable ? [...utiles, { ...porte, porte: true }] : [...utiles];
 
-  return frontiereSurvie(entrees).map((palier) => ({
+  return frontiereSurvie(entrees, axe).map((palier) => ({
     palier,
     porte: palier.porte === true,
-    gainDegats: mesurable && !palier.porte ? palier.damage - porte.damage : null,
-    ecartEndurance: mesurable && !palier.porte ? palier.endurance - porte.endurance : null,
+    // `gain` porte ce que la courbe maximise, `ecart` ce qu'elle tranche.
+    gain: mesurable && !palier.porte ? palier[axe.valeur] - porte[axe.valeur] : null,
+    ecart: mesurable && !palier.porte ? palier[axe.cle] - porte[axe.cle] : null,
     ecartPdv: mesurable && !palier.porte && Number.isFinite(palier.pdv)
       && Number.isFinite(porte.pdv) ? palier.pdv - porte.pdv : null,
   }));
 }
+
+/** Libelles de chaque mesure, par cle de palier. */
+const MESURES = Object.freeze({
+  endurance: {
+    unite: 'pdv eff.',
+    long: 'pdv effectifs',
+    titreColonne: 'Degats bruts que ce build encaisse avant de tomber',
+    titreTete: 'Endurance de ce build',
+  },
+  damage: {
+    unite: 'degats',
+    long: 'degats',
+    titreColonne: 'Degats de ce build',
+    titreTete: 'Degats de ce build',
+  },
+});
 
 /**
  * Vignettes des pieces que le build porte n'a pas.
@@ -85,16 +103,18 @@ function vignettes(palier, { portees, itemById }) {
  * @returns {number} Nombre de lignes montrees, build porte non compris.
  */
 export function renderSurvie(racine, paliers, options) {
-  const { porte, portees, itemById, onPorter } = options;
+  const { porte, portees, itemById, onPorter, axe = AXE_ENDURANCE } = options;
+  const trancheeSur = MESURES[axe.cle];
+  const maximisee = MESURES[axe.valeur];
 
   if (paliers.length === 0) {
     racine.replaceChildren(el('p', { class: 'note',
-      text: 'Lancez une recherche : le solveur garde le build le plus fort de '
-        + 'chaque tranche d\'endurance qu\'il croise.' }));
+      text: `Lancez une recherche : le solveur garde le meilleur build de chaque `
+        + `tranche de ${trancheeSur.long} qu'il croise.` }));
     return 0;
   }
 
-  const lignes = lignesSurvie(paliers, porte);
+  const lignes = lignesSurvie(paliers, porte, axe);
   const contexte = { portees, itemById };
 
   // Sous-ligne de vie : la vie du jeu, et ce que les resistances lui
@@ -112,32 +132,32 @@ export function renderSurvie(racine, paliers, options) {
 
   const ligneDepart = () => el('div', { class: 'palier depart' },
     el('div', { class: 'palier-cout', title: 'Votre build, tel qu\'il est pose' },
-      el('strong', { text: entier(porte.endurance) }),
-      el('span', { text: 'pdv eff.' })),
+      el('strong', { text: entier(porte[axe.cle]) }),
+      el('span', { text: trancheeSur.unite })),
     el('div', { class: 'palier-corps' },
       el('div', { class: 'palier-tete' },
-        el('span', { class: 'palier-degats', text: `${entier(porte.damage)} degats` }),
+        el('span', { class: 'palier-degats',
+          text: `${entier(porte[axe.valeur])} ${maximisee.unite}` }),
         el('span', { class: 'palier-marque', text: 'votre build' })),
       ...(ligneVie(porte) ? [ligneVie(porte)] : [])));
 
-  const lignePalier = ({ palier, gainDegats, ecartEndurance }) => el('div', { class: 'palier' },
-    el('div', { class: 'palier-cout',
-      title: 'Degats bruts que ce build encaisse avant de tomber' },
-      el('strong', { text: entier(palier.endurance) }),
-      el('span', { text: 'pdv eff.' })),
+  const lignePalier = ({ palier, gain, ecart }) => el('div', { class: 'palier' },
+    el('div', { class: 'palier-cout', title: trancheeSur.titreColonne },
+      el('strong', { text: entier(palier[axe.cle]) }),
+      el('span', { text: trancheeSur.unite })),
 
     el('div', { class: 'palier-corps' },
       el('div', { class: 'palier-tete' },
-        el('span', { class: 'palier-degats', title: 'Degats de ce build',
-          text: `${entier(palier.damage)} degats` }),
-        gainDegats === null ? null : el('span', {
-          class: `palier-gain ${gainDegats >= 0 ? 'pos' : 'neg'}`,
-          title: 'Degats gagnes ou perdus face a votre build',
-          text: `${signe(gainDegats)} degats` }),
-        ecartEndurance === null ? null : el('span', {
+        el('span', { class: 'palier-degats', title: maximisee.titreTete,
+          text: `${entier(palier[axe.valeur])} ${maximisee.unite}` }),
+        gain === null ? null : el('span', {
+          class: `palier-gain ${gain >= 0 ? 'pos' : 'neg'}`,
+          title: `${maximisee.long} gagnes ou perdus face a votre build`,
+          text: `${signe(gain)} ${maximisee.unite}` }),
+        ecart === null ? null : el('span', {
           class: 'palier-ecart',
-          title: 'Endurance gagnee ou perdue face a votre build',
-          text: `${signe(ecartEndurance)} pdv eff.` })),
+          title: `${trancheeSur.long} gagnes ou perdus face a votre build`,
+          text: `${signe(ecart)} ${trancheeSur.unite}` })),
       ...(ligneVie(palier) ? [ligneVie(palier)] : []),
       el('div', { class: 'palier-pieces' }, vignettes(palier, contexte))),
 
@@ -147,23 +167,29 @@ export function renderSurvie(racine, paliers, options) {
 
   // Rien sous le build porte : la condition de vie ne coute rien, et le
   // joueur doit le lire en toutes lettres plutot que chercher une ligne.
-  const sousLeBuild = lignes.some(
-    (ligne) => ligne.ecartEndurance !== null && ligne.ecartEndurance < 0);
+  const sousLeBuild = lignes.some((ligne) => ligne.ecart !== null && ligne.ecart < 0);
+
+  const entete = axe.cle === 'endurance'
+    ? 'Le build le plus fort trouve pour chaque tranche d\'endurance, points de '
+      + 'caracteristique au service des degats. L\'endurance compte la vie ET les '
+      + 'resistances : elle dit combien de degats bruts vous encaissez avant de '
+      + 'tomber. De haut en bas : moins de survie, plus de degats.'
+    : 'Le build le plus resistant trouve pour chaque tranche de degats. De haut '
+      + 'en bas : moins de degats, plus d\'endurance.';
 
   racine.replaceChildren(
-    el('p', { class: 'note',
-      text: 'Le build le plus fort trouve pour chaque tranche d\'endurance, points '
-        + 'de caracteristique au service des degats. L\'endurance compte la vie ET '
-        + 'les resistances : elle dit combien de degats bruts vous encaissez avant '
-        + 'de tomber. De haut en bas : moins de survie, plus de degats.' }),
+    el('p', { class: 'note', text: entete }),
     el('div', { class: 'paliers' },
       ...lignes.map((ligne) => (ligne.porte ? ligneDepart() : lignePalier(ligne)))),
     // replaceChildren ecrit « null » en toutes lettres : la note ne se passe
     // que si elle existe.
     ...(porte && !sousLeBuild
       ? [el('p', { class: 'note',
-          text: 'Aucun build trouve avec moins de survie et plus de degats : lacher '
-            + 'de la vie ou des resistances ne vous rapporterait rien ici.' })]
+          text: axe.cle === 'endurance'
+            ? 'Aucun build trouve avec moins de survie et plus de degats : lacher '
+              + 'de la vie ou des resistances ne vous rapporterait rien ici.'
+            : 'Aucun build trouve avec moins de degats et plus d\'endurance : '
+              + 'lacher des degats ne vous rapporterait rien ici.' })]
       : []),
   );
 

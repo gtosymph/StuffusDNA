@@ -22,7 +22,9 @@ import { renderPoints } from './points-panel.mjs';
 import { fermerPicker, ouvrirPicker } from './spell-picker.mjs';
 import { cacherBulle } from './hover-card.mjs';
 import { chargerSet, enleverSet, enregistrerSet, lireSets } from './presets.mjs';
-import { ALLOCATION_VIDE, etatInitial, LIBELLES_OPTIONS, optionsAffichees } from './reglages.mjs';
+import {
+  ALLOCATION_VIDE, etatInitial, GROUPES_OPTIONS, LIBELLES_OPTIONS, optionsAffichees,
+} from './reglages.mjs';
 import { reprendreEtat, sauverEtat } from './etat-stockage.mjs';
 import {
   attaqueArme, buildCourant, cibleAffichee, itemsFiltres, objectif,
@@ -34,6 +36,8 @@ import { instantane, patchDepuisSimulation } from './instantane.mjs';
 import { creerRecherche } from './recherche.mjs';
 
 import { STATS, STAT_LABELS } from '../src/data/stats.mjs';
+import { STAT_DEGATS } from '../src/solver/score.mjs';
+import { axeDe } from '../src/solver/survie.mjs';
 import { availablePoints } from '../src/engine/characteristics.mjs';
 import { computeSpellDetail } from '../src/engine/damage.mjs';
 import { ajouterLigne, enleverLigne, modifierLigne } from '../src/data/spell-lines.mjs';
@@ -323,7 +327,8 @@ function render() {
   renderPanoplies(build);
 
   vue.renderOptions($('options'), optionsAffichees(etat.options),
-    (cle, actif) => setEtat({ options: { ...etat.options, [cle]: actif } }));
+    (cle, actif) => setEtat({ options: { ...etat.options, [cle]: actif } }),
+    GROUPES_OPTIONS);
 
   remplirListesSets();
   recherche.dessiner();
@@ -408,10 +413,12 @@ function renderPersonnage(stats) {
 }
 
 function renderConditionsEtSorts(stats) {
+  $('mode-recherche').value = etat.mode;
   $('compte-conditions').textContent = String(etat.conditions.length);
   vue.renderConditions($('corps-conditions'), etat.conditions, stats, STAT_LABELS, {
     onChange: changerCondition,
     onRemove: (i) => setEtat({ conditions: etat.conditions.filter((_, j) => j !== i) }),
+    degats: stats ? scoreAffiche(etat, stats).damage : 0,
   });
 
   $('compte-sorts').textContent = String(etat.sorts.length);
@@ -463,13 +470,16 @@ function montrerScore(detail, build) {
   noeud.className = `score ${detail.satisfied ? 'pos' : 'neg'}`;
   // Sans sort ni arme, le score ne mesure pas des degats mais la marge prise
   // sur les conditions : l'annoncer « degats totaux » trompait la lecture.
-  const enDegats = objectif(etat).mode === SEARCH_MODES.DAMAGE;
+  const mode = objectif(etat).mode;
+  const enDegats = mode === SEARCH_MODES.DAMAGE;
+  const enEndurance = mode === SEARCH_MODES.ENDURANCE;
   $('score-libelle').textContent = detail.satisfied
-    ? (enDegats ? 'Degats totaux' : 'Marge sur les conditions')
+    ? (enDegats ? 'Degats totaux'
+      : (enEndurance ? 'Pdv effectifs' : 'Marge sur les conditions'))
     : 'Conditions non satisfaites';
 
   const invalides = build?.invalid?.length ?? 0;
-  const marge = enDegats ? '' : ' Le score somme ce que le build depasse.';
+  const marge = (enDegats || enEndurance) ? '' : ' Le score somme ce que le build depasse.';
   $('score-note').textContent = detail.satisfied
     ? `Toutes les conditions sont tenues.${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
     : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
@@ -563,15 +573,23 @@ function montrerProximite() {
 function montrerSurvie(stats) {
   const bloc = $('bloc-survie');
   const paliers = etat.survie ?? [];
+  const mode = objectif(etat).mode;
   // Le bloc n'a de sens qu'avec des degats a compter : en mode
   // caracteristiques, il n'y a rien a echanger contre de la vie.
-  bloc.hidden = paliers.length === 0 || objectif(etat).mode !== SEARCH_MODES.DAMAGE;
+  bloc.hidden = paliers.length === 0 || mode === SEARCH_MODES.STATS;
   if (bloc.hidden) return;
+
+  // L'axe suit le mode, et le titre du bloc avec lui.
+  const axe = axeDe(mode);
+  $('titre-survie').textContent = axe.cle === 'endurance'
+    ? 'Degats ou survie'
+    : 'Survie ou degats';
 
   const porte = stats
     ? { pdv: stats.pdv, endurance: stats.pdvEffectifs, damage: scoreAffiche(etat, stats).damage }
     : null;
   const montrees = renderSurvie($('survie'), paliers, {
+    axe,
     porte,
     portees: new Set([...etat.equipped.values()].map((piece) => piece.id)),
     itemById: catalogue.itemById,
@@ -580,10 +598,11 @@ function montrerSurvie(stats) {
       // Un palier sous la condition de vie la laisse en defaut : le joueur
       // l'a choisi, mais il doit le lire tout de suite.
       const tenu = palier.stats ? scoreAffiche(etat, palier.stats).satisfied : true;
+      const manque = axe.cle === 'endurance' ? 'Votre condition de vie' : 'Votre condition de degats';
       message(`Build porte : ${nombre(Math.floor(palier.pdv))} points de vie, `
         + `${nombre(Math.floor(palier.endurance))} une fois les resistances comptees, `
         + `${nombre(Math.floor(palier.damage))} de degats.`
-        + (tenu ? '' : ' Votre condition de vie n\'est plus tenue : baissez-la si ce build vous convient.'),
+        + (tenu ? '' : ` ${manque} n'est plus tenue : baissez-la si ce build vous convient.`),
       tenu ? 'info' : 'alerte');
     },
   });
@@ -709,6 +728,15 @@ function brancher() {
     setEtat({ conditions: [...etat.conditions, { stat, target: 0, weight: 1, max: null, absolute: false }] });
   });
 
+  $('mode-recherche').addEventListener('change', (ev) => {
+    const mode = ev.target.value;
+    setEtat({ mode });
+    if (mode !== 'caracteristiques' && etat.sorts.length === 0 && !etat.options.arme) {
+      message('Aucun sort ni arme : la recherche n\'a aucun degat a compter. '
+        + 'Choisissez des sorts, ou revenez aux caracteristiques.', 'alerte');
+    }
+  });
+
   $('enlever-sorts').addEventListener('click', () => setEtat({ sorts: [] }));
 
   $('choisir-sorts').addEventListener('click', () => {
@@ -727,7 +755,12 @@ function brancher() {
       // Ajout en masse : un seul rendu pour toute la liste.
       onAjouterPlusieurs: (nouveaux) => {
         const ids = new Set(nouveaux.map((s) => s.id));
-        setEtat({ sorts: [...etat.sorts.filter((s) => !ids.has(s.id)), ...nouveaux] });
+        const sorts = [...etat.sorts.filter((s) => !ids.has(s.id)), ...nouveaux];
+        // Premier sort pose alors que la recherche visait les
+        // caracteristiques : le joueur veut des degats, pas un rappel.
+        const bascule = etat.mode === 'caracteristiques' && sorts.length > 0;
+        setEtat({ sorts, ...(bascule ? { mode: 'degats' } : {}) });
+        if (bascule) message('La recherche maximise maintenant les degats.', 'info');
       },
       onEnlever: (id) => setEtat({ sorts: etat.sorts.filter((s) => s.id !== id) }),
     });
@@ -793,7 +826,12 @@ async function main() {
   $('fils').value = String(defaultThreadCount());
   $('classe').replaceChildren(...CLASSES.map((c) => vue.el('option', {
     value: String(c.id), ...(c.id === etat.classe ? { selected: true } : {}), text: c.fr })));
-  $('nouvelle-condition').replaceChildren(...STATS.map((s) => vue.el('option', { value: s.key, text: s.fr })));
+  // Les degats totaux se posent en condition comme une statistique, alors
+  // qu'ils sortent du calcul des sorts : ils n'ont leur place ni dans STATS
+  // ni dans le filtre du catalogue, seulement ici.
+  $('nouvelle-condition').replaceChildren(
+    ...STATS.map((s) => vue.el('option', { value: s.key, text: s.fr })),
+    vue.el('option', { value: STAT_DEGATS, text: STAT_LABELS[STAT_DEGATS] }));
   $('filtre-stat').replaceChildren(
     vue.el('option', { value: '', text: 'statistique…' }),
     ...STATS.map((s) => vue.el('option', { value: s.key, text: s.fr })));

@@ -13,7 +13,7 @@ import { preparerRecherche, solve } from '../src/solver/genetic.mjs';
 import { creerArchive } from '../src/solver/candidates.mjs';
 import { reposApresVague } from '../src/solver/intensite.mjs';
 import {
-  aConditionDeVie, objectifDeTranche, STAT_ENDURANCE, trancheDe, tranchesAVisiter,
+  aConditionDAxe, axeDe, objectifDeTranche, STAT_ENDURANCE, trancheDe, tranchesAVisiter,
 } from '../src/solver/survie.mjs';
 
 /**
@@ -108,11 +108,14 @@ async function chercher(request) {
   let meilleur = null;
   let vague = 0;
 
-  // Contexte et graines propres a chaque tranche de vie visitee : ils se
-  // preparent une fois et se gardent d'une visite a l'autre.
+  // Contexte et graines propres a chaque tranche visitee : ils se preparent
+  // une fois et se gardent d'une visite a l'autre.
   const tranches = new Map();
   let visites = 0;
-  const survieUtile = aConditionDeVie(request.objective);
+  // L'axe suit le mode : tranches d'endurance en mode degats, tranches de
+  // degats en mode endurance.
+  const axe = axeDe(request.objective?.mode);
+  const survieUtile = aConditionDAxe(request.objective, axe);
 
   /**
    * Explore une tranche de vie sous le gagnant : une vague ordinaire, sous un
@@ -122,7 +125,7 @@ async function chercher(request) {
    */
   const explorerTranche = (tranche) => {
     if (!tranches.has(tranche)) {
-      const objective = objectifDeTranche(request.objective, tranche);
+      const objective = objectifDeTranche(request.objective, tranche, axe.pas, axe);
       tranches.set(tranche, {
         objective, contexte: preparerRecherche({ ...base, objective }), graines: [], allocation: {},
       });
@@ -151,7 +154,7 @@ async function chercher(request) {
 
     for (const palier of result.survie ?? []) {
       const connu = survie.get(palier.tranche);
-      if (!connu || palier.damage > connu.damage) survie.set(palier.tranche, palier);
+      if (!connu || palier[axe.valeur] > connu[axe.valeur]) survie.set(palier.tranche, palier);
     }
   };
 
@@ -162,7 +165,10 @@ async function chercher(request) {
 
     // Une vague sur quatre part sous le gagnant, des qu'un gagnant existe.
     if (survieUtile && meilleur && vague % VAGUES_PAR_TRANCHE === VAGUES_PAR_TRANCHE - 1) {
-      const aVisiter = tranchesAVisiter(trancheDe(meilleur.stats[STAT_ENDURANCE]), TRANCHES_VISITEES);
+      const courant = axe.cle === 'damage'
+        ? (meilleur.damage ?? 0)
+        : (meilleur.stats[STAT_ENDURANCE] ?? 0);
+      const aVisiter = tranchesAVisiter(trancheDe(courant, axe.pas), TRANCHES_VISITEES);
       if (aVisiter.length > 0) {
         explorerTranche(aVisiter[visites % aVisiter.length]);
         visites += 1;
@@ -207,7 +213,7 @@ async function chercher(request) {
 
     for (const palier of result.survie ?? []) {
       const connu = survie.get(palier.tranche);
-      if (!connu || palier.damage > connu.damage) survie.set(palier.tranche, palier);
+      if (!connu || palier[axe.valeur] > connu[axe.valeur]) survie.set(palier.tranche, palier);
     }
 
     const resume = resumer(result);

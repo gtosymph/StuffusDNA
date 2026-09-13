@@ -135,7 +135,11 @@ export function menaceDe(etat) {
  * @param {any} etat
  */
 export function objectif(etat) {
-  const enDegats = etat.sorts.length > 0 || etat.options.arme;
+  // Le joueur choisit ce que la recherche maximise. Sans sort ni arme, il n'y
+  // a pourtant aucun degat a compter : la recherche retombe alors sur les
+  // caracteristiques plutot que de rendre n'importe quoi. L'interface le dit
+  // au lancement.
+  const aDesAttaques = etat.sorts.length > 0 || etat.options.arme;
   return {
     conditions: etat.conditions,
     // Modele d'adversaire : il decide de la valeur en vie d'une resistance,
@@ -181,8 +185,21 @@ export function objectif(etat) {
         max: etat.changementsMax > 0 ? etat.changementsMax : null,
       }
       : null,
-    mode: enDegats ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS,
+    mode: modeDe(etat, aDesAttaques),
   };
+}
+
+/**
+ * Mode effectif de la recherche.
+ * @param {any} etat
+ * @param {boolean} aDesAttaques
+ */
+function modeDe(etat, aDesAttaques) {
+  if (etat.mode === 'endurance') {
+    return aDesAttaques ? SEARCH_MODES.ENDURANCE : SEARCH_MODES.STATS;
+  }
+  if (etat.mode === 'caracteristiques') return SEARCH_MODES.STATS;
+  return aDesAttaques ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS;
 }
 
 /**

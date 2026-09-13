@@ -19,12 +19,12 @@ test('le build porte prend sa place dans la courbe, avec les ecarts', () => {
   const lignes = lignesSurvie([palier(4500, 500), palier(3000, 900)], { endurance: 4000, pdv: 4000, damage: 700 });
 
   assert.deepEqual(lignes.map((l) => [l.palier.endurance, l.porte]), [[4500, false], [4000, true], [3000, false]]);
-  assert.equal(lignes[0].gainDegats, -200);
-  assert.equal(lignes[0].ecartEndurance, 500);
+  assert.equal(lignes[0].gain, -200);
+  assert.equal(lignes[0].ecart, 500);
   assert.equal(lignes[0].ecartPdv, 500);
-  assert.equal(lignes[2].gainDegats, 200);
-  assert.equal(lignes[2].ecartEndurance, -1000);
-  assert.equal(lignes[1].gainDegats, null);
+  assert.equal(lignes[2].gain, 200);
+  assert.equal(lignes[2].ecart, -1000);
+  assert.equal(lignes[1].gain, null);
 });
 
 test('un palier qui a moins de vie et moins de degats que le build porte tombe', () => {
@@ -40,7 +40,7 @@ test('un palier egal au build porte laisse la place a celui-ci', () => {
 test('sans build porte, la courbe se lit seule', () => {
   const lignes = lignesSurvie([palier(3000, 900), palier(4500, 500)], null);
   assert.deepEqual(lignes.map((l) => l.palier.endurance), [4500, 3000]);
-  assert.ok(lignes.every((l) => !l.porte && l.gainDegats === null));
+  assert.ok(lignes.every((l) => !l.porte && l.gain === null));
 });
 
 test('la resistance deplace un build dans la courbe', () => {
@@ -57,4 +57,23 @@ test('un build porte sans mesure ne casse rien', () => {
   const lignes = lignesSurvie([palier(3000, 900)], { endurance: NaN, pdv: NaN, damage: 100 });
   assert.equal(lignes.length, 1);
   assert.equal(lignes[0].porte, false);
+});
+
+test('sur l\'axe des degats, la courbe se lit a l\'envers', async () => {
+  const { AXE_DEGATS } = await import('../src/solver/survie.mjs');
+  const build = (damage, endurance) => ({ damage, endurance, pdv: endurance, itemIds: [] });
+
+  const lignes = lignesSurvie(
+    [build(4500, 3000), build(3500, 5000)],
+    { damage: 4000, endurance: 4000, pdv: 4000 },
+    AXE_DEGATS,
+  );
+
+  // Des degats les plus hauts aux plus bas ; le gain se compte en endurance.
+  assert.deepEqual(lignes.map((l) => [l.palier.damage, l.porte]),
+    [[4500, false], [4000, true], [3500, false]]);
+  assert.equal(lignes[0].gain, -1000);
+  assert.equal(lignes[0].ecart, 500);
+  assert.equal(lignes[2].gain, 1000);
+  assert.equal(lignes[2].ecart, -500);
 });

@@ -91,10 +91,22 @@ export const STATS = Object.freeze([
 /** Cles de toutes les statistiques. */
 export const STAT_KEYS = Object.freeze(STATS.map((stat) => stat.key));
 
+/**
+ * Libelles des valeurs calculees, qui ne sont pas des statistiques d'item.
+ *
+ * Les degats totaux sortent du calcul des sorts. Ils se posent en condition,
+ * donc ils ont besoin d'un libelle, mais ils n'ont rien a faire dans STATS :
+ * aucun item ne les donne, et le gabarit n'a pas a leur reserver une case.
+ */
+export const LIBELLES_CALCULES = Object.freeze({
+  degatsTotaux: 'Degats totaux',
+});
+
 /** Libelle francais par cle. */
-export const STAT_LABELS = Object.freeze(
-  Object.fromEntries(STATS.map((stat) => [stat.key, stat.fr])),
-);
+export const STAT_LABELS = Object.freeze({
+  ...Object.fromEntries(STATS.map((stat) => [stat.key, stat.fr])),
+  ...LIBELLES_CALCULES,
+});
 
 /**
  * Cree un porteur de statistiques a zero.

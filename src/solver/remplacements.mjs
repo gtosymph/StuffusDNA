@@ -80,8 +80,10 @@ export function meilleursRemplacements(items, contexte) {
       { items: portees, level, allocation, scrolls, passives, profile, menace: objective?.menace },
       setById,
     );
-    if (invalid.length > 0 || maxViolations(objective.conditions, stats).length > 0) return null;
-    return scoreBuild(stats, objective, SANS_DETAILS);
+    const detail = scoreBuild(stats, objective, SANS_DETAILS);
+    if (invalid.length > 0
+      || maxViolations(objective.conditions, stats, detail.damage).length > 0) return null;
+    return detail;
   };
 
   const base = noter(items) ?? scoreBuild(

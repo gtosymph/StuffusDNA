@@ -213,3 +213,89 @@ test('objectifDeTranche', async (t) => {
     assert.deepEqual(tranche.conditions[1], { stat: 'pdvEffectifs', target: 0, max: 2999, absolute: true, weight: 1 });
   });
 });
+
+/**
+ * Axe inverse : maximiser l'endurance sous un plancher de degats.
+ *
+ * Le mode « maximiser les pdv effectifs » pose la question a l'envers : pour
+ * chaque tranche de degats, quel build tient le plus longtemps ? C'est le
+ * meme moteur, l'axe et la mesure echanges. Une erreur de symetrie rendrait
+ * la courbe muette sans rien casser d'autre : ces tests la tiennent.
+ */
+test('axe des degats', async (t) => {
+  const { AXE_DEGATS, AXE_ENDURANCE, axeDe, creerPaliersSurvie: creer, frontiereSurvie: front,
+    noteSousPlafond: note, objectifDeTranche: objTranche, sansConditionsDAxe,
+  } = await import('../src/solver/survie.mjs');
+  const { SEARCH_MODES } = await import('../src/solver/score.mjs');
+
+  await t.test('l\'axe se choisit sur le mode de recherche', () => {
+    assert.equal(axeDe(SEARCH_MODES.DAMAGE), AXE_ENDURANCE);
+    assert.equal(axeDe(SEARCH_MODES.ENDURANCE), AXE_DEGATS);
+    assert.equal(axeDe(undefined), AXE_ENDURANCE);
+  });
+
+  await t.test('chaque tranche de degats garde le build le plus resistant', () => {
+    const paliers = creer({ axe: AXE_DEGATS });
+    paliers.proposer([1], { damage: 4010, endurance: 3000 });
+    paliers.proposer([2], { damage: 4120, endurance: 5000 });
+    paliers.proposer([3], { damage: 4240, endurance: 4000 });
+
+    // Les trois builds tombent dans la meme tranche de degats : le plus
+    // resistant gagne, pas le plus fort.
+    assert.deepEqual(paliers.liste().map((p) => p.genome), [[2]]);
+  });
+
+  await t.test('la frontiere lache des degats pour de l\'endurance', () => {
+    const liste = [
+      { damage: 4500, endurance: 3000 },
+      { damage: 4000, endurance: 3500 },
+      { damage: 3500, endurance: 3400 },
+    ];
+    // Lue des degats les plus hauts aux plus bas : un palier ne reste que
+    // s'il tient plus longtemps que tous ceux qui frappent plus fort.
+    assert.deepEqual(front(liste, AXE_DEGATS).map((p) => p.damage), [4500, 4000]);
+  });
+
+  await t.test('la note de descente compte les degats en trop', () => {
+    const vue = (damage, endurance) => ({
+      invalid: [], violations: [], detail: { unmet: [], damage },
+      stats: { pdvEffectifs: endurance }, score: damage,
+    });
+
+    // Sous le plafond de degats, la note vaut l'endurance.
+    assert.equal(note(vue(3900, 5000), 4000, 2, AXE_DEGATS), 5000);
+    // Au-dessus, chaque point de degats en trop coute la pente.
+    assert.equal(note(vue(4100, 5000), 4000, 2, AXE_DEGATS), 4800);
+  });
+
+  await t.test('l\'objectif de tranche plafonne les degats', () => {
+    const objectif = {
+      conditions: [
+        { stat: 'pa', target: 12, weight: 1000 },
+        { stat: 'degatsTotaux', target: 4000, weight: 2 },
+      ],
+    };
+    const tranche = objTranche(objectif, 15, 250, AXE_DEGATS);
+
+    assert.deepEqual(tranche.conditions[0], objectif.conditions[0]);
+    assert.deepEqual(tranche.conditions[1],
+      { stat: 'degatsTotaux', target: 0, max: 3999, absolute: true, weight: 1 });
+  });
+
+  await t.test('les conditions de l\'axe s\'effacent, les autres restent', () => {
+    const objectif = {
+      conditions: [
+        { stat: 'pa', target: 12 },
+        { stat: 'degatsTotaux', target: 4000 },
+        { stat: 'vitalite', target: 3000 },
+      ],
+    };
+
+    // Sur l'axe des degats, c'est la condition de degats qui s'efface : la
+    // condition de vie, elle, reste une vraie contrainte.
+    assert.deepEqual(sansConditionsDAxe(objectif, AXE_DEGATS).conditions.map((c) => c.stat),
+      ['pa', 'vitalite']);
+    assert.deepEqual(sansConditionsDAxe(objectif, AXE_ENDURANCE).conditions.map((c) => c.stat),
+      ['pa', 'degatsTotaux']);
+  });
+});

@@ -1153,3 +1153,23 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 
 /* Une piece deja en banque ne coute rien : elle se montre en retrait. */
 .palier-pieces img.en-banque { opacity: .55; outline: 1px solid var(--positif); outline-offset: -1px; border-radius: 3px; }
+
+/* Groupes d'options : un titre discret, les reglages du groupe en dessous. */
+.groupe-options { display: flex; flex-direction: column; gap: 2px; }
+.groupe-options + .groupe-options { margin-top: 10px; }
+.titre-groupe {
+  margin: 0 0 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faible);
+  border-bottom: 1px solid var(--bord);
+  padding-bottom: 2px;
+}
+.options-groupe { display: flex; flex-direction: column; gap: 2px; }
+
+/* Objectif de la recherche : une ligne au-dessus des conditions. */
+.rangee-mode { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
+.rangee-mode > span { font-size: .78rem; color: var(--faible); }
+.rangee-mode select { flex: 1; }

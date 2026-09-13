@@ -46,7 +46,7 @@ export function migrerLimites(data) {
 export function serialiserEtat(etat) {
   return {
     niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
-    conditions: etat.conditions, sorts: etat.sorts, options: etat.options,
+    conditions: etat.conditions, sorts: etat.sorts, options: etat.options, mode: etat.mode,
     allocation: etat.allocation, scrolls: etat.scrolls,
     limites: etat.limites, limitesVersion: VERSION_LIMITES,
     bannis: [...etat.bannis],
@@ -58,6 +58,9 @@ export function serialiserEtat(etat) {
     posees: [...etat.posees],
   };
 }
+
+/** Modes de recherche acceptes dans un etat range. */
+const MODES = new Set(['degats', 'endurance', 'caracteristiques']);
 
 /** Enregistre l'etat courant : un rechargement ne perd plus le travail. */
 export function sauverEtat(etat) {
@@ -91,6 +94,11 @@ export function reprendreEtat(etat, catalogue) {
     ...(Number.isFinite(data.sexe) ? { sexe: data.sexe } : {}),
     ...(Array.isArray(data.conditions) ? { conditions: data.conditions } : {}),
     ...(Array.isArray(data.sorts) ? { sorts: data.sorts } : {}),
+    // Le mode n'existait pas : un etat range avant lui se relit comme le
+    // faisait l'ancienne regle, d'apres les sorts et l'arme.
+    mode: MODES.has(data.mode)
+      ? data.mode
+      : (((data.sorts?.length ?? 0) > 0 || data.options?.arme) ? 'degats' : 'caracteristiques'),
     ...(data.options ? { options: { ...etat.options, ...data.options } } : {}),
     ...(data.allocation ? { allocation: { ...etat.allocation, ...data.allocation } } : {}),
     ...(data.scrolls ? { scrolls: { ...etat.scrolls, ...data.scrolls } } : {}),

@@ -30,6 +30,7 @@ function briques() {
   return {
     catalogue: document.querySelector('.bloc-plein'),
     bannis: bloc('#bannis'),
+    objectifs: bloc('#objectifs'),
     principales: bloc('#stats-principales'),
     caracteristiques: bloc('#stats-caracteristiques'),
     points: bloc('#points'),
@@ -90,7 +91,7 @@ function planBandeau(atelier, b) {
     colonne('colonne-scene colonne-perso',
       [b.personnage, b.simulations, b.proximite, b.survie, b.candidats, b.panoplies]),
     colonne('colonne-chiffres', [
-      b.principales, b.caracteristiques, b.secondaires,
+      b.objectifs, b.principales, b.caracteristiques, b.secondaires,
       b.dommages, b.resistances,
       b.points, b.analyse, b.options,
     ]),

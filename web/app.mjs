@@ -37,6 +37,7 @@ import { creerRecherche } from './recherche.mjs';
 
 import { STATS, STAT_LABELS } from '../src/data/stats.mjs';
 import { STAT_DEGATS } from '../src/solver/score.mjs';
+import { renderObjectifs } from './objectifs-panel.mjs';
 import { axeDe } from '../src/solver/survie.mjs';
 import { availablePoints } from '../src/engine/characteristics.mjs';
 import { computeSpellDetail } from '../src/engine/damage.mjs';
@@ -227,12 +228,14 @@ function reprendreReference() {
 /* ------------------------------------------------- Conditions et sorts --- */
 
 /** Ajoute une condition sur une statistique, si elle n'y est pas deja. */
-function suivreStat(stat) {
+function suivreStat(stat, valeurConnue = null) {
   if (etat.conditions.some((c) => c.stat === stat)) {
     message(`Une condition porte deja sur "${STAT_LABELS[stat]}".`, 'info');
     return;
   }
-  const actuel = buildCourant(etat, catalogue)?.stats?.[stat] ?? 0;
+  // Les degats totaux sortent du calcul des sorts : l'appelant les connait,
+  // les statistiques du build non.
+  const actuel = valeurConnue ?? buildCourant(etat, catalogue)?.stats?.[stat] ?? 0;
   // L'objectif part de la valeur atteinte : a l'utilisateur de la relever.
   setEtat({ conditions: [...etat.conditions, {
     stat, target: Math.max(0, Math.round(actuel)), weight: 1, max: null, absolute: false,
@@ -379,6 +382,21 @@ function renderCatalogue() {
 function renderStats(build, stats) {
   const suivies = new Set(etat.conditions.map((c) => c.stat));
   const options = { suivies, onPick: suivreStat };
+
+  renderObjectifs($('objectifs'), {
+    valeurs: stats
+      ? { pdvEffectifs: stats.pdvEffectifs ?? 0, degatsTotaux: scoreAffiche(etat, stats).damage }
+      : null,
+    mode: etat.mode,
+    conditions: suivies,
+    onCondition: (stat, valeur) => suivreStat(stat, valeur),
+    onMaximiser: (mode) => {
+      setEtat({ mode });
+      message(mode === 'endurance'
+        ? 'La recherche maximise maintenant les pdv effectifs.'
+        : 'La recherche maximise maintenant les degats.', 'info');
+    },
+  });
   vue.renderPaires($('stats-principales'), plan.PRINCIPALES, stats, options);
   vue.renderPaires($('stats-caracteristiques'), plan.CARACTERISTIQUES, stats, options);
   vue.renderPaires($('stats-secondaires'), plan.SECONDAIRES, stats, options);
@@ -574,16 +592,17 @@ function montrerSurvie(stats) {
   const bloc = $('bloc-survie');
   const paliers = etat.survie ?? [];
   const mode = objectif(etat).mode;
-  // Le bloc n'a de sens qu'avec des degats a compter : en mode
-  // caracteristiques, il n'y a rien a echanger contre de la vie.
-  bloc.hidden = paliers.length === 0 || mode === SEARCH_MODES.STATS;
-  if (bloc.hidden) return;
-
-  // L'axe suit le mode, et le titre du bloc avec lui.
+  // L'axe suit le mode, et le titre du bloc avec lui. Le titre se pose meme
+  // quand le bloc est cache : il doit etre juste des qu'il se montre.
   const axe = axeDe(mode);
   $('titre-survie').textContent = axe.cle === 'endurance'
     ? 'Degats ou survie'
     : 'Survie ou degats';
+
+  // Le bloc n'a de sens qu'avec des degats a compter : en mode
+  // caracteristiques, il n'y a rien a echanger contre de la vie.
+  bloc.hidden = paliers.length === 0 || mode === SEARCH_MODES.STATS;
+  if (bloc.hidden) return;
 
   const porte = stats
     ? { pdv: stats.pdv, endurance: stats.pdvEffectifs, damage: scoreAffiche(etat, stats).damage }

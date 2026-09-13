@@ -14,6 +14,9 @@ const CODE_PAR_STAT = Object.freeze({
   fuite: 'fui', tacle: 'tac', esquivePa: 'pap', esquivePm: 'pmp',
   retraitPa: 'par', retraitPm: 'pmr', pods: 'pod', soins: 'so',
 
+  // Les degats totaux sortent du calcul des sorts, pas d'un item : ils
+  // empruntent l'icone des dommages.
+  degatsTotaux: 'do',
   dommages: 'do', dommagesNeutre: 'don', dommagesTerre: 'dot', dommagesFeu: 'dof',
   dommagesEau: 'doe', dommagesAir: 'doa', dommagesCritiques: 'doc', dommagesPoussee: 'dop',
 

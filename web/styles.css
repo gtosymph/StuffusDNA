@@ -1173,3 +1173,46 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .rangee-mode { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
 .rangee-mode > span { font-size: .78rem; color: var(--faible); }
 .rangee-mode select { flex: 1; }
+
+/* Bloc « A viser » : les deux mesures qui decident d'un build. */
+.objectifs { display: flex; flex-direction: column; gap: 6px; }
+.objectif {
+  display: flex; align-items: center; gap: 8px;
+  /* La pastille « maximise » et le bouton « Maximiser » n'ont pas la meme
+     hauteur : sans plancher commun, les deux lignes ne s'alignent pas. */
+  min-height: 40px;
+  padding: 6px 8px;
+  background: var(--champ);
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+}
+.objectif.maximisee { border-color: var(--accent); background: var(--survol); }
+.objectif-mesure {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0; margin: 0;
+  background: none; border: 0; color: inherit;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.objectif-mesure:hover .objectif-nom { color: var(--titre); }
+.objectif-mesure img { width: 18px; height: 18px; }
+.objectif-nom {
+  flex: 1; min-width: 0;
+  font-size: .8rem; color: var(--faible);
+  /* En colonne etroite, mieux vaut couper le libelle que doubler la ligne :
+     l'infobulle porte le nom entier. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.objectif-mesure.suivie .objectif-nom { color: var(--ambre); }
+.objectif-valeur { font-size: 1.05rem; color: var(--titre); font-variant-numeric: tabular-nums; }
+/* La pastille et le bouton occupent la meme boite : les deux lignes du bloc
+   gardent alors la meme hauteur, quel que soit le mode. */
+.objectif-marque, .objectif .mini {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 26px; white-space: nowrap;
+}
+.objectif-marque {
+  font-size: .66rem; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--accent); border: 1px solid var(--accent-doux);
+  border-radius: 999px; padding: 0 9px;
+}

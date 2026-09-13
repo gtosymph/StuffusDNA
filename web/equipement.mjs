@@ -59,6 +59,32 @@ export function equiper(etat, item) {
 }
 
 /**
+ * Pose une piece a la place d'une autre, dans sa case.
+ *
+ * Sans piece a remplacer, elle prend la premiere case libre, comme `equiper`.
+ * La piece remplacee perd son verrou : le joueur a choisi de s'en separer.
+ *
+ * @param {any} etat
+ * @param {any|null} actuel Piece a remplacer, portee.
+ * @param {any} item
+ */
+export function remplacer(etat, actuel, item) {
+  const cle = actuel
+    ? [...etat.equipped.entries()].find(([, piece]) => piece.id === actuel.id)?.[0]
+    : null;
+  if (!cle) return equiper(etat, item);
+
+  const equipped = new Map(etat.equipped);
+  const posees = new Set(etat.posees);
+  const verrous = new Set(etat.verrous);
+  liberer(equipped, posees, item.id);
+  verrous.delete(actuel.id);
+  equipped.set(cle, item);
+  posees.add(cle);
+  return { equipped, posees, verrous };
+}
+
+/**
  * Vide une case. La piece qui la quittait perd son verrou.
  * @param {any} etat
  * @param {string} cle

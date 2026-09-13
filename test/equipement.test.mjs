@@ -187,3 +187,27 @@ test('appliquerBuild', async (t) => {
     assert.equal(patch.equipped.size, 1);
   });
 });
+
+test('remplacer', async (t) => {
+  const { remplacer } = await import('../web/equipement.mjs');
+
+  await t.test('pose la piece dans la case de celle qu\'elle remplace', () => {
+    const etat = etatAvec([['anneau:0', ANNEAU_A], ['anneau:1', ANNEAU_B]]);
+    etat.verrous.add(ANNEAU_B.id);
+    const patch = remplacer(etat, ANNEAU_B, ANNEAU_C);
+    assert.equal(patch.equipped.get('anneau:1'), ANNEAU_C);
+    assert.equal(patch.equipped.get('anneau:0'), ANNEAU_A);
+    assert.ok(patch.posees.has('anneau:1'));
+    assert.equal(patch.verrous.has(ANNEAU_B.id), false);
+  });
+
+  await t.test('sans piece a remplacer, prend la premiere case libre', () => {
+    const patch = remplacer(etatAvec([['anneau:0', ANNEAU_A]]), null, ANNEAU_C);
+    assert.equal(patch.equipped.get('anneau:1'), ANNEAU_C);
+  });
+
+  await t.test('une piece introuvable retombe sur une pose ordinaire', () => {
+    const patch = remplacer(etatInitial(), ANNEAU_B, ANNEAU_C);
+    assert.equal(patch.equipped.get('anneau:0'), ANNEAU_C);
+  });
+});

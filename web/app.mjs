@@ -12,6 +12,7 @@ import { ajouterSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from './proximite-panel.mjs';
 import { renderSurvie } from './survie-panel.mjs';
+import { renderAnalyse } from './analyse-panel.mjs';
 import { defaultThreadCount } from './solver-client.mjs';
 import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
@@ -37,7 +38,6 @@ import { availablePoints } from '../src/engine/characteristics.mjs';
 import { computeSpellDetail } from '../src/engine/damage.mjs';
 import { ajouterLigne, enleverLigne, modifierLigne } from '../src/data/spell-lines.mjs';
 import { SEARCH_MODES } from '../src/solver/score.mjs';
-import { apportsPieces, sensibiliteStats } from '../src/solver/explain.mjs';
 
 const $ = (id) => document.getElementById(id);
 
@@ -498,30 +498,23 @@ function montrerScore(detail, build) {
   });
 }
 
-/**
- * Montre ce que chaque piece apporte et ou investir pour gagner des degats.
- * @param {Record<string, number>|null} stats
- */
+/** Montre ce que chaque piece apporte, ou investir, et quoi remplacer. */
 function montrerAnalyse(stats) {
   const bloc = $('bloc-analyse');
-  const pieces = [...etat.equipped.values()];
-  bloc.hidden = !stats || pieces.length === 0;
+  bloc.hidden = !stats || etat.equipped.size === 0;
   if (bloc.hidden) return;
 
-  const cible = cibleAffichee(etat);
-  vue.renderAnalyse($('apports'), $('sensibilite'), {
-    apports: apportsPieces(pieces, {
-      level: etat.niveau,
-      allocation: etat.allocation,
-      scrolls: etat.scrolls,
-      passives: passifsActifs(etat),
-      profile: profilDe(etat),
-      setById: catalogue.setById,
-      objective: cible,
-    }),
-    sensibilite: sensibiliteStats(stats, cible),
-    itemById: catalogue.itemById,
-    libelles: STAT_LABELS,
+  renderAnalyse({ apports: $('apports'), sensibilite: $('sensibilite'), remplacements: $('remplacements') }, {
+    etat, catalogue, stats, cible: cibleAffichee(etat), tenu: scoreAffiche(etat, stats).satisfied,
+    contexte: {
+      level: etat.niveau, allocation: etat.allocation, scrolls: etat.scrolls,
+      passives: passifsActifs(etat), profile: profilDe(etat), setById: catalogue.setById,
+    },
+    onRemplacer: (proposition) => {
+      setEtat(geste.remplacer(etat, proposition.actuel, proposition.remplacant));
+      message(`${proposition.remplacant.fr} posee`
+        + `${proposition.actuel ? ` a la place de ${proposition.actuel.fr}` : ''}.`, 'info');
+    },
   });
 }
 

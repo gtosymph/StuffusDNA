@@ -77,6 +77,10 @@ async function chercher(request) {
   // avec une archive neuve, celle-ci garde la memoire de toutes les vagues.
   const archive = creerArchive({ identite: (ids) => [...ids].sort((a, b) => a - b) });
 
+  // Les paliers de proximite se cumulent sur toute la recherche : chaque
+  // vague en rend sa lecture, celle-ci garde le meilleur de chaque palier.
+  const paliers = new Map();
+
   let allocation = request.allocation ?? {};
   let graines = [];
   let totalGenerations = 0;
@@ -115,6 +119,11 @@ async function chercher(request) {
       archive.proposer(candidat.itemIds, candidat.score, candidat);
     }
 
+    for (const palier of result.paliers ?? []) {
+      const connu = paliers.get(palier.changements);
+      if (!connu || palier.score > connu.score) paliers.set(palier.changements, palier);
+    }
+
     const resume = resumer(result);
     if (!meilleur || resume.score > meilleur.score) meilleur = resume;
 
@@ -141,6 +150,7 @@ async function chercher(request) {
     seed: request.seed,
     generations: totalGenerations,
     candidats: archive.liste().map((entree) => entree.detail),
+    paliers: [...paliers.values()].sort((a, b) => a.changements - b.changements),
     ...(meilleur ?? { score: Number.NEGATIVE_INFINITY }),
   });
 }

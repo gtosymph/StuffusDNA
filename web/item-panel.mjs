@@ -76,7 +76,8 @@ export function fermerFiche() {
 /**
  * Ouvre la fiche d'un item.
  * @param {any} item
- * @param {{onEquip?: () => void, onRemove?: () => void, onBan?: () => void, banni?: boolean}} [actions]
+ * @param {{onEquip?: () => void, onRemove?: () => void, onBan?: () => void,
+ *   banni?: boolean, onPosseder?: () => void, possedee?: boolean}} [actions]
  */
 export function ouvrirFiche(item, actions = {}) {
   if (!item) return;
@@ -155,6 +156,18 @@ export function ouvrirFiche(item, actions = {}) {
               ? 'Rendre cette piece au solveur'
               : 'Le solveur ne proposera plus cette piece',
             onClick: () => { actions.onBan(); fermerFiche(); } })
+        : null,
+      // L'inventaire change ce qu'une proposition coute : une piece que vous
+      // avez deja ne se compte pas parmi les pieces a acheter.
+      actions.onPosseder
+        ? el('button', {
+            class: actions.possedee ? 'possede' : '', type: 'button',
+            text: actions.possedee ? 'Je l\'ai deja ✓' : 'Je l\'ai deja',
+            title: actions.possedee
+              ? 'Enlever cette piece de votre inventaire'
+              : 'Cette piece dort dans votre banque : le solveur ne la comptera\n'
+                + 'plus parmi les pieces a acheter.',
+            onClick: () => { actions.onPosseder(); fermerFiche(); } })
         : null,
       el('button', { type: 'button', text: 'Fermer', onClick: fermerFiche }),
     ),

@@ -33,6 +33,30 @@ const DELAI_ARRET_MS = 20000;
  * @param {(vague: {seed: number, generation: number, best: number, history: number[], resume: any}) => void} [options.onWave]
  * @returns {{promise: Promise<any>, stop: () => void, abandon: () => void}}
  */
+/**
+ * Fond les paliers de tous les fils en une seule frontiere.
+ *
+ * Chaque fil rend sa propre lecture des paliers. Le joueur n'en veut qu'une :
+ * pour chaque nombre de pieces a changer, le meilleur build trouve par un fil
+ * quelconque.
+ *
+ * @param {any[]} runs
+ * @returns {any[]}
+ */
+function fusionnerPaliers(runs) {
+  const meilleurs = new Map();
+  for (const run of runs) {
+    for (const palier of run.paliers ?? []) {
+      const connu = meilleurs.get(palier.changements);
+      if (!connu || palier.score > connu.score) meilleurs.set(palier.changements, palier);
+    }
+  }
+
+  // Aucune reduction ici : l'interface decide de ce qu'elle montre, et les
+  // paliers qui ne gagnent rien lui servent d'alternatives a valeur egale.
+  return [...meilleurs.values()].sort((a, b) => a.changements - b.changements);
+}
+
 export function runSearch(request, { threads, onProgress, onWave }) {
   const fils = [];
   let arretEnvoye = false;
@@ -78,6 +102,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
         best: retenus[0],
         runs: retenus,
         candidats: archive.liste().map((entree) => entree.detail),
+        paliers: fusionnerPaliers(retenus),
       });
     };
 
@@ -156,7 +181,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       close = true;
       clearTimeout(minuteur);
       for (const { worker } of fils) worker.terminate();
-      resolve({ abandonnee: true, best: null, runs: [], candidats: [] });
+      resolve({ abandonnee: true, best: null, runs: [], candidats: [], paliers: [] });
     };
   });
 

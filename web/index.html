@@ -66,6 +66,13 @@
         <button id="autoriser-resultats" type="button"
           title="Autoriser de nouveau les pieces bannies qui passent les filtres">Autoriser</button>
       </div>
+      <div class="rangee-masse">
+        <button id="posseder-resultats" type="button"
+          title="Marquer comme possedees les pieces qui passent les filtres.
+Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</button>
+        <button id="oublier-possedees" type="button"
+          title="Enlever ces pieces de celles que vous possedez">Je ne les ai pas</button>
+      </div>
       <div class="grille-items" id="grille-items"></div>
       <p class="note" id="compte-items"></p>
     </section>
@@ -73,6 +80,12 @@
     <section class="bloc">
       <h2>Pieces bannies <span class="compteur" id="compte-bannis">0</span></h2>
       <div class="bannis" id="bannis"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Pieces que je possede <span class="compteur" id="compte-possedees">0</span></h2>
+      <p class="note">Ces pieces ne comptent pas dans les pieces a acheter : elles dorment en banque.</p>
+      <div class="bannis" id="possedees"></div>
     </section>
   </aside>
 
@@ -202,6 +215,12 @@
     <section class="bloc" id="bloc-simulations">
       <h2>Simulations <span class="compteur" id="compte-simulations">0</span></h2>
       <div id="simulations"></div>
+    </section>
+
+    <section class="bloc" id="bloc-proximite">
+      <h2>Proche de mon stuff <span class="compteur" id="compte-paliers">0</span></h2>
+      <div id="reglage-proximite"></div>
+      <div id="paliers"></div>
     </section>
 
     <section class="bloc" id="bloc-candidats" hidden>

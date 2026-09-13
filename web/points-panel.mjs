@@ -24,17 +24,74 @@ const LIBELLES = Object.freeze({
  * @param {number} etat.niveau
  * @param {Record<string, number>} etat.allocation
  * @param {Record<string, boolean>} etat.scrolls
+ * @param {Record<string, number>} [etat.limites] Valeur maximale que la
+ *   recherche investit par caracteristique, zero pour aucune limite.
+ * @param {Record<string, number>|null} [etat.stats] Statistiques du build porte,
+ *   pour rappeler le total a cote de la part investie.
  * @param {object} actions
  * @param {(cle: string, valeur: number) => void} actions.onPoints
  * @param {(cle: string, actif: boolean) => void} actions.onScroll
+ * @param {(cle: string, valeur: number) => void} [actions.onLimite]
  * @param {() => void} actions.onReset
  */
-export function renderPoints(root, { niveau, allocation, scrolls }, actions) {
+export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, stats = null }, actions) {
   const budget = availablePoints(niveau);
 
   let depense = 0;
   for (const cle of SCROLLABLE) depense += pointCost(cle, allocation[cle] ?? 0);
   const reste = budget - depense;
+
+  /**
+   * Limite posee sur une caracteristique, ou null quand il n'y en a pas.
+   *
+   * Le champ vide dit « aucune limite ». Zero est une limite comme une autre :
+   * il interdit d'investir. Les deux demandes sont opposees, elles ne peuvent
+   * pas partager la meme valeur.
+   */
+  const limiteDe = (cle) => {
+    const brut = limites[cle];
+    if (brut === null || brut === undefined || brut === '') return null;
+    const valeur = Number(brut);
+    return Number.isFinite(valeur) && valeur >= 0 ? valeur : null;
+  };
+
+  /**
+   * Vrai quand votre saisie passe au-dessus de la limite.
+   *
+   * La limite ne bride que la recherche : vous restez libre de mettre plus a
+   * la main. Le champ s'allume alors en alerte pour que l'ecart se voie.
+   */
+  const depasse = (cle) => {
+    const limite = limiteDe(cle);
+    return limite !== null && (allocation[cle] ?? 0) > limite;
+  };
+
+  /** Aide du champ de limite, adaptee a ce que la ligne montre. */
+  const aideLimite = (cle) => {
+    const limite = limiteDe(cle);
+    const investi = allocation[cle] ?? 0;
+    const total = stats?.[cle];
+    const situation = Number.isFinite(total)
+      ? `\nLe build porte est a ${total} au total, dont ${investi} investis.`
+      : '';
+
+    if (limite === null) {
+      return `Limite de ${LIBELLES[cle]} : valeur maximale que la recherche investit.\n`
+        + `Champ vide : aucune limite. Zero : la recherche n'y met rien.\n`
+        + `Elle borne le curseur, pas son cout en points, et ne touche pas\n`
+        + `a ce que l'equipement apporte.\n`
+        + `Pour borner la caracteristique entiere, mettez un maximum a la condition.\n`
+        + `Votre saisie a la main reste libre.${situation}`;
+    }
+    if (limite === 0) {
+      return `La recherche n'investit rien en ${LIBELLES[cle]}.\n`
+        + `${depasse(cle) ? `Votre saisie est a ${investi} : au-dessus de la limite.\n` : ''}`
+        + `Videz le champ pour lever la limite.${situation}`;
+    }
+    return `La recherche n'investit pas plus de ${limite} en ${LIBELLES[cle]}.\n`
+      + `${depasse(cle) ? `Votre saisie est a ${investi} : au-dessus de la limite.\n` : ''}`
+      + `La limite borne le curseur, pas son cout en points.${situation}`;
+  };
 
   const lignes = SCROLLABLE.map((cle) => {
     const investi = allocation[cle] ?? 0;
@@ -63,6 +120,26 @@ export function renderPoints(root, { niveau, allocation, scrolls }, actions) {
 
       el('span', { class: 'cout-point', title: 'Points depenses', text: `${cout}` }),
 
+      // La limite bride la recherche, jamais la saisie : le joueur reste libre
+      // de depasser a la main, et le champ le signale quand c'est le cas.
+      el('input', {
+        type: 'number', min: '0',
+        value: limiteDe(cle) === null ? '' : String(limiteDe(cle)),
+        class: ['limite-point',
+          limiteDe(cle) !== null ? 'active' : '',
+          limiteDe(cle) === 0 ? 'fermee' : '',
+          depasse(cle) ? 'depassee' : ''].filter(Boolean).join(' '),
+        // Un champ vide dit « aucune limite » ; le tiret le montre a l'oeil.
+        placeholder: '—',
+        title: aideLimite(cle),
+        ...(actions.onLimite ? {} : { disabled: true }),
+        onChange: (ev) => {
+          const brut = ev.target.value.trim();
+          if (brut === '') { actions.onLimite?.(cle, null); return; }
+          actions.onLimite?.(cle, Math.max(0, Number(brut) || 0));
+        },
+      }),
+
       // Parchemins : en jeu, un personnage peut lire des parchemins de
       // caracteristique jusqu'a +101 en base, sans depenser de points.
       el('label', {
@@ -87,6 +164,14 @@ export function renderPoints(root, { niveau, allocation, scrolls }, actions) {
       el('button', { class: 'mini', type: 'button', text: 'Remettre a zero',
         title: 'Enlever tous les points investis', onClick: actions.onReset }),
     ),
+    el('div', { class: 'entete-points' },
+      el('span', { text: 'Caracteristique' }),
+      el('span', { text: '' }),
+      el('span', { text: 'Points' }),
+      el('span', { text: 'Cout' }),
+      el('span', { text: 'Limite',
+        title: 'Valeur maximale que la recherche investit.\nVide : aucune limite. Zero : rien du tout.' }),
+      el('span', { text: 'Parcho' })),
     ...lignes,
   );
 }

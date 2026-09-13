@@ -183,10 +183,14 @@ function vignette(item, extra = '') {
 }
 
 /** Remplit la grille du catalogue. */
-export function renderCatalogue(root, compteur, items, onPick, bannis = new Set()) {
+export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(), possedees = new Set()) {
   const montres = items.slice(0, MAX_CASES);
   fill(root, montres.map((item) => {
-    const noeud = vignette(item, bannis.has(item.id) ? 'bannie' : '');
+    const marques = [
+      bannis.has(item.id) ? 'bannie' : '',
+      possedees.has(item.id) ? 'possedee' : '',
+    ].filter(Boolean).join(' ');
+    const noeud = vignette(item, marques);
     if (bannis.has(item.id)) noeud.title += '\nBannie : le solveur ne la propose plus.';
     // Le titre natif laisserait sa place : l'infobulle le remplace au survol.
     noeud.removeAttribute('title');
@@ -209,18 +213,27 @@ export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(
 /**
  * Remplit la liste des pieces bannies.
  * @param {HTMLElement} root
+ * Le meme rendu sert aux pieces que le joueur possede : dans les deux cas,
+ * une liste de pieces dont un clic retire l'etiquette.
+ *
  * @param {any[]} items Pieces bannies, dans l'ordre du catalogue.
  * @param {(item: any) => void} onUnban
+ * @param {{vide?: string, aide?: string}} [textes] Mots propres a la liste.
  */
-export function renderBannis(root, items, onUnban) {
+export function renderBannis(root, items, onUnban, textes = {}) {
+  const {
+    vide = 'Aucune piece bannie. Ouvrez la fiche d\'une piece pour la bannir.',
+    aide = 'cliquez pour autoriser de nouveau',
+  } = textes;
+
   if (items.length === 0) {
-    fill(root, el('p', { class: 'note', text: 'Aucune piece bannie. Ouvrez la fiche d\'une piece pour la bannir.' }));
+    fill(root, el('p', { class: 'note', text: vide }));
     return;
   }
 
   fill(root, items.map((item) => el('button', {
     class: 'puce-bannie', type: 'button',
-    title: `${item.fr} — cliquez pour autoriser de nouveau`,
+    title: `${item.fr} — ${aide}`,
     onClick: () => onUnban(item),
   },
     item.img ? el('img', { src: item.img, alt: '', decoding: 'async' }) : null,
@@ -632,7 +645,7 @@ export function renderAnalyse(racineApports, racineSensibilite, analyse) {
  * @param {number|null} contexte.scorePorte Score du build porte, ou null.
  * @param {(candidat: any) => void} contexte.onPorter
  */
-export function renderCandidats(root, candidats, { portes, itemById, scorePorte, onPorter }) {
+export function renderCandidats(root, candidats, { portes, itemById, porte, onPorter }) {
   if (!candidats || candidats.length === 0) {
     fill(root, el('p', { class: 'note', text: 'Aucun autre build. Lancez une recherche.' }));
     return;
@@ -642,7 +655,13 @@ export function renderCandidats(root, candidats, { portes, itemById, scorePorte,
     const ids = candidat.itemIds ?? [];
     const aMettre = ids.filter((id) => !portes.has(id));
     const aEnlever = [...portes].filter((id) => !ids.includes(id));
-    const ecart = Number.isFinite(scorePorte) ? candidat.score - scorePorte : null;
+    // L'ecart se lit sur les DEGATS, jamais sur le score. Un score vaut les
+    // degats quand les conditions tiennent, et moins la penalite quand l'une
+    // d'elles tombe : soustraire l'un de l'autre annoncait des ecarts de
+    // plusieurs milliers de points qui ne voulaient rien dire.
+    const ecart = Number.isFinite(porte?.damage) ? (candidat.damage ?? 0) - porte.damage : null;
+    const redresse = candidat.satisfied === true && porte?.satisfied === false;
+    const casse = candidat.satisfied === false && porte?.satisfied === true;
 
     // Un build deja porte se signale : il n'y a rien a changer.
     const identique = aMettre.length === 0 && aEnlever.length === 0;
@@ -661,14 +680,25 @@ export function renderCandidats(root, candidats, { portes, itemById, scorePorte,
 
     return el('div', { class: `candidat ${identique ? 'porte' : ''}`.trim() },
       el('div', { class: 'candidat-tete' },
-        el('span', { class: 'candidat-score', text: entier(candidat.score) }),
+        el('span', { class: 'candidat-score', title: 'Degats de ce build',
+          text: entier(candidat.damage ?? 0) }),
         ecart === null || identique
           ? null
           : el('span', {
               class: `candidat-ecart ${ecart >= 0 ? 'pos' : 'neg'}`,
               text: `${ecart >= 0 ? '+' : ''}${entier(ecart)}`,
-              title: 'Ecart avec le build porte',
+              title: 'Degats en plus ou en moins, face au build porte',
             }),
+        redresse
+          ? el('span', { class: 'candidat-marque',
+              title: 'Le build porte laisse une condition en defaut ; celui-ci les tient toutes',
+              text: 'conditions tenues' })
+          : null,
+        casse
+          ? el('span', { class: 'candidat-marque defaut',
+              title: 'Ce build ne tient pas toutes vos conditions',
+              text: 'conditions en defaut' })
+          : null,
         el('span', { class: 'candidat-changements',
           text: identique ? 'build porte' : `${aMettre.length} piece(s) a changer` }),
         identique

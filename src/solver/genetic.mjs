@@ -13,6 +13,7 @@ import { EMPTY, buildPools, decode, genomeFromItems, planLocks, randomGenome, re
 import { buildRankings, improve, indexerPanoplies } from './local-search.mjs';
 import { createIncrementalBuild } from './incremental.mjs';
 import { creerArchive } from './candidates.mjs';
+import { creerCompteur, creerPaliers, normaliserProximite } from './proximite.mjs';
 import { SCROLLABLE as SCROLLABLE_KEYS } from '../engine/characteristics.mjs';
 
 /**
@@ -28,6 +29,15 @@ export const INVALID_ITEM_PENALTY = 1e6;
  * chemin d'amelioration.
  */
 export const MAX_VIOLATION_PENALTY = 1e6;
+
+/**
+ * Penalite par piece a changer au-dela de la limite demandee.
+ *
+ * Elle reste finie, et plus faible que les autres : un build qui change une
+ * piece de trop doit pouvoir evoluer vers un build conforme, et un build
+ * conforme mais irrealisable reste pire qu'un build simplement trop cher.
+ */
+export const CHANGEMENT_PENALTY = 1e5;
 
 /** Reglages par defaut, alignes sur un solveur interactif. */
 export const DEFAULT_OPTIONS = Object.freeze({
@@ -120,6 +130,11 @@ const AVEC_DETAILS = Object.freeze({ details: true });
 export function createEvaluator({ pools, setById, level, porteur, scrolls, passives, profile, objective }) {
   // L'attaque d'une arme se construit une seule fois par arme rencontree.
   const attaques = new Map();
+
+  // Proximite avec le stuff porte en jeu : le compteur se prepare une fois,
+  // la boucle chaude ne fait plus que compter.
+  const proximite = normaliserProximite(objective.proximite);
+  const compterChangements = proximite ? creerCompteur(proximite) : null;
   const spellsAvecArme = (items) => {
     const spells = objective.spells ?? [];
     if (!objective.useWeapon) return spells;
@@ -143,12 +158,20 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
     const detail = scoreBuild(stats, cible, options);
     const violations = maxViolations(objective.conditions, stats);
 
+    // Pieces a acheter pour porter ce build. Le compte sert deux fois : il
+    // penalise ce qui depasse la limite, et il range le build dans son palier.
+    const changements = compterChangements
+      ? compterChangements(idsDe(items))
+      : 0;
+    const enTrop = proximite ? Math.max(0, changements - proximite.max) : 0;
+
     // Un item interdit ou un maximum franchi rend le build irrealisable en jeu.
     const score = detail.score
       - invalid.length * INVALID_ITEM_PENALTY
-      - violations.length * MAX_VIOLATION_PENALTY;
+      - violations.length * MAX_VIOLATION_PENALTY
+      - enTrop * CHANGEMENT_PENALTY;
 
-    return { score, stats, detail, items, invalid, violations };
+    return { score, stats, detail, items, invalid, violations, changements };
   };
 
   const cache = new Map();
@@ -172,10 +195,10 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
   // Les resultats rendus a l'appelant portent le detail par condition, que la
   // boucle ne calcule pas. Le cache garde la version allegee : ce chemin la
   // contourne, il ne sert qu'une poignee de fois par recherche.
-  evaluate.complet = (genome) => {
+  evaluate.complet = (genome, allocation = porteur.allocation) => {
     const items = decode(genome, pools);
     const { stats, invalid } = computeBuild(
-      { items, level, allocation: porteur.allocation, scrolls, passives, profile }, setById,
+      { items, level, allocation, scrolls, passives, profile }, setById,
     );
     return noterBuild(items, stats, invalid, AVEC_DETAILS);
   };
@@ -192,7 +215,19 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
     };
   };
   evaluate.spellsAvecArme = spellsAvecArme;
+  evaluate.proximite = proximite;
   return evaluate;
+}
+
+/**
+ * Identifiants des pieces d'un build, cases vides ecartees.
+ * @param {any[]} items
+ * @returns {number[]}
+ */
+function idsDe(items) {
+  const ids = [];
+  for (const item of items) if (item) ids.push(item.id);
+  return ids;
 }
 
 /**
@@ -368,13 +403,28 @@ export function preparerRecherche(input) {
 
   // Repartit les points au service du meilleur genome, puis rejoue les scores
   // de la population : tous les individus se comparent a points egaux.
-  const repartirPoints = (reference) => {
-    const itemsRef = decode(reference.genome, pools);
+  /**
+   * Meilleure repartition des points pour un genome donne, sans rien changer.
+   *
+   * Les points valent ce que le stuff en fait : deux builds proches en score
+   * n'investissent pas au meme endroit. Chaque build merite donc sa propre
+   * repartition, calculee sur ses seules pieces.
+   *
+   * @param {number[]} genome
+   * @returns {Record<string, number>}
+   */
+  const allocationPour = (genome) => {
+    const itemsRef = decode(genome, pools);
     const { stats: raw } = aggregate({ items: itemsRef, level, allocation: {}, scrolls, passives }, setById);
     // L'arme du build de reference compte dans les degats vises par les points.
-    const { allocation: proposee } = optimiserAllocation({
+    const { allocation } = optimiserAllocation({
       raw, level, objective: { ...objective, spells: evaluate.spellsAvecArme(itemsRef) },
     });
+    return allocation;
+  };
+
+  const repartirPoints = (reference) => {
+    const proposee = allocationPour(reference.genome);
 
     const changee = SCROLLABLE_KEYS.some((c) => (proposee[c] ?? 0) !== (porteur.allocation[c] ?? 0));
     if (!changee) return false;
@@ -392,7 +442,7 @@ export function preparerRecherche(input) {
   const panoplies = indexerPanoplies(pools);
 
   return {
-    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, rankings,
+    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, allocationPour, rankings,
     contexteLocal: {
       layout, pools, rankings, evaluate, evaluateur: evaluate.incremental(), panoplies, locks,
     },
@@ -404,6 +454,13 @@ function memeAllocation(a, b) {
   return SCROLLABLE_KEYS.every((c) => (a[c] ?? 0) === (b[c] ?? 0));
 }
 
+/** Vrai quand deux genomes portent exactement les memes pieces aux memes cases. */
+function memeGenome(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 export function solve(input, options = {}, onProgress) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
   const { allocation = {}, seedGenomes = [], seedItems = [] } = input;
@@ -411,7 +468,8 @@ export function solve(input, options = {}, onProgress) {
   const random = createRandom(settings.seed);
   const prepare = input.contexte ?? preparerRecherche(input);
   const {
-    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, rankings, contexteLocal,
+    layout, pools, locks, unplaced, porteur, evaluate, repartirPoints, allocationPour,
+    rankings, contexteLocal,
   } = prepare;
 
   // Un contexte reutilise garde la repartition de la vague precedente. Quand
@@ -467,6 +525,16 @@ export function solve(input, options = {}, onProgress) {
   let best = population[0];
   let stagnation = 0;
   let generation = 0;
+
+  // Paliers de proximite : le meilleur build pour chaque nombre de pieces a
+  // changer. Ils ne se collectent que quand une reference est posee.
+  const proximite = evaluate.proximite;
+  const paliers = proximite ? creerPaliers(proximite) : null;
+  const noterPalier = (genome) => {
+    if (!paliers) return;
+    const vue = evaluate(genome);
+    paliers.proposer(genome, vue.score, vue.changements);
+  };
   let descentes = 0;
   let echecsSecousse = 0;
 
@@ -504,6 +572,15 @@ export function solve(input, options = {}, onProgress) {
 
     next.sort((a, b) => b.score - a.score);
     population = next;
+
+    // Les elites de chaque generation nourrissent les paliers : un build qui
+    // ne gagnera jamais la course peut tres bien etre le meilleur a deux
+    // pieces changees. L'evaluation passe par le cache, la lecture est libre.
+    if (paliers) {
+      for (let i = 0; i < settings.eliteCount && i < population.length; i += 1) {
+        noterPalier(population[i].genome);
+      }
+    }
 
     if (population[0].score > best.score) {
       best = population[0];
@@ -590,10 +667,23 @@ export function solve(input, options = {}, onProgress) {
     archive.proposer(individu.genome, individu.score);
   }
 
-  // Chaque candidat repart avec de quoi etre compare : ses pieces, son score
-  // et le detail de ses conditions.
-  const candidats = archive.liste().map(({ genome }) => {
-    const vue = evaluate.complet(genome);
+  // La population finale passe une derniere fois par les paliers : c'est la
+  // qu'elle est la plus riche, et un palier bas peut n'avoir jamais ete elite.
+  if (paliers) {
+    for (const individu of population) noterPalier(individu.genome);
+  }
+
+  // Chaque candidat repart avec de quoi etre compare : ses pieces, son score,
+  // le detail de ses conditions et sa propre repartition de points.
+  //
+  // Cette repartition n'est pas un detail de confort. Note avec les points du
+  // gagnant, un candidat aux pieces differentes manquait des conditions qu'il
+  // savait tenir : il paraissait mauvais, et le porter le laissait en defaut.
+  const decrire = (genome) => {
+    const allocation = memeGenome(genome, best.genome)
+      ? porteur.allocation
+      : allocationPour(genome);
+    const vue = evaluate.complet(genome, allocation);
     return {
       genome: [...genome],
       itemIds: vue.items.map((item) => item.id),
@@ -602,8 +692,36 @@ export function solve(input, options = {}, onProgress) {
       satisfied: vue.detail.satisfied,
       unmet: vue.detail.unmet,
       stats: vue.stats,
+      allocation: { ...allocation },
+      changements: vue.changements,
     };
-  });
+  };
+
+  const candidats = archive.liste().map(({ genome }) => decrire(genome));
+
+  // Chaque palier se decrit comme un candidat : le joueur le porte du meme
+  // clic. Le gagnant et les candidats rejoignent d'abord les pretendants —
+  // sans eux, un palier pouvait annoncer moins que le build deja montre.
+  let parPalier = [];
+  if (paliers) {
+    for (const candidat of [...candidats, decrire(best.genome)]) {
+      paliers.proposer(candidat.genome, candidat.score, candidat.changements);
+    }
+
+    // Les pretendants se departagent sur leur score definitif, celui de leur
+    // propre repartition de points : c'est le seul que le joueur lira.
+    const definitifs = new Map();
+    const noter = (genome) => {
+      const cle = genome.join(',');
+      if (!definitifs.has(cle)) definitifs.set(cle, decrire(genome));
+      return definitifs.get(cle).score;
+    };
+
+    parPalier = paliers.liste(noter).map(({ genome, changements }) => ({
+      ...definitifs.get(genome.join(',')),
+      changements,
+    }));
+  }
 
   return {
     items: final.items,
@@ -616,6 +734,7 @@ export function solve(input, options = {}, onProgress) {
     unplaced,
     history,
     candidats,
+    paliers: parPalier,
     // Les meilleurs genomes repartent vers les autres fils.
     topGenomes: population.slice(0, 16).map((individu) => individu.genome),
     generations: generation,

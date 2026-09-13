@@ -77,6 +77,7 @@ parentPort.on('message', async (message) => {
       stats: result.stats,
       history: result.history,
       candidats: result.candidats,
+      paliers: result.paliers,
       topGenomes: result.topGenomes,
     });
   } catch (error) {

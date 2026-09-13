@@ -6,6 +6,7 @@ import { loadCatalog } from './catalog-web.mjs';
 import { avatarDeClasse, CLASSES, classeConnue, emblemeDeClasse, nomDeClasse } from './classes.mjs';
 import { ajouterSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
+import { paliersUtiles, renderPaliers, renderReglageProximite } from './proximite-panel.mjs';
 import { defaultThreadCount, runSearch } from './solver-client.mjs';
 import { normaliserIntensite } from '../src/solver/intensite.mjs';
 import { CLES, ecrireJson, lireJson } from './stockage.mjs';
@@ -127,11 +128,23 @@ let etat = {
   posees: new Set(),
   bannis: new Set(),
   verrous: new Set(),
+  /** Pieces que le joueur possede deja : les porter ne coute aucun achat. */
+  possedees: new Set(),
+  /**
+   * Stuff porte en jeu, fige d'un clic. Il sert de point de comparaison et ne
+   * bouge pas quand on essaie une proposition : sans cela, porter un candidat
+   * remettrait le compte des pieces a changer a zero.
+   */
+  reference: null,
+  /** Pieces que le solveur peut demander d'acheter, au plus. Zero : aucune. */
+  changementsMax: 0,
   filtreStat: { stat: '', op: '>=', valeur: 0 },
   conditions: CONDITIONS_DEPART,
   sorts: [],
   /** Autres builds distincts rendus par la derniere recherche. */
   candidats: [],
+  /** Meilleur build pour chaque nombre de pieces a acheter. */
+  paliers: [],
   options: {
     distance: false, arme: false, maitriseArme: true, passifs: true, toursSuivants: false,
     cibleTelefrag: false,
@@ -142,6 +155,14 @@ let etat = {
     armeElementsMin: 0, armeElementsMax: 0,
   },
   allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
+  // Valeur maximale que la recherche investit par caracteristique. `null` dit
+  // « aucune limite » ; zero est une vraie limite, qui interdit d'investir.
+  // Elle borne le curseur, pas son cout en points, et laisse libre ce que
+  // l'equipement apporte. Elle bride le solveur, jamais la saisie a la main.
+  limites: {
+    vitalite: null, sagesse: null, force: null,
+    intelligence: null, chance: null, agilite: null,
+  },
   scrolls: { vitalite: false, sagesse: false, force: false, intelligence: false, chance: false, agilite: false },
 };
 
@@ -155,6 +176,16 @@ let recherche = null;
  * null ». Un depart de zero l'attend : sans cela, il relancerait avant que la
  * boucle precedente ait rendu la main, et le nouveau depart serait refuse.
  */
+/**
+ * Vrai tant que le personnage suit le meilleur build de la recherche.
+ *
+ * Chaque vague qui ameliore le score repose son build sur le personnage. Un
+ * joueur qui porte une proposition a la main pendant ce temps voyait son
+ * choix efface a la vague suivante : le bouton « Porter » paraissait inerte.
+ * Un choix a la main arrete donc le suivi jusqu'a la prochaine recherche.
+ */
+let suiviAuto = true;
+
 let boucle = null;
 /** Numero du dernier depart demande : il departage deux clics rapproches. */
 let departs = 0;
@@ -199,13 +230,44 @@ function annuler() {
 /** Cle de l'etat persistant dans le navigateur. */
 const CLE_ETAT = CLES.etat;
 
+/**
+ * Version du format des limites de caracteristique.
+ *
+ * La version 1 se servait de zero pour dire « aucune limite ». La version 2
+ * distingue les deux demandes : le champ vide ne borne rien, zero interdit
+ * d'investir. Sans cette marque, un etat range par l'ancienne version
+ * fermerait les six caracteristiques d'un coup.
+ */
+const VERSION_LIMITES = 2;
+
+/**
+ * Remet les limites d'un etat range au format courant.
+ *
+ * @param {any} data Etat lu du rangement.
+ * @returns {Record<string, number|null>}
+ */
+function migrerLimites(data) {
+  if (data.limitesVersion >= VERSION_LIMITES) return data.limites;
+
+  // Version 1 : les zeros voulaient dire « aucune limite ».
+  const migrees = {};
+  for (const [cle, valeur] of Object.entries(data.limites)) {
+    migrees[cle] = Number(valeur) > 0 ? Number(valeur) : null;
+  }
+  return migrees;
+}
+
 /** Enregistre l'etat courant : un rechargement ne perd plus le travail. */
 function sauverEtat() {
   ecrireJson(CLE_ETAT, {
     niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
     conditions: etat.conditions, sorts: etat.sorts, options: etat.options,
     allocation: etat.allocation, scrolls: etat.scrolls,
+    limites: etat.limites, limitesVersion: VERSION_LIMITES,
     bannis: [...etat.bannis],
+    possedees: [...etat.possedees],
+    reference: etat.reference,
+    changementsMax: etat.changementsMax,
     verrous: [...etat.verrous],
     equipped: [...etat.equipped.entries()].map(([cle, piece]) => [cle, piece.id]),
     posees: [...etat.posees],
@@ -280,7 +342,11 @@ function reprendreEtat() {
     ...(data.options ? { options: { ...etat.options, ...data.options } } : {}),
     ...(data.allocation ? { allocation: { ...etat.allocation, ...data.allocation } } : {}),
     ...(data.scrolls ? { scrolls: { ...etat.scrolls, ...data.scrolls } } : {}),
+    ...(data.limites ? { limites: { ...etat.limites, ...migrerLimites(data) } } : {}),
     ...(Array.isArray(data.bannis) ? { bannis: new Set(data.bannis) } : {}),
+    ...(Array.isArray(data.possedees) ? { possedees: new Set(data.possedees) } : {}),
+    ...(data.reference?.itemIds ? { reference: data.reference } : {}),
+    ...(Number.isFinite(data.changementsMax) ? { changementsMax: data.changementsMax } : {}),
     ...(Array.isArray(data.verrous) ? { verrous: new Set(data.verrous) } : {}),
     equipped,
     posees: new Set(data.posees ?? []),
@@ -476,6 +542,20 @@ function objectif() {
         cibleTelefrag: Boolean(etat.options.cibleTelefrag),
       }
       : null,
+    // Plafonds d'investissement : ils bornent la repartition automatique des
+    // points, jamais ce que le joueur saisit lui-meme.
+    limites: etat.limites,
+    // Proximite avec le stuff porte en jeu. Sans reference figee, le champ
+    // reste absent et le solveur cherche librement, comme avant.
+    proximite: etat.reference
+      ? {
+        reference: etat.reference.itemIds,
+        possedees: [...etat.possedees],
+        // Zero ne veut pas dire « aucun changement » ici : c'est le reglage
+        // laisse au repos. La limite ne s'applique qu'a partir de un.
+        max: etat.changementsMax > 0 ? etat.changementsMax : null,
+      }
+      : null,
     mode: enDegats ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS,
   };
 }
@@ -529,6 +609,99 @@ function bannirResultats() {
 }
 
 /** Autorise de nouveau toutes les pieces bannies qui passent les filtres. */
+/**
+ * Marque comme possedees les pieces qui passent les filtres.
+ *
+ * Une piece possedee dort en banque : la porter ne demande aucun achat, et
+ * elle ne compte donc pas dans les pieces a changer.
+ */
+function posseder(actif) {
+  const cibles = itemsFiltres()
+    .filter((item) => etat.possedees.has(item.id) !== actif);
+  if (cibles.length === 0) {
+    message(actif
+      ? 'Toutes ces pieces sont deja marquees comme possedees.'
+      : 'Aucune piece possedee dans ces resultats.', 'info');
+    return;
+  }
+
+  const possedees = new Set(etat.possedees);
+  for (const item of cibles) {
+    if (actif) possedees.add(item.id);
+    else possedees.delete(item.id);
+  }
+  setEtat({ possedees });
+  message(actif
+    ? `${cibles.length} piece(s) marquee(s) comme possedees : elles ne coutent plus d'achat.`
+    : `${cibles.length} piece(s) enlevee(s) de votre banque.`, 'info');
+}
+
+/**
+ * Met une piece dans l'inventaire, ou l'en enleve.
+ *
+ * @param {any} item
+ */
+function basculerPossedee(item) {
+  const possedees = new Set(etat.possedees);
+  const avait = possedees.has(item.id);
+  if (avait) possedees.delete(item.id);
+  else possedees.add(item.id);
+
+  setEtat({ possedees });
+  message(avait
+    ? `${item.fr} enlevee de votre inventaire.`
+    : `${item.fr} ajoutee a votre inventaire : elle ne compte plus comme un achat.`, 'info');
+}
+
+/** Enleve une piece de celles que le joueur possede. */
+function oublierPossedee(id) {
+  const possedees = new Set(etat.possedees);
+  possedees.delete(id);
+  setEtat({ possedees });
+}
+
+/* ------------------------------------------------ Stuff de reference --- */
+
+/**
+ * Fige le build pose comme stuff porte en jeu.
+ *
+ * Le piege est de figer un build que le solveur vient de trouver : il est deja
+ * le meilleur connu, aucun achat ne le battra, et le panneau n'a plus rien a
+ * dire. La reference n'a de sens que sur le stuff VRAIMENT porte en jeu.
+ */
+function figerReference() {
+  const itemIds = [...etat.equipped.values()].map((piece) => piece.id);
+  if (itemIds.length === 0) {
+    message('Posez d\'abord les pieces que vous portez en jeu.', 'alerte');
+    return;
+  }
+
+  // Un build pose par le solveur ne porte aucune piece marquee « a la main ».
+  const duSolveur = etat.posees.size === 0 && (etat.candidats ?? []).length > 0;
+
+  setEtat({ reference: { itemIds, date: new Date().toISOString() } });
+  message(duSolveur
+    ? `Stuff de reference fige : ${itemIds.length} piece(s). Attention, ce build `
+      + 'vient du solveur : aucun achat ne le battra. Posez votre stuff de jeu '
+      + 'et figez-le de nouveau pour voir ce que chaque achat rapporterait.'
+    : `Stuff de reference fige : ${itemIds.length} piece(s). `
+      + 'Le solveur compte maintenant ce que chaque build demande d\'acheter.',
+  duSolveur ? 'alerte' : 'info');
+}
+
+/** Enleve la reference : le solveur cherche de nouveau librement. */
+function oublierReference() {
+  setEtat({ reference: null, paliers: [] });
+  message('Reference enlevee. Le solveur cherche de nouveau sans contrainte d\'achat.', 'info');
+}
+
+/** Repose le stuff de reference sur le personnage. */
+function reprendreReference() {
+  if (!etat.reference) return;
+  porterAlaMain({ itemIds: etat.reference.itemIds });
+  message('Stuff de reference repose.', 'info');
+}
+
 function autoriserResultats() {
   const cibles = itemsFiltres().filter((item) => etat.bannis.has(item.id));
   if (cibles.length === 0) {
@@ -681,9 +854,11 @@ function render() {
       onEquip: () => equiper(item),
       onBan: () => bannir(item),
       onLock: () => verrouiller(item),
+      onPosseder: () => basculerPossedee(item),
       banni: etat.bannis.has(item.id),
       verrouille: etat.verrous.has(item.id),
-    }), etat.bannis);
+      possedee: etat.possedees.has(item.id),
+    }), etat.bannis, etat.possedees);
 
   const listeBannis = [...etat.bannis]
     .map((id) => catalogue?.itemById.get(id))
@@ -691,6 +866,16 @@ function render() {
     .sort((a, b) => a.fr.localeCompare(b.fr, 'fr'));
   $('compte-bannis').textContent = String(listeBannis.length);
   vue.renderBannis($('bannis'), listeBannis, bannir);
+
+  const listePossedees = [...etat.possedees]
+    .map((id) => catalogue?.itemById.get(id))
+    .filter(Boolean)
+    .sort((a, b) => a.fr.localeCompare(b.fr, 'fr'));
+  $('compte-possedees').textContent = String(listePossedees.length);
+  vue.renderBannis($('possedees'), listePossedees, (item) => oublierPossedee(item.id), {
+    vide: 'Aucune piece marquee. Filtrez le catalogue, puis « J\'ai ces pieces ».',
+    aide: 'cliquez pour l\'enlever de votre banque',
+  });
 
   const suivies = new Set(etat.conditions.map((c) => c.stat));
   const options = { suivies, onPick: suivreStat };
@@ -711,8 +896,10 @@ function render() {
     onRemove: () => retirer(cle),
     onBan: () => bannir(item),
     onLock: () => verrouiller(item),
+    onPosseder: () => basculerPossedee(item),
     banni: etat.bannis.has(item.id),
     verrouille: etat.verrous.has(item.id),
+    possedee: etat.possedees.has(item.id),
     stats,
   });
   vue.renderCases($('slots-gauche'), plan.SLOTS_GAUCHE, etat.equipped, etat.posees, voirPiece, etat.verrous, stats);
@@ -752,13 +939,17 @@ function render() {
   vue.renderArme($('carte-arme'), arme, arme && stats ? computeSpellDetail(arme, stats) : null);
 
   montrerCandidats(stats);
+  montrerProximite(stats);
   montrerAnalyse(build, stats);
 
   $('annuler').disabled = passe.length === 0;
 
-  renderPoints($('points'), etat, {
+  renderPoints($('points'), { ...etat, stats }, {
     onPoints: (cle, valeur) => setEtat({ allocation: { ...etat.allocation, [cle]: Math.max(0, valeur) } }),
     onScroll: (cle, actif) => setEtat({ scrolls: { ...etat.scrolls, [cle]: actif } }),
+    onLimite: (cle, valeur) => setEtat({
+      limites: { ...etat.limites, [cle]: valeur === null ? null : Math.max(0, valeur) },
+    }),
     onReset: () => setEtat({
       allocation: { vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 },
     }),
@@ -897,6 +1088,14 @@ async function lancer(choix = {}) {
   let finBoucle;
   boucle = new Promise((resolve) => { finBoucle = resolve; });
 
+  // Une recherche neuve rend la main au solveur et efface ses propositions :
+  // celles d'avant repondaient a d'autres reglages, les garder a l'ecran
+  // ferait porter un build qui ne correspond plus a ce qui est demande.
+  suiviAuto = true;
+  if ((etat.candidats ?? []).length > 0 || (etat.paliers ?? []).length > 0) {
+    setEtat({ candidats: [], paliers: [] });
+  }
+
   const fils = Math.max(1, Math.min(8, Number($('fils').value) || 1));
   const intensite = normaliserIntensite($('intensite').value);
 
@@ -984,8 +1183,9 @@ async function lancer(choix = {}) {
           sauverResultat(generationMax, fils);
         }
 
-        // Le meilleur build du moment s'applique en direct au personnage.
-        if (vague.resume && vague.resume.score > meilleurApplique) {
+        // Le meilleur build du moment s'applique en direct au personnage,
+        // tant que le joueur n'a pas pose son propre choix.
+        if (suiviAuto && vague.resume && vague.resume.score > meilleurApplique) {
           meilleurApplique = vague.resume.score;
           appliquer(vague.resume);
         }
@@ -994,11 +1194,12 @@ async function lancer(choix = {}) {
   );
 
   try {
-    const { best, candidats, abandonnee } = await recherche.promise;
+    const { best, candidats, paliers, abandonnee } = await recherche.promise;
     // Un abandon jette la recherche : rien a appliquer, rien a garder.
     if (abandonnee) return;
-    if (best.score > meilleurApplique) appliquer(best);
+    if (suiviAuto && best.score > meilleurApplique) appliquer(best);
     if (Array.isArray(candidats)) setEtat({ candidats });
+    if (Array.isArray(paliers)) setEtat({ paliers });
     // Une recherche mise en pause laisse une trace : c'est la version que
     // l'on voudra comparer au prochain essai.
     garderSimulation({ siNouvelle: true, silencieux: true });
@@ -1053,6 +1254,73 @@ function montrerAnalyse(build, stats) {
  * Montre les autres builds trouves, avec ce qu'il faut changer pour chacun.
  * @param {Record<string, number>|null} stats Statistiques du build porte.
  */
+function montrerProximite(stats) {
+  renderReglageProximite($('reglage-proximite'), {
+    reference: etat.reference,
+    max: etat.changementsMax,
+    possedees: etat.possedees,
+    possedees: etat.possedees.size,
+    portees: etat.equipped.size,
+  }, {
+    onFiger: figerReference,
+    onOublier: oublierReference,
+    onReprendre: reprendreReference,
+    onMax: (valeur) => setEtat({ changementsMax: valeur }),
+  });
+
+  const paliers = etat.reference ? (etat.paliers ?? []) : [];
+
+  // Le gain se lit face au stuff de reference, jamais face au build pose :
+  // c'est l'achat qui se decide, pas l'essai en cours.
+  const reference = etat.reference && catalogue ? valeurDeReference() : null;
+
+  // Le compteur annonce ce que le joueur verra : les paliers qui n'apportent
+  // rien ne se montrent pas, ils ne doivent pas se compter non plus.
+  $('compte-paliers').textContent = String(paliersUtiles(paliers, reference).length);
+
+  renderPaliers($('paliers'), paliers, {
+    reference,
+    itemById: catalogue?.itemById ?? new Map(),
+    piecesReference: etat.reference?.itemIds ?? [],
+    max: etat.changementsMax,
+    possedees: etat.possedees,
+    onPorter: (palier) => {
+      porterAlaMain(palier);
+      message(`Build porte : ${palier.changements} piece(s) a acheter, `
+        + `${Math.floor(palier.damage).toLocaleString('fr-FR')} de degats.`, 'info');
+    },
+  });
+}
+
+/**
+ * Ce que vaut le stuff de reference, avec les reglages du moment.
+ *
+ * Il se recalcule a chaque rendu : une condition ajoutee ou un sort change
+ * modifie ce que vaut le stuff porte, et le gain annonce avec.
+ *
+ * Le detail rendu porte les DEGATS a part du score. C'est necessaire : le
+ * score vaut les degats quand les conditions tiennent, et moins la penalite
+ * quand elles tombent. Soustraire un score de defaut d'un score de degats
+ * annoncait des gains de plusieurs milliers de points qui ne voulaient rien
+ * dire. Les degats, eux, se comparent toujours.
+ *
+ * @returns {{score: number, damage: number, satisfied: boolean}|null}
+ */
+function valeurDeReference() {
+  const items = etat.reference.itemIds
+    .map((id) => catalogue.itemById.get(id))
+    .filter(Boolean);
+  if (items.length === 0) return null;
+
+  const { stats } = computeBuild({
+    items, level: etat.niveau, allocation: etat.allocation, scrolls: etat.scrolls,
+    passives: passifsActifs(), profile: { classe: etat.classe, sexe: etat.sexe },
+  }, catalogue.setById);
+
+  const detail = scoreBuild(stats, { ...objectif(), spells: attaquesAffichees() });
+  return { score: detail.score, damage: detail.damage, satisfied: detail.satisfied };
+}
+
 function montrerCandidats(stats) {
   const bloc = $('bloc-candidats');
   const candidats = etat.candidats ?? [];
@@ -1061,22 +1329,40 @@ function montrerCandidats(stats) {
   if (candidats.length === 0) return;
 
   const portes = new Set([...etat.equipped.values()].map((piece) => piece.id));
-  const scorePorte = stats
-    ? scoreBuild(stats, { ...objectif(), spells: attaquesAffichees() }).score
+  // Le build porte sert de point de comparaison : ses degats et l'etat de ses
+  // conditions, pas son score — celui-ci change d'echelle selon qu'elles
+  // tiennent ou non.
+  const porte = stats
+    ? scoreBuild(stats, { ...objectif(), spells: attaquesAffichees() })
     : null;
 
   vue.renderCandidats($('candidats'), candidats, {
     portes,
     itemById: catalogue.itemById,
-    scorePorte,
+    porte,
     onPorter: (candidat) => {
-      appliquer(candidat);
+      porterAlaMain(candidat);
       message(`Build remplace par un candidat a ${Math.floor(candidat.score).toLocaleString('fr-FR')}.`, 'info');
     },
   });
 }
 
 /** Pose le build trouve par le solveur, points de caracteristique compris. */
+/**
+ * Pose un build choisi a la main, et arrete le suivi de la recherche.
+ *
+ * @param {any} resultat
+ */
+function porterAlaMain(resultat) {
+  const enCours = suiviAuto && recherche !== null;
+  suiviAuto = false;
+  appliquer(resultat);
+  if (enCours) {
+    message('Le personnage ne suit plus la recherche : votre choix reste en place. '
+      + 'Le prochain lancement rend la main au solveur.', 'info');
+  }
+}
+
 function appliquer(resultat) {
   const equipped = new Map();
   const restant = new Map(SLOTS.map((s) => [s.key, s.capacity]));
@@ -1135,6 +1421,7 @@ function instantane() {
     options: etat.options,
     allocation: etat.allocation,
     scrolls: etat.scrolls,
+    limites: etat.limites,
     bannis: [...etat.bannis],
     verrous: [...etat.verrous],
   };
@@ -1196,6 +1483,7 @@ function restaurerSimulation(simulation) {
     options: { ...etat.options, ...(simulation.options ?? {}) },
     allocation: { ...etat.allocation, ...(simulation.allocation ?? {}) },
     scrolls: { ...etat.scrolls, ...(simulation.scrolls ?? {}) },
+    limites: { ...etat.limites, ...(simulation.limites ?? {}) },
     bannis: new Set(simulation.bannis ?? []),
     verrous: new Set(simulation.verrous ?? []),
     candidats: [],
@@ -1223,6 +1511,8 @@ function brancher() {
     setEtat({ filtreStat: { ...etat.filtreStat, valeur: Number(e.target.value) || 0 } }));
   $('bannir-resultats').addEventListener('click', bannirResultats);
   $('autoriser-resultats').addEventListener('click', autoriserResultats);
+  $('posseder-resultats').addEventListener('click', () => posseder(true));
+  $('oublier-possedees').addEventListener('click', () => posseder(false));
   $('vider').addEventListener('click', () => setEtat({ equipped: new Map(), posees: new Set() }));
   $('annuler').addEventListener('click', annuler);
 

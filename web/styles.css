@@ -537,7 +537,25 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .bandeau-points .note { flex: 1; margin: 0; }
 .jeton.trop { color: var(--alerte); border-color: var(--alerte-bord); background: var(--alerte-fond); }
 
-.ligne-point { display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px 26px 48px; gap: 6px; align-items: center; }
+.ligne-point { display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px 26px 46px 48px; gap: 6px; align-items: center; }
+
+/* En-tetes des deux colonnes chiffrees : sans eux, « 0 » a droite du cout
+   ne dit pas de quoi il parle. */
+.entete-points {
+  display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px 26px 46px 48px;
+  gap: 6px; margin-bottom: 3px;
+}
+.entete-points span { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faible); text-align: right; }
+.entete-points span:first-child { text-align: left; }
+
+/* La limite ne bride que la recherche : elle reste discrete tant qu'elle vaut
+   zero, et s'allume des qu'elle mord. */
+.limite-point {
+  font-family: var(--chiffre); text-align: right; padding: 3px 4px;
+  color: var(--faible); border-color: var(--bord);
+}
+.limite-point.active { color: var(--ambre); border-color: var(--or-bord); }
+.limite-point.depassee { color: var(--alerte); border-color: var(--alerte-bord); }
 .nom-point { display: flex; align-items: center; gap: 5px; margin: 0; font-size: 11px; color: var(--texte); }
 .nom-point img { width: 14px; height: 14px; object-fit: contain; }
 
@@ -1040,3 +1058,86 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   width: 19px; height: 19px; object-fit: contain;
   border-radius: 3px; background: var(--champ);
 }
+
+/* ---------- Proche de mon stuff ---------- */
+
+.proximite-barre {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 7px;
+}
+.proximite-barre .note { margin: 0; flex: 1 1 100%; min-width: 0; }
+.proximite-barre .jeton { white-space: nowrap; }
+.proximite-barre .jeton.banque { color: var(--positif); border-color: var(--positif); background: none; }
+
+.proximite-max { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faible); }
+.proximite-max input { width: 52px; font-family: var(--chiffre); text-align: right; padding: 3px 4px; }
+
+.paliers { display: flex; flex-direction: column; gap: 4px; }
+
+.palier {
+  display: grid; grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 8px; align-items: center;
+  padding: 5px 6px; border: 1px solid var(--bord); border-radius: 5px;
+  background: var(--carte-haute);
+}
+.palier:hover { border-color: var(--bord-clair); }
+
+/* Le cout se lit avant le gain : c'est lui que le joueur arbitre. */
+.palier-cout {
+  display: grid; place-items: center; gap: 0;
+  padding: 3px 0; border-radius: 4px; background: var(--champ);
+}
+.palier-cout strong { font: 600 15px var(--chiffre); color: var(--ambre); line-height: 1.1; }
+.palier-cout span { font-size: 9px; color: var(--faible); }
+
+.palier-corps { min-width: 0; }
+.palier-tete { display: flex; align-items: baseline; gap: 8px; }
+.palier-score { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; }
+.palier-score.pos { color: var(--positif); }
+.palier-score.neg { color: var(--alerte); }
+.palier-gain { font-family: var(--chiffre); font-size: 11px; }
+.palier-gain.pos { color: var(--positif); }
+.palier-gain.neg { color: var(--alerte); }
+
+.palier-pieces { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.palier-pieces img { width: 24px; height: 24px; object-fit: contain; }
+
+/* Une piece deja en banque se repere dans le catalogue : la prendre ne coute
+   aucun achat, et cela change ce que le solveur propose. */
+.case-item.possedee::before {
+  content: ''; position: absolute; inset: 0;
+  border: 1px solid var(--positif); border-radius: var(--r); pointer-events: none;
+}
+
+/* Un palier sans achat se distingue : le gain y est entierement gratuit. */
+.palier-cout.gratuit strong { color: var(--positif); }
+
+/* La ligne de depart n'est pas une proposition : elle rappelle d'ou l'on part. */
+.palier.depart { background: none; border-style: dashed; }
+.palier.depart .palier-score { color: var(--faible); }
+
+.palier-degats { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--titre); }
+.palier.depart .palier-degats { color: var(--faible); }
+
+/* Ce qu'un chiffre ne dit pas : une condition redressee, une condition perdue. */
+.palier-marque {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--positif); border: 1px solid var(--positif); border-radius: 999px;
+  padding: 0 5px; white-space: nowrap;
+}
+.palier-marque.defaut { color: var(--alerte); border-color: var(--alerte-bord); }
+
+.candidat-marque {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--positif); border: 1px solid var(--positif); border-radius: 999px;
+  padding: 0 5px; white-space: nowrap;
+}
+.candidat-marque.defaut { color: var(--alerte); border-color: var(--alerte-bord); }
+
+/* Une limite a zero ferme la caracteristique : elle se lit autrement qu'un plafond. */
+.limite-point.fermee { color: var(--alerte); border-color: var(--alerte-bord); }
+
+/* Une piece deja en banque : le bouton de sa fiche le dit d'un coup d'oeil. */
+.fiche-actions button.possede { color: var(--positif); border-color: var(--positif); }
+
+/* Une piece deja en banque ne coute rien : elle se montre en retrait. */
+.palier-pieces img.en-banque { opacity: .55; outline: 1px solid var(--positif); outline-offset: -1px; border-radius: 3px; }

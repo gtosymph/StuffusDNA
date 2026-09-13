@@ -39,7 +39,9 @@ function briques() {
     personnage: bloc('.scene'),
     recherche: document.querySelector('.bloc-recherche'),
     simulations: document.getElementById('bloc-simulations'),
+    proximite: document.getElementById('bloc-proximite'),
     candidats: document.getElementById('bloc-candidats'),
+    possedees: bloc('#possedees'),
     panoplies: bloc('#panoplies'),
     analyse: document.getElementById('bloc-analyse'),
     dommages: bloc('#stats-dommages'),
@@ -82,9 +84,10 @@ function colonne(classe, sections) {
 function planBandeau(atelier, b) {
   const grille = creer('div', 'grille-atelier');
   grille.append(
-    colonne('colonne-catalogue', [b.catalogue, b.bannis]),
+    colonne('colonne-catalogue', [b.catalogue, b.bannis, b.possedees]),
     colonne('colonne-reglages', [b.conditions, b.sorts]),
-    colonne('colonne-scene colonne-perso', [b.personnage, b.simulations, b.candidats, b.panoplies]),
+    colonne('colonne-scene colonne-perso',
+      [b.personnage, b.simulations, b.proximite, b.candidats, b.panoplies]),
     colonne('colonne-chiffres', [
       b.principales, b.caracteristiques, b.secondaires,
       b.dommages, b.resistances,
@@ -149,8 +152,20 @@ export function appliquerDisposition(cle) {
 
   if (choix.plan) {
     const gardees = briques();
+    // Toutes les sections de depart, pour n'en perdre aucune en route.
+    const attendues = origine.flatMap(({ sections }) => sections);
+
     atelier.replaceChildren();
     choix.plan(atelier, gardees);
+
+    // Filet de securite : un plan liste ses sections a la main, et une section
+    // ajoutee au document sans etre ajoutee au plan disparaissait de l'ecran
+    // sans rien signaler. Celles que le plan a oubliees reviennent ici.
+    const oubliees = attendues.filter((section) => !atelier.contains(section));
+    if (oubliees.length > 0) {
+      const derniere = atelier.querySelector('.grille-atelier > .colonne:last-child') ?? atelier;
+      derniere.append(...oubliees);
+    }
   }
 
   // Le graphe se dessine dans un canvas : sa largeur vient de changer.

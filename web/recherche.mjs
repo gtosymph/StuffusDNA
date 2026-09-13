@@ -142,8 +142,8 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     // ferait porter un build qui ne correspond plus a ce qui est demande.
     suiviAuto = true;
     const depart = lireEtat();
-    if ((depart.candidats ?? []).length > 0 || (depart.paliers ?? []).length > 0) {
-      setEtat({ candidats: [], paliers: [] });
+    if ([depart.candidats, depart.paliers, depart.survie].some((liste) => (liste ?? []).length > 0)) {
+      setEtat({ candidats: [], paliers: [], survie: [] });
     }
 
     const fils = Math.max(1, Math.min(FILS_MAX, Number($('fils').value) || 1));
@@ -236,12 +236,13 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     );
 
     try {
-      const { best, candidats, paliers, abandonnee } = await recherche.promise;
+      const { best, candidats, paliers, survie, abandonnee } = await recherche.promise;
       // Un abandon jette la recherche : rien a appliquer, rien a garder.
       if (abandonnee) return;
       if (suiviAuto && best.score > meilleurApplique) appliquer(best);
       if (Array.isArray(candidats)) setEtat({ candidats });
       if (Array.isArray(paliers)) setEtat({ paliers });
+      if (Array.isArray(survie)) setEtat({ survie });
       // Une recherche mise en pause laisse une trace : c'est la version que
       // l'on voudra comparer au prochain essai.
       garderSimulation();

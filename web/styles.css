@@ -1116,6 +1116,7 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .palier.depart .palier-score { color: var(--faible); }
 
 .palier-degats { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--titre); }
+.palier-ecart { font-family: var(--chiffre); font-size: 11px; color: var(--faible); font-variant-numeric: tabular-nums; }
 .palier.depart .palier-degats { color: var(--faible); }
 
 /* Ce qu'un chiffre ne dit pas : une condition redressee, une condition perdue. */

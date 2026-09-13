@@ -150,6 +150,8 @@ export function etatInitial() {
     candidats: [],
     /** Meilleur build pour chaque nombre de pieces a acheter. */
     paliers: [],
+    /** Build le plus fort pour chaque tranche de points de vie. */
+    survie: [],
     options: {
       distance: false, arme: false, maitriseArme: true, passifs: true, toursSuivants: false,
       cibleTelefrag: false,

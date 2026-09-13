@@ -57,6 +57,25 @@ function fusionnerPaliers(runs) {
   return [...meilleurs.values()].sort((a, b) => a.changements - b.changements);
 }
 
+/**
+ * Fond les paliers de survie de tous les fils : pour chaque tranche de points
+ * de vie, le build le plus fort qu'un fil quelconque ait trouve. Aucune
+ * reduction ici non plus : la frontiere se prend a l'affichage.
+ *
+ * @param {any[]} runs
+ * @returns {any[]}
+ */
+function fusionnerSurvie(runs) {
+  const meilleurs = new Map();
+  for (const run of runs) {
+    for (const palier of run.survie ?? []) {
+      const connu = meilleurs.get(palier.tranche);
+      if (!connu || palier.damage > connu.damage) meilleurs.set(palier.tranche, palier);
+    }
+  }
+  return [...meilleurs.values()].sort((a, b) => a.tranche - b.tranche);
+}
+
 export function runSearch(request, { threads, onProgress, onWave }) {
   const fils = [];
   let arretEnvoye = false;
@@ -103,6 +122,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
         runs: retenus,
         candidats: archive.liste().map((entree) => entree.detail),
         paliers: fusionnerPaliers(retenus),
+        survie: fusionnerSurvie(retenus),
       });
     };
 
@@ -181,7 +201,7 @@ export function runSearch(request, { threads, onProgress, onWave }) {
       close = true;
       clearTimeout(minuteur);
       for (const { worker } of fils) worker.terminate();
-      resolve({ abandonnee: true, best: null, runs: [], candidats: [], paliers: [] });
+      resolve({ abandonnee: true, best: null, runs: [], candidats: [], paliers: [], survie: [] });
     };
   });
 

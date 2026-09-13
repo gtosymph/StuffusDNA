@@ -40,6 +40,7 @@ function briques() {
     recherche: document.querySelector('.bloc-recherche'),
     simulations: document.getElementById('bloc-simulations'),
     proximite: document.getElementById('bloc-proximite'),
+    survie: document.getElementById('bloc-survie'),
     candidats: document.getElementById('bloc-candidats'),
     possedees: bloc('#possedees'),
     panoplies: bloc('#panoplies'),
@@ -87,7 +88,7 @@ function planBandeau(atelier, b) {
     colonne('colonne-catalogue', [b.catalogue, b.bannis, b.possedees]),
     colonne('colonne-reglages', [b.conditions, b.sorts]),
     colonne('colonne-scene colonne-perso',
-      [b.personnage, b.simulations, b.proximite, b.candidats, b.panoplies]),
+      [b.personnage, b.simulations, b.proximite, b.survie, b.candidats, b.panoplies]),
     colonne('colonne-chiffres', [
       b.principales, b.caracteristiques, b.secondaires,
       b.dommages, b.resistances,

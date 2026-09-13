@@ -14,6 +14,10 @@ import { buildRankings, improve, indexerPanoplies } from './local-search.mjs';
 import { createIncrementalBuild } from './incremental.mjs';
 import { creerArchive } from './candidates.mjs';
 import { creerCompteur, creerPaliers, normaliserProximite } from './proximite.mjs';
+import {
+  creerPaliersSurvie, estTenable, noteSousPlafond, PAS_PDV, sansConditionsDeVie, trancheDe,
+  tranchesAVisiter,
+} from './survie.mjs';
 import { SCROLLABLE as SCROLLABLE_KEYS } from '../engine/characteristics.mjs';
 
 /**
@@ -38,6 +42,9 @@ export const MAX_VIOLATION_PENALTY = 1e6;
  * conforme mais irrealisable reste pire qu'un build simplement trop cher.
  */
 export const CHANGEMENT_PENALTY = 1e5;
+
+/** Tranches de vie sous le gagnant visitees par une descente dediee. */
+const TRANCHES_VISITEES = 4;
 
 /** Reglages par defaut, alignes sur un solveur interactif. */
 export const DEFAULT_OPTIONS = Object.freeze({
@@ -411,14 +418,15 @@ export function preparerRecherche(input) {
    * repartition, calculee sur ses seules pieces.
    *
    * @param {number[]} genome
+   * @param {object} [cible] Objectif servi par les points, celui de la recherche par defaut.
    * @returns {Record<string, number>}
    */
-  const allocationPour = (genome) => {
+  const allocationPour = (genome, cible = objective) => {
     const itemsRef = decode(genome, pools);
     const { stats: raw } = aggregate({ items: itemsRef, level, allocation: {}, scrolls, passives }, setById);
     // L'arme du build de reference compte dans les degats vises par les points.
     const { allocation } = optimiserAllocation({
-      raw, level, objective: { ...objective, spells: evaluate.spellsAvecArme(itemsRef) },
+      raw, level, objective: { ...cible, spells: evaluate.spellsAvecArme(itemsRef) },
     });
     return allocation;
   };
@@ -530,10 +538,17 @@ export function solve(input, options = {}, onProgress) {
   // changer. Ils ne se collectent que quand une reference est posee.
   const proximite = evaluate.proximite;
   const paliers = proximite ? creerPaliers(proximite) : null;
+  // Paliers de survie : le build le plus fort de chaque tranche de points de
+  // vie, parmi ceux qui tiennent tout sauf la vie. Ils n'ont de sens qu'en
+  // mode degats : en mode caracteristiques, il n'y a rien a echanger.
+  const survie = input.objective?.mode !== SEARCH_MODES.STATS ? creerPaliersSurvie() : null;
   const noterPalier = (genome) => {
-    if (!paliers) return;
+    if (!paliers && !survie) return;
     const vue = evaluate(genome);
-    paliers.proposer(genome, vue.score, vue.changements);
+    if (paliers) paliers.proposer(genome, vue.score, vue.changements);
+    if (survie && estTenable(vue)) {
+      survie.proposer(genome, { damage: vue.detail.damage, pdv: vue.stats.pdv });
+    }
   };
   let descentes = 0;
   let echecsSecousse = 0;
@@ -573,13 +588,15 @@ export function solve(input, options = {}, onProgress) {
     next.sort((a, b) => b.score - a.score);
     population = next;
 
-    // Les elites de chaque generation nourrissent les paliers : un build qui
-    // ne gagnera jamais la course peut tres bien etre le meilleur a deux
-    // pieces changees. L'evaluation passe par le cache, la lecture est libre.
-    if (paliers) {
-      for (let i = 0; i < settings.eliteCount && i < population.length; i += 1) {
-        noterPalier(population[i].genome);
-      }
+    // Chaque generation nourrit les paliers : un build qui ne gagnera jamais
+    // la course peut tres bien etre le meilleur a deux pieces changees. La
+    // survie regarde toute la population, pas seulement les elites : un build
+    // qui lache la vie pour frapper plus fort est penalise, il ne sera jamais
+    // elite, et la selection l'ecarte en une ou deux generations. Il n'existe
+    // qu'ici, le temps d'une mutation. L'evaluation passe par le cache.
+    if (paliers || survie) {
+      const regardes = survie ? population.length : Math.min(settings.eliteCount, population.length);
+      for (let i = 0; i < regardes; i += 1) noterPalier(population[i].genome);
     }
 
     if (population[0].score > best.score) {
@@ -658,6 +675,25 @@ export function solve(input, options = {}, onProgress) {
   const dernier = improve(best.genome, contexteLocal, { maxPasses: 4, candidatesPerSlot: 120 });
   if (dernier.score > best.score) best = { genome: dernier.genome, score: dernier.score };
 
+  // Les tranches de vie sous le gagnant recoivent une courte descente : la
+  // recherche n'y passe qu'en coup de vent, un build qui lache la vie est
+  // penalise et disparait en une generation. Le gagnant, allege sous un
+  // plafond de vie, donne une premiere lecture de la courbe des la premiere
+  // vague ; les vagues dediees du fil de calcul l'affinent ensuite.
+  if (survie) {
+    const gagnant = evaluate(best.genome);
+    const pente = Math.max(1, (gagnant.detail.damage ?? 0) / 1000);
+    for (const tranche of tranchesAVisiter(trancheDe(gagnant.stats.pdv), TRANCHES_VISITEES)) {
+      const plafond = (tranche + 1) * PAS_PDV - 1;
+      const affine = improve(best.genome, {
+        ...contexteLocal,
+        evaluate: (g) => ({ score: noteSousPlafond(evaluate(g), plafond, pente) }),
+        evaluateur: null,
+      }, { maxPasses: 2, candidatesPerSlot: 40 });
+      noterPalier(affine.genome);
+    }
+  }
+
   // Les points se recalent une derniere fois sur le build retenu.
   if (settings.optimiserPoints) repartirPoints(best);
 
@@ -669,7 +705,7 @@ export function solve(input, options = {}, onProgress) {
 
   // La population finale passe une derniere fois par les paliers : c'est la
   // qu'elle est la plus riche, et un palier bas peut n'avoir jamais ete elite.
-  if (paliers) {
+  if (paliers || survie) {
     for (const individu of population) noterPalier(individu.genome);
   }
 
@@ -679,10 +715,9 @@ export function solve(input, options = {}, onProgress) {
   // Cette repartition n'est pas un detail de confort. Note avec les points du
   // gagnant, un candidat aux pieces differentes manquait des conditions qu'il
   // savait tenir : il paraissait mauvais, et le porter le laissait en defaut.
-  const decrire = (genome) => {
-    const allocation = memeGenome(genome, best.genome)
-      ? porteur.allocation
-      : allocationPour(genome);
+  const decrire = (genome, allocationImposee = null) => {
+    const allocation = allocationImposee
+      ?? (memeGenome(genome, best.genome) ? porteur.allocation : allocationPour(genome));
     const vue = evaluate.complet(genome, allocation);
     return {
       genome: [...genome],
@@ -694,7 +729,18 @@ export function solve(input, options = {}, onProgress) {
       stats: vue.stats,
       allocation: { ...allocation },
       changements: vue.changements,
+      pdv: vue.stats.pdv,
+      tenable: estTenable(vue),
     };
+  };
+
+  // Les descriptions definitives se calculent une fois par genome : les
+  // paliers de proximite et de survie peuvent demander le meme build.
+  const definitifs = new Map();
+  const definitif = (genome) => {
+    const cle = genome.join(',');
+    if (!definitifs.has(cle)) definitifs.set(cle, decrire(genome));
+    return definitifs.get(cle);
   };
 
   const candidats = archive.liste().map(({ genome }) => decrire(genome));
@@ -710,17 +756,48 @@ export function solve(input, options = {}, onProgress) {
 
     // Les pretendants se departagent sur leur score definitif, celui de leur
     // propre repartition de points : c'est le seul que le joueur lira.
-    const definitifs = new Map();
-    const noter = (genome) => {
-      const cle = genome.join(',');
-      if (!definitifs.has(cle)) definitifs.set(cle, decrire(genome));
-      return definitifs.get(cle).score;
-    };
-
-    parPalier = paliers.liste(noter).map(({ genome, changements }) => ({
-      ...definitifs.get(genome.join(',')),
+    parPalier = paliers.liste((genome) => definitif(genome).score).map(({ genome, changements }) => ({
+      ...definitif(genome),
       changements,
     }));
+  }
+
+  // Les paliers de survie se decrivent avec des points qui servent les degats,
+  // pas la vie : la repartition ordinaire remonterait la vitalite jusqu'a la
+  // condition, et la courbe ne montrerait jamais ce que rapportent les points
+  // laches. Chaque build se relit alors dans sa vraie tranche. Le gagnant
+  // rejoint les pretendants, il est un build connu de la sienne.
+  let parSurvie = [];
+  if (survie) {
+    const sansVie = sansConditionsDeVie(input.objective);
+    const definitifsSurvie = new Map();
+    const decrireSurvie = (genome) => {
+      const cle = genome.join(',');
+      if (!definitifsSurvie.has(cle)) {
+        definitifsSurvie.set(cle, decrire(genome, allocationPour(genome, sansVie)));
+      }
+      return definitifsSurvie.get(cle);
+    };
+
+    const gagnant = decrireSurvie(best.genome);
+    if (gagnant.tenable) survie.proposer(best.genome, { damage: gagnant.damage, pdv: gagnant.pdv });
+    parSurvie = survie
+      .liste(decrireSurvie)
+      .filter((palier) => palier.tenable);
+
+    // Le gagnant tel qu'il est rendu, points de vie compris, marque le point
+    // de depart de la courbe : c'est de la que le joueur lache de la vie.
+    const reel = definitif(best.genome);
+    if (reel.tenable) {
+      const tranche = trancheDe(reel.pdv);
+      const occupant = parSurvie.findIndex((palier) => palier.tranche === tranche);
+      if (occupant < 0) parSurvie.push({ ...reel, tranche });
+      else if (reel.damage > parSurvie[occupant].damage) parSurvie[occupant] = { ...reel, tranche };
+    }
+
+    parSurvie = parSurvie
+      .sort((a, b) => a.tranche - b.tranche)
+      .map(({ tenable, ...palier }) => palier);
   }
 
   return {
@@ -735,6 +812,7 @@ export function solve(input, options = {}, onProgress) {
     history,
     candidats,
     paliers: parPalier,
+    survie: parSurvie,
     // Les meilleurs genomes repartent vers les autres fils.
     topGenomes: population.slice(0, 16).map((individu) => individu.genome),
     generations: generation,

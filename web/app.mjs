@@ -11,6 +11,7 @@ import { avatarDeClasse, CLASSES, emblemeDeClasse, nomDeClasse } from './classes
 import { ajouterSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from './proximite-panel.mjs';
+import { renderSurvie } from './survie-panel.mjs';
 import { defaultThreadCount } from './solver-client.mjs';
 import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
@@ -305,6 +306,7 @@ function render() {
 
   montrerCandidats(stats);
   montrerProximite();
+  montrerSurvie(stats);
   montrerAnalyse(stats);
 
   $('annuler').disabled = passe.length === 0;
@@ -559,6 +561,37 @@ function montrerProximite() {
         + `${nombre(Math.floor(palier.damage))} de degats.`, 'info');
     },
   });
+}
+
+/**
+ * Montre la courbe degats contre points de vie.
+ * @param {Record<string, number>|null} stats Statistiques du build porte.
+ */
+function montrerSurvie(stats) {
+  const bloc = $('bloc-survie');
+  const paliers = etat.survie ?? [];
+  // Le bloc n'a de sens qu'avec des degats a compter : en mode
+  // caracteristiques, il n'y a rien a echanger contre de la vie.
+  bloc.hidden = paliers.length === 0 || objectif(etat).mode !== SEARCH_MODES.DAMAGE;
+  if (bloc.hidden) return;
+
+  const porte = stats ? { pdv: stats.pdv, damage: scoreAffiche(etat, stats).damage } : null;
+  const montrees = renderSurvie($('survie'), paliers, {
+    porte,
+    portees: new Set([...etat.equipped.values()].map((piece) => piece.id)),
+    itemById: catalogue.itemById,
+    onPorter: (palier) => {
+      recherche.porterAlaMain(palier);
+      // Un palier sous la condition de vie la laisse en defaut : le joueur
+      // l'a choisi, mais il doit le lire tout de suite.
+      const tenu = palier.stats ? scoreAffiche(etat, palier.stats).satisfied : true;
+      message(`Build porte : ${nombre(Math.floor(palier.pdv))} points de vie, `
+        + `${nombre(Math.floor(palier.damage))} de degats.`
+        + (tenu ? '' : ' Votre condition de vie n\'est plus tenue : baissez-la si ce build vous convient.'),
+      tenu ? 'info' : 'alerte');
+    },
+  });
+  $('compte-survie').textContent = String(montrees);
 }
 
 /** Montre les autres builds trouves, avec ce qu'il faut changer pour chacun. */

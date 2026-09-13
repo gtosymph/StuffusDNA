@@ -12,6 +12,7 @@ import { STAT_KEYS } from '../src/data/stats.mjs';
 import { preparerRecherche, solve } from '../src/solver/genetic.mjs';
 import { creerArchive } from '../src/solver/candidates.mjs';
 import { reposApresVague } from '../src/solver/intensite.mjs';
+import { aConditionDeVie, objectifDeTranche, trancheDe, tranchesAVisiter } from '../src/solver/survie.mjs';
 
 /**
  * Generations par vague : le compromis entre reactivite et debit.
@@ -23,6 +24,20 @@ import { reposApresVague } from '../src/solver/intensite.mjs';
  * partagent les coeurs.
  */
 const GENERATIONS_PAR_VAGUE = 20;
+
+/**
+ * Une vague sur ce nombre part explorer une tranche de vie sous le gagnant.
+ *
+ * La recherche ordinaire ne descend jamais sous la condition de vie : un
+ * build qui lache la vie pour frapper plus fort est penalise et disparait.
+ * La courbe « degats ou survie » a pourtant besoin de ces builds, et une
+ * descente locale reste dix pour cent sous ce que le moteur genetique trouve.
+ * Une vague dediee, sous un plafond de vie, lui rend sa pleine force.
+ */
+const VAGUES_PAR_TRANCHE = 4;
+
+/** Tranches visitees sous celle du gagnant, en tournant. */
+const TRANCHES_VISITEES = 4;
 
 /** Le catalogue ne se charge qu'une fois par fil. */
 let catalogPromise = null;
@@ -81,16 +96,80 @@ async function chercher(request) {
   // vague en rend sa lecture, celle-ci garde le meilleur de chaque palier.
   const paliers = new Map();
 
+  // Les paliers de survie aussi : pour chaque tranche de points de vie, le
+  // build le plus fort vu au fil des vagues.
+  const survie = new Map();
+
   let allocation = request.allocation ?? {};
   let graines = [];
   let totalGenerations = 0;
   let meilleur = null;
   let vague = 0;
 
+  // Contexte et graines propres a chaque tranche de vie visitee : ils se
+  // preparent une fois et se gardent d'une visite a l'autre.
+  const tranches = new Map();
+  let visites = 0;
+  const survieUtile = aConditionDeVie(request.objective);
+
+  /**
+   * Explore une tranche de vie sous le gagnant : une vague ordinaire, sous un
+   * autre objectif. Seuls ses paliers de survie reviennent ; son gagnant ne
+   * repond pas a la demande du joueur et ne touche ni au personnage ni aux
+   * candidats.
+   */
+  const explorerTranche = (tranche) => {
+    if (!tranches.has(tranche)) {
+      const objective = objectifDeTranche(request.objective, tranche);
+      tranches.set(tranche, {
+        objective, contexte: preparerRecherche({ ...base, objective }), graines: [], allocation: {},
+      });
+    }
+    const piste = tranches.get(tranche);
+
+    const result = solve(
+      { ...base, objective: piste.objective, allocation: piste.allocation, contexte: piste.contexte,
+        seedGenomes: [...graines, ...piste.graines] },
+      {
+        ...request.options,
+        maxGenerations: GENERATIONS_PAR_VAGUE,
+        stagnationLimit: Number.POSITIVE_INFINITY,
+        optimiserPoints: true,
+        seed: (request.seed + 104729 * (visites + 1)) >>> 0,
+      },
+    );
+    piste.graines = result.topGenomes;
+    piste.allocation = result.allocation ?? piste.allocation;
+
+    // Ce qui se trouve sous le plafond sert aussi la recherche principale :
+    // un build qui tient la condition de vie de justesse y passe parfois
+    // mieux que par le chemin ordinaire. Ses meilleurs genomes rejoignent
+    // les migrants, la prochaine vague les juge sur le vrai objectif.
+    migrants.push(...result.topGenomes.slice(0, 4));
+
+    for (const palier of result.survie ?? []) {
+      const connu = survie.get(palier.tranche);
+      if (!connu || palier.damage > connu.damage) survie.set(palier.tranche, palier);
+    }
+  };
+
   while (!arretDemande) {
     const apports = migrants.splice(0, 8);
     const debut = totalGenerations;
     const departVague = Date.now();
+
+    // Une vague sur quatre part sous le gagnant, des qu'un gagnant existe.
+    if (survieUtile && meilleur && vague % VAGUES_PAR_TRANCHE === VAGUES_PAR_TRANCHE - 1) {
+      const aVisiter = tranchesAVisiter(trancheDe(meilleur.stats.pdv), TRANCHES_VISITEES);
+      if (aVisiter.length > 0) {
+        explorerTranche(aVisiter[visites % aVisiter.length]);
+        visites += 1;
+        vague += 1;
+        const repos = reposApresVague(Date.now() - departVague, request.intensite);
+        await new Promise((resolve) => setTimeout(resolve, repos));
+        continue;
+      }
+    }
 
     const result = solve(
       { ...base, allocation, seedGenomes: [...graines, ...apports], contexte },
@@ -124,6 +203,11 @@ async function chercher(request) {
       if (!connu || palier.score > connu.score) paliers.set(palier.changements, palier);
     }
 
+    for (const palier of result.survie ?? []) {
+      const connu = survie.get(palier.tranche);
+      if (!connu || palier.damage > connu.damage) survie.set(palier.tranche, palier);
+    }
+
     const resume = resumer(result);
     if (!meilleur || resume.score > meilleur.score) meilleur = resume;
 
@@ -151,6 +235,7 @@ async function chercher(request) {
     generations: totalGenerations,
     candidats: archive.liste().map((entree) => entree.detail),
     paliers: [...paliers.values()].sort((a, b) => a.changements - b.changements),
+    survie: [...survie.values()].sort((a, b) => a.tranche - b.tranche),
     ...(meilleur ?? { score: Number.NEGATIVE_INFINITY }),
   });
 }

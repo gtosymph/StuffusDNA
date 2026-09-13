@@ -3,6 +3,7 @@
  * parchemins et points de caracteristique.
  */
 import { emptyStats, STAT_KEYS } from '../data/stats.mjs';
+import { MENACE_DEFAUT, normaliserMenace, pdvEffectifs } from './defense.mjs';
 import { evaluateCriteria } from '../data/criteria.mjs';
 import { passiveBonuses } from '../data/passives.mjs';
 import { SCROLLABLE, SCROLL_BONUS, checkAllocation } from './characteristics.mjs';
@@ -121,9 +122,11 @@ export function aggregate({ items, level, allocation = {}, scrolls = {}, passive
  * Les formules ont ete verifiees contre les valeurs affichees en jeu.
  * @param {Record<string, number>} stats
  * @param {number} level
+ * @param {{coup: number, plafond: number, position: boolean}} [menace]
+ *   Modele d'adversaire qui sert aux points de vie effectifs.
  * @returns {Record<string, number>} Nouveau porteur, l'entree n'est pas modifiee.
  */
-export function derive(stats, level) {
+export function derive(stats, level, menace = MENACE_DEFAUT) {
   const out = { ...stats };
 
   // Un personnage gagne un point d'action au niveau cent : sans equipement,
@@ -135,6 +138,7 @@ export function derive(stats, level) {
   out.invocations = BASE.invocations + (stats.invocations ?? 0);
 
   out.pdv = BASE.vieFixe + BASE.vieParNiveau * level + (stats.vitalite ?? 0);
+  out.pdvEffectifs = pdvEffectifs(out.pdv, stats, menace);
   out.pods = BASE.pods + BASE.podsParForce * (stats.force ?? 0) + (stats.pods ?? 0);
   out.prospection = BASE.prospection + Math.floor((stats.chance ?? 0) / 10) + (stats.prospection ?? 0);
 
@@ -201,7 +205,7 @@ export function unequipableItems(items, stats, profile = {}) {
  */
 export function computeBuild(build, setById) {
   const { stats, sets, passives, allocation } = aggregate(build, setById);
-  const derived = derive(stats, build.level);
+  const derived = derive(stats, build.level, normaliserMenace(build.menace));
   const invalid = unequipableItems(build.items, derived, build.profile);
   return { stats: derived, raw: stats, sets, passives, allocation, invalid };
 }

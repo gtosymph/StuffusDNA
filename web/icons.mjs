@@ -5,7 +5,7 @@
 
 /** Code d'icone pour chaque statistique du moteur. */
 const CODE_PAR_STAT = Object.freeze({
-  pdv: 'vit', vitalite: 'vit', sagesse: 'sa', force: 'str', intelligence: 'int',
+  pdv: 'vit', pdvEffectifs: 'vit', vitalite: 'vit', sagesse: 'sa', force: 'str', intelligence: 'int',
   chance: 'cha', agilite: 'agi', puissance: 'pui',
 
   pa: 'pa', pm: 'pm', po: 'po', critique: 'cri', initiative: 'ini',

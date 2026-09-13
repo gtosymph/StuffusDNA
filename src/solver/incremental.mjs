@@ -53,11 +53,13 @@ function retirer(cible, source) {
  * @param {Record<string, boolean>} contexte.scrolls
  * @param {Map<number, Record<string, number>>|null} contexte.passives
  * @param {{classe?: number, sexe?: number}} [contexte.profile]
+ * @param {{coup: number, plafond: number, position: boolean}} [contexte.menace]
+ *   Modele d'adversaire des points de vie effectifs.
  * @returns {{rebaser: (genome: number[]) => void,
  *            calculer: (genome: number[]) => {stats: any, raw: any, items: any[], invalid: any[]}}}
  */
 export function createIncrementalBuild({
-  pools, setById, level, porteur, scrolls, passives, profile = {},
+  pools, setById, level, porteur, scrolls, passives, profile = {}, menace = undefined,
 }) {
   let genomeBase = null;
   let rawBase = null;
@@ -126,7 +128,7 @@ export function createIncrementalBuild({
     }
 
     const items = decode(genome, pools);
-    const stats = derive(raw, level);
+    const stats = derive(raw, level, menace);
     const invalid = unequipableItems(items, stats, profile);
 
     return { stats, raw, items, invalid };

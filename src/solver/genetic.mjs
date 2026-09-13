@@ -15,7 +15,8 @@ import { createIncrementalBuild } from './incremental.mjs';
 import { creerArchive } from './candidates.mjs';
 import { creerCompteur, creerPaliers, normaliserProximite } from './proximite.mjs';
 import {
-  creerPaliersSurvie, estTenable, noteSousPlafond, PAS_PDV, sansConditionsDeVie, trancheDe,
+  creerPaliersSurvie, estTenable, noteSousPlafond, PAS_ENDURANCE, sansConditionsDeVie,
+  STAT_ENDURANCE, trancheDe,
   tranchesAVisiter,
 } from './survie.mjs';
 import { SCROLLABLE as SCROLLABLE_KEYS } from '../engine/characteristics.mjs';
@@ -190,7 +191,8 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
 
     const items = decode(genome, pools);
     const { stats, invalid } = computeBuild(
-      { items, level, allocation: porteur.allocation, scrolls, passives, profile }, setById,
+      { items, level, allocation: porteur.allocation, scrolls, passives, profile,
+        menace: objective?.menace }, setById,
     );
     const resultat = noterBuild(items, stats, invalid);
 
@@ -205,14 +207,16 @@ export function createEvaluator({ pools, setById, level, porteur, scrolls, passi
   evaluate.complet = (genome, allocation = porteur.allocation) => {
     const items = decode(genome, pools);
     const { stats, invalid } = computeBuild(
-      { items, level, allocation, scrolls, passives, profile }, setById,
+      { items, level, allocation, scrolls, passives, profile, menace: objective?.menace }, setById,
     );
     return noterBuild(items, stats, invalid, AVEC_DETAILS);
   };
 
   evaluate.invalidate = () => { cache.clear(); };
   evaluate.incremental = () => {
-    const delta = createIncrementalBuild({ pools, setById, level, porteur, scrolls, passives, profile });
+    const delta = createIncrementalBuild({
+      pools, setById, level, porteur, scrolls, passives, profile, menace: objective?.menace,
+    });
     return {
       noter: (genome) => {
         const { stats, items, invalid } = delta.calculer(genome);
@@ -547,7 +551,7 @@ export function solve(input, options = {}, onProgress) {
     const vue = evaluate(genome);
     if (paliers) paliers.proposer(genome, vue.score, vue.changements);
     if (survie && estTenable(vue)) {
-      survie.proposer(genome, { damage: vue.detail.damage, pdv: vue.stats.pdv });
+      survie.proposer(genome, { damage: vue.detail.damage, endurance: vue.stats[STAT_ENDURANCE] });
     }
   };
   let descentes = 0;
@@ -675,16 +679,16 @@ export function solve(input, options = {}, onProgress) {
   const dernier = improve(best.genome, contexteLocal, { maxPasses: 4, candidatesPerSlot: 120 });
   if (dernier.score > best.score) best = { genome: dernier.genome, score: dernier.score };
 
-  // Les tranches de vie sous le gagnant recoivent une courte descente : la
+  // Les tranches d'endurance sous le gagnant recoivent une courte descente : la
   // recherche n'y passe qu'en coup de vent, un build qui lache la vie est
   // penalise et disparait en une generation. Le gagnant, allege sous un
-  // plafond de vie, donne une premiere lecture de la courbe des la premiere
+  // plafond d'endurance, donne une premiere lecture de la courbe des la premiere
   // vague ; les vagues dediees du fil de calcul l'affinent ensuite.
   if (survie) {
     const gagnant = evaluate(best.genome);
     const pente = Math.max(1, (gagnant.detail.damage ?? 0) / 1000);
-    for (const tranche of tranchesAVisiter(trancheDe(gagnant.stats.pdv), TRANCHES_VISITEES)) {
-      const plafond = (tranche + 1) * PAS_PDV - 1;
+    for (const tranche of tranchesAVisiter(trancheDe(gagnant.stats[STAT_ENDURANCE]), TRANCHES_VISITEES)) {
+      const plafond = (tranche + 1) * PAS_ENDURANCE - 1;
       const affine = improve(best.genome, {
         ...contexteLocal,
         evaluate: (g) => ({ score: noteSousPlafond(evaluate(g), plafond, pente) }),
@@ -730,6 +734,7 @@ export function solve(input, options = {}, onProgress) {
       allocation: { ...allocation },
       changements: vue.changements,
       pdv: vue.stats.pdv,
+      endurance: vue.stats[STAT_ENDURANCE],
       tenable: estTenable(vue),
     };
   };
@@ -780,7 +785,9 @@ export function solve(input, options = {}, onProgress) {
     };
 
     const gagnant = decrireSurvie(best.genome);
-    if (gagnant.tenable) survie.proposer(best.genome, { damage: gagnant.damage, pdv: gagnant.pdv });
+    if (gagnant.tenable) {
+      survie.proposer(best.genome, { damage: gagnant.damage, endurance: gagnant.endurance });
+    }
     parSurvie = survie
       .liste(decrireSurvie)
       .filter((palier) => palier.tenable);
@@ -789,7 +796,7 @@ export function solve(input, options = {}, onProgress) {
     // de depart de la courbe : c'est de la que le joueur lache de la vie.
     const reel = definitif(best.genome);
     if (reel.tenable) {
-      const tranche = trancheDe(reel.pdv);
+      const tranche = trancheDe(reel.endurance);
       const occupant = parSurvie.findIndex((palier) => palier.tranche === tranche);
       if (occupant < 0) parSurvie.push({ ...reel, tranche });
       else if (reel.damage > parSurvie[occupant].damage) parSurvie[occupant] = { ...reel, tranche };

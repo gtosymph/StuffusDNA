@@ -84,7 +84,7 @@ export function optimiserAllocation({ raw, level, objective }) {
     for (const c of SCROLLABLE) {
       if (alloc[c] > 0) porteur[c] = (porteur[c] ?? 0) + alloc[c];
     }
-    return derive(porteur, level);
+    return derive(porteur, level, objective.menace);
   };
 
   const scoreDe = (alloc) => {

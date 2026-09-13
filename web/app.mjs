@@ -568,7 +568,9 @@ function montrerSurvie(stats) {
   bloc.hidden = paliers.length === 0 || objectif(etat).mode !== SEARCH_MODES.DAMAGE;
   if (bloc.hidden) return;
 
-  const porte = stats ? { pdv: stats.pdv, damage: scoreAffiche(etat, stats).damage } : null;
+  const porte = stats
+    ? { pdv: stats.pdv, endurance: stats.pdvEffectifs, damage: scoreAffiche(etat, stats).damage }
+    : null;
   const montrees = renderSurvie($('survie'), paliers, {
     porte,
     portees: new Set([...etat.equipped.values()].map((piece) => piece.id)),
@@ -579,6 +581,7 @@ function montrerSurvie(stats) {
       // l'a choisi, mais il doit le lire tout de suite.
       const tenu = palier.stats ? scoreAffiche(etat, palier.stats).satisfied : true;
       message(`Build porte : ${nombre(Math.floor(palier.pdv))} points de vie, `
+        + `${nombre(Math.floor(palier.endurance))} une fois les resistances comptees, `
         + `${nombre(Math.floor(palier.damage))} de degats.`
         + (tenu ? '' : ' Votre condition de vie n\'est plus tenue : baissez-la si ce build vous convient.'),
       tenu ? 'info' : 'alerte');

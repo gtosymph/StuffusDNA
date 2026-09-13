@@ -63,7 +63,8 @@ export function apportsPieces(items, contexte) {
 
   const noter = (portees) => {
     const { stats } = computeBuild(
-      { items: portees, level, allocation, scrolls, passives, profile }, setById,
+      { items: portees, level, allocation, scrolls, passives, profile, menace: objective?.menace },
+      setById,
     );
     return scoreBuild(stats, objective);
   };

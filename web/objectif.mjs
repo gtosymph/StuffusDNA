@@ -8,6 +8,7 @@
  */
 import { STAT_KEYS } from '../src/data/stats.mjs';
 import { computeBuild } from '../src/engine/build.mjs';
+import { normaliserMenace } from '../src/engine/defense.mjs';
 import { weaponAttack } from '../src/engine/damage.mjs';
 import { normalizePassives } from '../src/data/passives.mjs';
 import { configPassifsDefaut } from '../src/data/passives-defaults.mjs';
@@ -106,9 +107,27 @@ export function buildCourant(etat, catalogue) {
       scrolls: etat.scrolls,
       passives: passifsActifs(etat),
       profile: profilDe(etat),
+      menace: menaceDe(etat),
     },
     catalogue.setById,
   );
+}
+
+/**
+ * Modele d'adversaire tire des reglages.
+ *
+ * Il sert aux points de vie effectifs : sans lui, une resistance ne se compare
+ * a rien. Le reglage voyage avec l'objectif, parce que le solveur, la fiche de
+ * personnage et la courbe doivent lire la meme valeur.
+ *
+ * @param {any} etat
+ */
+export function menaceDe(etat) {
+  return normaliserMenace({
+    coup: etat.options.menaceCoup,
+    plafond: etat.options.menacePlafond,
+    position: etat.options.menacePosition !== false,
+  });
 }
 
 /**
@@ -119,6 +138,9 @@ export function objectif(etat) {
   const enDegats = etat.sorts.length > 0 || etat.options.arme;
   return {
     conditions: etat.conditions,
+    // Modele d'adversaire : il decide de la valeur en vie d'une resistance,
+    // donc de tout l'axe « degats ou survie ».
+    menace: menaceDe(etat),
     spells: sortsCalcules(etat),
     // Le solveur ajoute lui-meme l'attaque de l'arme de chaque build essaye.
     useWeapon: etat.options.arme,

@@ -12,7 +12,9 @@ import { STAT_KEYS } from '../src/data/stats.mjs';
 import { preparerRecherche, solve } from '../src/solver/genetic.mjs';
 import { creerArchive } from '../src/solver/candidates.mjs';
 import { reposApresVague } from '../src/solver/intensite.mjs';
-import { aConditionDeVie, objectifDeTranche, trancheDe, tranchesAVisiter } from '../src/solver/survie.mjs';
+import {
+  aConditionDeVie, objectifDeTranche, STAT_ENDURANCE, trancheDe, tranchesAVisiter,
+} from '../src/solver/survie.mjs';
 
 /**
  * Generations par vague : le compromis entre reactivite et debit.
@@ -160,7 +162,7 @@ async function chercher(request) {
 
     // Une vague sur quatre part sous le gagnant, des qu'un gagnant existe.
     if (survieUtile && meilleur && vague % VAGUES_PAR_TRANCHE === VAGUES_PAR_TRANCHE - 1) {
-      const aVisiter = tranchesAVisiter(trancheDe(meilleur.stats.pdv), TRANCHES_VISITEES);
+      const aVisiter = tranchesAVisiter(trancheDe(meilleur.stats[STAT_ENDURANCE]), TRANCHES_VISITEES);
       if (aVisiter.length > 0) {
         explorerTranche(aVisiter[visites % aVisiter.length]);
         visites += 1;

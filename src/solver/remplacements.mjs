@@ -76,13 +76,19 @@ export function meilleursRemplacements(items, contexte) {
   } = contexte;
 
   const noter = (portees) => {
-    const { stats, invalid } = computeBuild({ items: portees, level, allocation, scrolls, passives, profile }, setById);
+    const { stats, invalid } = computeBuild(
+      { items: portees, level, allocation, scrolls, passives, profile, menace: objective?.menace },
+      setById,
+    );
     if (invalid.length > 0 || maxViolations(objective.conditions, stats).length > 0) return null;
     return scoreBuild(stats, objective, SANS_DETAILS);
   };
 
   const base = noter(items) ?? scoreBuild(
-    computeBuild({ items, level, allocation, scrolls, passives, profile }, setById).stats, objective, SANS_DETAILS,
+    computeBuild(
+      { items, level, allocation, scrolls, passives, profile, menace: objective?.menace },
+      setById,
+    ).stats, objective, SANS_DETAILS,
   );
 
   // Un echange vaut s'il tient les conditions et frappe plus fort ; ou, quand

@@ -77,6 +77,19 @@ export const OPTIONS = Object.freeze([
   { cle: 'comboUnLancer', libelle: '1 seul lancer par sort',
     aide: 'Coche : le combo lance chaque sort au plus une fois.\n'
       + 'La case « 1 max au combo » d\'un sort donne la meme limite, sort par sort.' },
+  { cle: 'menaceCoup', libelle: 'Coup de reference', type: 'nombre', min: 50, max: 2000,
+    aide: 'Degats bruts du coup type que vous prenez. Il sert a peser vos\n'
+      + 'resistances fixes dans les « Pdv effectifs » : 30 de resistance fixe\n'
+      + 'enleve 10 % d\'un coup de 300, mais 20 % d\'un coup de 150.\n'
+      + 'Baissez-le si vous prenez beaucoup de petits coups.' },
+  { cle: 'menacePlafond', libelle: 'Plafond de resistance (%)', type: 'nombre', min: 0, max: 100,
+    aide: 'Le jeu plafonne chaque resistance en pourcentage a 50 pour un joueur.\n'
+      + 'Au-dela, le calcul ignore le surplus. Montez-le a 60 si vous voulez\n'
+      + 'garder une marge contre les vulnerabilites.' },
+  { cle: 'menacePosition', libelle: 'Compter melee et distance',
+    aide: 'Compte vos resistances melee et distance, moitie chacune : votre\n'
+      + 'adversaire frappe tantot au contact, tantot de loin.\n'
+      + 'Decoche : seuls les cinq elements comptent.' },
 ]);
 
 /** Options numeriques qui n'ont de sens que quand le combo est actif. */
@@ -160,6 +173,8 @@ export function etatInitial() {
       armePaMin: 0, armePaMax: 0, armeLancersMin: 0,
       armePortee: '', armePorteeMin: 0,
       armeElementsMin: 0, armeElementsMax: 0,
+      // Modele d'adversaire qui sert aux points de vie effectifs.
+      menaceCoup: 300, menacePlafond: 50, menacePosition: true,
     },
     allocation: { ...ALLOCATION_VIDE },
     // Valeur maximale que la recherche investit par caracteristique. `null` dit

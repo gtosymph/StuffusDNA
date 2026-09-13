@@ -14,7 +14,7 @@
 export const PRINCIPALES = Object.freeze([
   ['pa', 'PA'], ['pm', 'PM'],
   ['po', 'PO'], ['invocations', 'Invocations'],
-  ['pdv', 'Pdv'], ['initiative', 'Initiative'],
+  ['pdv', 'Pdv'], ['pdvEffectifs', 'Pdv effectifs'], ['initiative', 'Initiative'],
   ['critique', '% Critique'], ['prospection', 'Prospection'],
 ]);
 

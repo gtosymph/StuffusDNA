@@ -37,6 +37,10 @@ export const STATS = Object.freeze([
   { key: 'initiative', fr: 'Initiative', category: 'principales' },
   { key: 'prospection', fr: 'Prospection', category: 'principales' },
   { key: 'invocations', fr: 'Invocations', category: 'principales' },
+  // Statistique derivee : la vie une fois les resistances comptees. Elle vit
+  // dans cette liste pour etre posable en condition et lisible dans la fiche ;
+  // aucun item ne la porte, c'est derive() qui la calcule.
+  { key: 'pdvEffectifs', fr: 'Pdv effectifs', category: 'principales' },
 
   // Secondaires
   { key: 'fuite', fr: 'Fuite', category: 'secondaires' },

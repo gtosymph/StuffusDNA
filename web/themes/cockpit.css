@@ -120,7 +120,9 @@
 
 /* ---------- Barre d'identite ---------- */
 
-.barre { background: var(--fond); border-bottom: 1px solid var(--bord); padding: 0 20px; height: 47px; }
+/* `min-height` et non `height` : sur un telephone la barre s'enroule sur deux
+   lignes, et une hauteur figee la faisait recouvrir le haut de la page. */
+.barre { background: var(--fond); border-bottom: 1px solid var(--bord); padding: 0 20px; min-height: 47px; }
 .logo { font: 700 14px/1 var(--police); letter-spacing: -.01em; }
 .losange { width: 8px; height: 8px; border-radius: 50%; transform: none; }
 .barre-info { border-color: var(--bord); color: #5f6971; }

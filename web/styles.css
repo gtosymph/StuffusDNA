@@ -420,6 +420,17 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); }
 @media (max-width: 700px) {
   body { font-size: 13px; }
   .barre-info { display: none; }
+
+  /* La barre ne tient pas sur une ligne : logo, menus et reglages se
+     partageaient 514 px pour 386 disponibles, et la page defilait de cote.
+     Elle s'enroule donc, et les deux etiquettes decoratives — le compte
+     d'items, que le catalogue redit, et le numero de version — s'effacent. */
+  .barre { flex-wrap: wrap; gap: 8px; padding: 6px 8px; }
+  .logo { font-size: 13px; white-space: nowrap; }
+  .barre-menus { flex: 1 1 auto; justify-content: flex-end; }
+  .barre-actions { flex: 1 1 100%; }
+  .barre-actions select { flex: 1 1 0; min-width: 0; }
+  .barre-actions .etiquette { display: none; }
   input, select, button { padding: 8px 9px; }
   .onglets button { padding: 6px 10px; font-size: 11px; }
   .rangee-reglages { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -427,6 +438,24 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); }
   .case-slot { width: 100%; height: auto; aspect-ratio: 1; }
   .colonne-slots { grid-template-columns: repeat(5, 1fr); }
   .scene { grid-template-columns: 1fr; }
+  /* La rangee des artefacts est un flex : ses cases, passees en largeur
+     pleine, prenaient chacune toute la page — six carres de 345 px a la
+     file. Une grille de six colonnes leur rend la taille des autres cases. */
+  .rangee-artefacts { display: grid; grid-template-columns: repeat(6, 1fr); }
+
+  /* Cibles tactiles : au doigt, une ligne de 17 px se rate une fois sur
+     deux et le clic tombe sur la voisine. Tout ce qui se clique prend donc
+     au moins 32 px de haut, sans changer la mise en page a la souris. */
+  .paires dt.cliquable { min-height: 32px; }
+  .bloc > h2[role="button"] { min-height: 32px; margin-bottom: 4px; }
+  .mini { min-height: 30px; min-width: 30px; }
+  .mini.large { min-height: 32px; }
+  table.conditions .mini { padding: 4px 8px; font-size: 14px; }
+  .simulation-favori { min-height: 30px; min-width: 30px; font-size: 15px; }
+  input[type="checkbox"] { width: 18px; height: 18px; }
+  .objectif-mesure { min-height: 32px; }
+  .bascule-tiroir { min-height: 32px; }
+  .option.liste select, .option.nombre input { min-height: 30px; }
 }
 
 

@@ -121,4 +121,10 @@
   .grille-atelier .colonne-catalogue { position: static; }
   .atelier > .bloc-recherche { grid-template-columns: minmax(0, 1fr); }
   .atelier > .bloc-recherche > * { grid-column: 1 !important; }
+  /* Les reglages de la recherche restaient sur une seule ligne : le nombre
+     de fils, l'intensite et les trois commandes sortaient de l'ecran d'un
+     telephone. Ils s'enroulent, et les commandes prennent la largeur. */
+  .atelier > .bloc-recherche > .rangee-reglages { flex-wrap: wrap; }
+  .atelier > .bloc-recherche > .rangee-reglages > div { flex: 1 1 auto; min-width: 0; }
+  .atelier > .bloc-recherche > .rangee-reglages button { flex: 1 1 auto; }
 }

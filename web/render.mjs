@@ -293,8 +293,10 @@ export function renderConditions(root, conditions, stats, libelles, options) {
       ? 1
       : Math.min(1, Math.max(0, valeur / condition.target));
 
-    const champ = (cle, titre) => el('input', {
-      type: 'number', value: String(condition[cle] ?? ''), title: titre, placeholder: titre,
+    // Le place-tenant reste court : dans une colonne etroite de telephone,
+    // « Maximum » se coupait en plein mot. L'infobulle porte le nom entier.
+    const champ = (cle, titre, court = titre) => el('input', {
+      type: 'number', value: String(condition[cle] ?? ''), title: titre, placeholder: court,
       onChange: (ev) => onChange(index, cle, Number(ev.target.value)),
     });
 
@@ -307,7 +309,7 @@ export function renderConditions(root, conditions, stats, libelles, options) {
           el('span', { style: `width:${Math.round(part * 100)}%` }))),
       el('td', {}, champ('target', 'Objectif')),
       el('td', {}, champ('weight', 'Poids')),
-      el('td', {}, champ('max', 'Maximum')),
+      el('td', {}, champ('max', 'Maximum', 'Max')),
       el('td', {}, el('button', {
         class: 'mini', type: 'button', 'aria-pressed': String(Boolean(condition.absolute)),
         title: 'Maximum absolu : le solveur ne le franchit pas', text: 'A',

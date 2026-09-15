@@ -7,6 +7,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { extname, join, normalize } from 'node:path';
+import { createGzip } from 'node:zlib';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const PORT = Number(process.env.PORT ?? 4173);
@@ -29,13 +30,72 @@ const MIME = {
   '.svg': 'image/svg+xml',
 };
 
-/** Envoie un fichier avec son type et sa taille. */
-function envoyer(response, chemin, info) {
-  response.writeHead(200, {
+/**
+ * Types compresses a la volee.
+ *
+ * Le catalogue pese 3,7 Mo de JSON, recharges a chaque ouverture de la page.
+ * Sur un telephone en 4G, cela faisait plusieurs secondes d'attente blanche.
+ * Gzip fait tomber du JSON d'environ 85 %.
+ */
+const COMPRESSIBLES = new Set(['.html', '.css', '.mjs', '.js', '.json', '.svg']);
+
+/** En dessous, la compression coute plus qu'elle ne rapporte. */
+const SEUIL_COMPRESSION = 1024;
+
+/**
+ * Marque de version d'un fichier : sa taille et sa date de modification.
+ *
+ * Elle sert la revalidation. Le navigateur renvoie la marque qu'il garde, et
+ * le serveur repond « rien n'a change » sans renvoyer le corps. Le catalogue
+ * ne repasse donc plus sur le reseau tant qu'il ne bouge pas, tout en restant
+ * juste des qu'un script d'ingestion le reconstruit.
+ */
+function marque(info) {
+  return `"${info.size.toString(36)}-${Math.round(info.mtimeMs).toString(36)}"`;
+}
+
+/**
+ * Envoie un fichier : compresse quand le client l'accepte, revalidable
+ * toujours.
+ *
+ * @param {import('node:http').IncomingMessage} request
+ * @param {import('node:http').ServerResponse} response
+ * @param {string} chemin
+ * @param {import('node:fs').Stats} info
+ */
+function envoyer(request, response, chemin, info) {
+  const etag = marque(info);
+
+  // « no-cache » n'interdit pas le cache : il impose de demander avant de
+  // servir. C'est ce qu'il faut ici, car les fichiers changent sous le
+  // serveur pendant le developpement.
+  const entetes = {
     'content-type': MIME[extname(chemin)] ?? 'application/octet-stream',
-    'content-length': info.size,
-  });
-  createReadStream(chemin).pipe(response);
+    'cache-control': 'no-cache',
+    etag,
+  };
+
+  if (request.headers['if-none-match'] === etag) {
+    response.writeHead(304, entetes).end();
+    return;
+  }
+
+  const accepte = String(request.headers['accept-encoding'] ?? '').includes('gzip');
+  const compresser = accepte
+    && COMPRESSIBLES.has(extname(chemin))
+    && info.size >= SEUIL_COMPRESSION;
+
+  if (!compresser) {
+    response.writeHead(200, { ...entetes, 'content-length': info.size });
+    createReadStream(chemin).pipe(response);
+    return;
+  }
+
+  // La taille compressee n'est pas connue a l'avance : la reponse part en
+  // morceaux, sans content-length. « vary » evite qu'un cache partage serve
+  // du gzip a un client qui ne le lit pas.
+  response.writeHead(200, { ...entetes, 'content-encoding': 'gzip', vary: 'accept-encoding' });
+  createReadStream(chemin).pipe(createGzip()).pipe(response);
 }
 
 const server = createServer(async (request, response) => {
@@ -78,7 +138,7 @@ const server = createServer(async (request, response) => {
         response.writeHead(404).end('Fichier absent.');
         return;
       }
-      return envoyer(response, index, infoIndex);
+      return envoyer(request, response, index, infoIndex);
     }
 
     if (!info.isFile()) {
@@ -86,7 +146,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    envoyer(response, target, info);
+    envoyer(request, response, target, info);
   } catch {
     response.writeHead(404).end('Fichier absent.');
   }

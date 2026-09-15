@@ -1,0 +1,28 @@
+# Garde-fou du projet : rien ne part sans les tests ET le banc de convergence.
+#
+# Le banc compte autant que les tests. Une regression de convergence ne casse
+# aucun test : le solveur rend toujours un build, simplement moins bon. Sans
+# cette garde, la qualite baisse sans que rien ne le dise.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Le projet n'a aucune dependance : il n'y a rien a installer.
+      - name: Tests
+        run: npm test
+
+      - name: Banc de convergence
+        run: npm run bench:gate

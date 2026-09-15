@@ -410,6 +410,21 @@ function renderStats(build, stats) {
   const suivies = new Set(etat.conditions.map((c) => c.stat));
   const options = { suivies, onPick: suivreStat };
 
+  // Le mode vit avec les deux mesures qu'il arbitre : il dit laquelle la
+  // recherche pousse, elles disent ou en est le build.
+  $('mode-recherche').value = etat.mode;
+
+  // Le curseur n'a de sens qu'en mode mixte : ailleurs, la part vaut zero ou
+  // un, et le montrer laisserait croire qu'il change quelque chose.
+  const poids = $('poids');
+  poids.hidden = etat.mode !== 'mixte';
+  if (!poids.hidden) {
+    renderPoids(poids, {
+      part: etat.partDegats,
+      onChanger: (part) => setEtat({ partDegats: part }),
+    });
+  }
+
   renderObjectifs($('objectifs'), {
     valeurs: stats
       ? { pdvEffectifs: stats.pdvEffectifs ?? 0, degatsTotaux: scoreAffiche(etat, stats).damage }
@@ -458,19 +473,6 @@ function renderPersonnage(stats) {
 }
 
 function renderConditionsEtSorts(stats) {
-  $('mode-recherche').value = etat.mode;
-
-  // Le curseur n'a de sens qu'en mode mixte : ailleurs, la part vaut zero ou
-  // un, et le montrer laisserait croire qu'il change quelque chose.
-  const bloc = $('poids');
-  bloc.hidden = etat.mode !== 'mixte';
-  if (!bloc.hidden) {
-    renderPoids(bloc, {
-      part: etat.partDegats,
-      onChanger: (part) => setEtat({ partDegats: part }),
-    });
-  }
-
   $('compte-conditions').textContent = String(etat.conditions.length);
   vue.renderConditions($('corps-conditions'), etat.conditions, stats, STAT_LABELS, {
     onChange: changerCondition,
@@ -649,7 +651,11 @@ function montrerSurvie(stats) {
 
   // Le bloc n'a de sens qu'avec des degats a compter : en mode
   // caracteristiques, il n'y a rien a echanger contre de la vie.
-  bloc.hidden = paliers.length === 0 || mode === SEARCH_MODES.STATS;
+  //
+  // Il se montre en revanche AVANT la premiere recherche, avec son invite :
+  // cache tant qu'il n'a pas de paliers, il n'existait que pour qui savait
+  // deja qu'il existait.
+  bloc.hidden = mode === SEARCH_MODES.STATS;
   if (bloc.hidden) return;
 
   const porte = stats

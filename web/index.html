@@ -101,6 +101,17 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
   <div class="colonne colonne-stats">
     <section class="bloc">
       <h2>A viser</h2>
+      <label class="rangee-mode" for="mode-recherche"
+        title="Ce que la recherche maximise. Les conditions bornent le reste.">
+        <span>Maximiser</span>
+        <select id="mode-recherche">
+          <option value="degats">Les degats</option>
+          <option value="endurance">Les pdv effectifs</option>
+          <option value="mixte">Les deux (mixte)</option>
+          <option value="caracteristiques">Les caracteristiques</option>
+        </select>
+      </label>
+      <div class="poids" id="poids" hidden></div>
       <div class="objectifs" id="objectifs"></div>
     </section>
 
@@ -130,17 +141,6 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
 
     <section class="bloc">
       <h2>Conditions <span class="compteur" id="compte-conditions">0</span></h2>
-      <label class="rangee-mode" for="mode-recherche"
-        title="Ce que la recherche maximise. Les conditions bornent le reste.">
-        <span>Maximiser</span>
-        <select id="mode-recherche">
-          <option value="degats">Les degats</option>
-          <option value="endurance">Les pdv effectifs</option>
-          <option value="mixte">Les deux (mixte)</option>
-          <option value="caracteristiques">Les caracteristiques</option>
-        </select>
-      </label>
-      <div class="poids" id="poids" hidden></div>
       <div class="defilable">
         <table class="conditions">
           <tbody id="corps-conditions"></tbody>

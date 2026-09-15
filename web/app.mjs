@@ -8,10 +8,12 @@
  */
 import { loadCatalog } from './catalog-web.mjs';
 import { avatarDeClasse, CLASSES, emblemeDeClasse, nomDeClasse } from './classes.mjs';
-import { ajouterSimulation } from './simulations.mjs';
+import { ajouterSimulation, libelle as libelleSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
+import { referenceDepuisSimulation } from './reference.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from './proximite-panel.mjs';
 import { renderSurvie } from './survie-panel.mjs';
+import { renderPoids } from './poids-panel.mjs';
 import { renderAnalyse } from './analyse-panel.mjs';
 import { defaultThreadCount } from './solver-client.mjs';
 import * as vue from './render.mjs';
@@ -202,7 +204,9 @@ function figerReference() {
   // Un build pose par le solveur ne porte aucune piece marquee « a la main ».
   const duSolveur = etat.posees.size === 0 && (etat.candidats ?? []).length > 0;
 
-  setEtat({ reference: { itemIds, date: new Date().toISOString() } });
+  // Les paliers d'avant comptaient les achats face a l'ANCIENNE reference :
+  // gardes, ils annonceraient des gains qui ne veulent plus rien dire.
+  setEtat({ reference: { itemIds, date: new Date().toISOString() }, paliers: [] });
   message(duSolveur
     ? `Stuff de reference fige : ${itemIds.length} piece(s). Attention, ce build `
       + 'vient du solveur : aucun achat ne le battra. Posez votre stuff de jeu '
@@ -210,6 +214,29 @@ function figerReference() {
     : `Stuff de reference fige : ${itemIds.length} piece(s). `
       + 'Le solveur compte maintenant ce que chaque build demande d\'acheter.',
   duSolveur ? 'alerte' : 'info');
+}
+
+/**
+ * Fige le stuff d'une simulation gardee comme stuff porte en jeu.
+ *
+ * Le stuff porte en jeu se garde d'ordinaire comme une simulation avant d'en
+ * essayer d'autres. Sans ce geste, le reprendre demandait de le remettre en
+ * place, de le figer, puis de revenir a l'essai en cours : trois pas et une
+ * perte du build courant pour une seule intention.
+ *
+ * @param {any} simulation
+ */
+function figerSimulation(simulation) {
+  const reference = referenceDepuisSimulation(simulation);
+  if (!reference) {
+    message('Cette simulation ne porte aucune piece : rien a figer.', 'alerte');
+    return;
+  }
+
+  // Les paliers d'avant comptaient les achats face a l'ANCIENNE reference.
+  setEtat({ reference, paliers: [] });
+  message(`Stuff de reference fige sur « ${libelleSimulation(simulation, nomDeClasse)} » : `
+    + `${reference.itemIds.length} piece(s). Le build porte ne bouge pas.`, 'info');
 }
 
 /** Enleve la reference : le solveur cherche de nouveau librement. */
@@ -432,6 +459,18 @@ function renderPersonnage(stats) {
 
 function renderConditionsEtSorts(stats) {
   $('mode-recherche').value = etat.mode;
+
+  // Le curseur n'a de sens qu'en mode mixte : ailleurs, la part vaut zero ou
+  // un, et le montrer laisserait croire qu'il change quelque chose.
+  const bloc = $('poids');
+  bloc.hidden = etat.mode !== 'mixte';
+  if (!bloc.hidden) {
+    renderPoids(bloc, {
+      part: etat.partDegats,
+      onChanger: (part) => setEtat({ partDegats: part }),
+    });
+  }
+
   $('compte-conditions').textContent = String(etat.conditions.length);
   vue.renderConditions($('corps-conditions'), etat.conditions, stats, STAT_LABELS, {
     onChange: changerCondition,
@@ -491,15 +530,24 @@ function montrerScore(detail, build) {
   const mode = objectif(etat).mode;
   const enDegats = mode === SEARCH_MODES.DAMAGE;
   const enEndurance = mode === SEARCH_MODES.ENDURANCE;
+  const enMixte = mode === SEARCH_MODES.MIXTE;
   $('score-libelle').textContent = detail.satisfied
     ? (enDegats ? 'Degats totaux'
-      : (enEndurance ? 'Pdv effectifs' : 'Marge sur les conditions'))
+      : (enEndurance ? 'Pdv effectifs'
+        : (enMixte ? 'Score mixte' : 'Marge sur les conditions')))
     : 'Conditions non satisfaites';
 
   const invalides = build?.invalid?.length ?? 0;
-  const marge = (enDegats || enEndurance) ? '' : ' Le score somme ce que le build depasse.';
+  // Le score mixte compose deux mesures : seul, il ne dit ni combien le build
+  // frappe ni combien il tient. Les deux nombres se lisent donc a cote.
+  const composantes = enMixte
+    ? ` ${nombre(Math.round(detail.damage ?? 0))} degats, `
+      + `${nombre(Math.round(detail.endurance ?? 0))} pdv effectifs.`
+    : '';
+  const marge = (enDegats || enEndurance || enMixte)
+    ? '' : ' Le score somme ce que le build depasse.';
   $('score-note').textContent = detail.satisfied
-    ? `Toutes les conditions sont tenues.${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
+    ? `Toutes les conditions sont tenues.${composantes}${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
     : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
 
   vue.renderCombo($('carte-combo'), detail.combo ?? null, {
@@ -610,6 +658,8 @@ function montrerSurvie(stats) {
   const montrees = renderSurvie($('survie'), paliers, {
     axe,
     porte,
+    // Hors mode mixte, aucun reglage ne choisit de point : rien n'est marque.
+    part: mode === SEARCH_MODES.MIXTE ? etat.partDegats : null,
     portees: new Set([...etat.equipped.values()].map((piece) => piece.id)),
     itemById: catalogue.itemById,
     onPorter: (palier) => {
@@ -880,6 +930,7 @@ async function main() {
       nomDeClasse,
       embleme: emblemeDeClasse,
       onRestaurer: restaurerSimulation,
+      onFiger: figerSimulation,
       onGarder: () => garderSimulation(),
       onMessage: (texte) => message(texte, 'info'),
     });

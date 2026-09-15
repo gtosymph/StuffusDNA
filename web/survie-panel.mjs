@@ -19,6 +19,7 @@
  */
 import { el } from './render.mjs';
 import { AXE_ENDURANCE, frontiereSurvie } from '../src/solver/survie.mjs';
+import { scoreMixte } from '../src/solver/score.mjs';
 
 const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
 const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleString('fr-FR')}`;
@@ -56,6 +57,34 @@ export function lignesSurvie(paliers, porte, axe = AXE_ENDURANCE) {
     ecartPdv: mesurable && !palier.porte && Number.isFinite(palier.pdv)
       && Number.isFinite(porte.pdv) ? palier.pdv - porte.pdv : null,
   }));
+}
+
+/**
+ * Rang de la ligne que le mode mixte retient.
+ *
+ * La courbe montre deja tous les compromis tenables : le curseur de la part
+ * des degats ne fait que choisir un point dessus. Le marquer repond d'un coup
+ * d'oeil a « ou m'a mene mon reglage ? », et bouger le curseur montre le
+ * marqueur glisser le long de la courbe.
+ *
+ * @param {{palier: {damage: number, endurance: number}}[]} lignes
+ * @param {number|null} [part] Part des degats, ou null hors mode mixte.
+ * @returns {number|null} Rang de la ligne retenue, ou null.
+ */
+export function palierRetenu(lignes, part) {
+  if (part === null || part === undefined || lignes.length === 0) return null;
+
+  let meilleur = null;
+  let rang = null;
+  for (let i = 0; i < lignes.length; i += 1) {
+    const { damage = 0, endurance = 0 } = lignes[i].palier ?? {};
+    const note = scoreMixte(damage, endurance, part);
+    if (meilleur === null || note > meilleur) {
+      meilleur = note;
+      rang = i;
+    }
+  }
+  return rang;
 }
 
 /** Libelles de chaque mesure, par cle de palier. */
@@ -100,10 +129,11 @@ function vignettes(palier, { portees, itemById }) {
  * @param {Set<number>} options.portees Pieces du build pose.
  * @param {Map<number, any>} options.itemById
  * @param {(palier: any) => void} options.onPorter
+ * @param {number|null} [options.part] Part des degats en mode mixte, sinon null.
  * @returns {number} Nombre de lignes montrees, build porte non compris.
  */
 export function renderSurvie(racine, paliers, options) {
-  const { porte, portees, itemById, onPorter, axe = AXE_ENDURANCE } = options;
+  const { porte, portees, itemById, onPorter, axe = AXE_ENDURANCE, part = null } = options;
   const trancheeSur = MESURES[axe.cle];
   const maximisee = MESURES[axe.valeur];
 
@@ -116,6 +146,9 @@ export function renderSurvie(racine, paliers, options) {
 
   const lignes = lignesSurvie(paliers, porte, axe);
   const contexte = { portees, itemById };
+  // En mode mixte, le curseur choisit un point sur cette courbe : le marquer
+  // rend le reglage visible, et le bouger montre le marqueur glisser.
+  const retenu = palierRetenu(lignes, part);
 
   // Sous-ligne de vie : la vie du jeu, et ce que les resistances lui
   // ajoutent. Sans ces deux nombres, un joueur qui lit « 4 200 » ne retrouve
@@ -141,7 +174,8 @@ export function renderSurvie(racine, paliers, options) {
         el('span', { class: 'palier-marque', text: 'votre build' })),
       ...(ligneVie(porte) ? [ligneVie(porte)] : [])));
 
-  const lignePalier = ({ palier, gain, ecart }) => el('div', { class: 'palier' },
+  const lignePalier = ({ palier, gain, ecart }, rang) => el('div',
+    { class: `palier ${rang === retenu ? 'retenu' : ''}`.trim() },
     el('div', { class: 'palier-cout', title: trancheeSur.titreColonne },
       el('strong', { text: entier(palier[axe.cle]) }),
       el('span', { text: trancheeSur.unite })),
@@ -150,6 +184,9 @@ export function renderSurvie(racine, paliers, options) {
       el('div', { class: 'palier-tete' },
         el('span', { class: 'palier-degats', title: maximisee.titreTete,
           text: `${entier(palier[axe.valeur])} ${maximisee.unite}` }),
+        rang === retenu ? el('span', { class: 'palier-marque retenu',
+          title: 'Le point que votre reglage de part des degats retient',
+          text: 'votre reglage' }) : null,
         gain === null ? null : el('span', {
           class: `palier-gain ${gain >= 0 ? 'pos' : 'neg'}`,
           title: `${maximisee.long} gagnes ou perdus face a votre build`,
@@ -180,7 +217,7 @@ export function renderSurvie(racine, paliers, options) {
   racine.replaceChildren(
     el('p', { class: 'note', text: entete }),
     el('div', { class: 'paliers' },
-      ...lignes.map((ligne) => (ligne.porte ? ligneDepart() : lignePalier(ligne)))),
+      ...lignes.map((ligne, rang) => (ligne.porte ? ligneDepart() : lignePalier(ligne, rang)))),
     // replaceChildren ecrit « null » en toutes lettres : la note ne se passe
     // que si elle existe.
     ...(porte && !sousLeBuild

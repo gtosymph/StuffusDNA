@@ -186,6 +186,9 @@ export function objectif(etat) {
       }
       : null,
     mode: modeDe(etat, aDesAttaques),
+    // Le mode mixte seul la lit ; la passer toujours evite un cas particulier
+    // de plus dans le solveur.
+    partDegats: etat.partDegats,
   };
 }
 
@@ -197,6 +200,11 @@ export function objectif(etat) {
 function modeDe(etat, aDesAttaques) {
   if (etat.mode === 'endurance') {
     return aDesAttaques ? SEARCH_MODES.ENDURANCE : SEARCH_MODES.STATS;
+  }
+  // Sans attaque, le mixte n'a qu'une moitie de score : il retombe sur les
+  // caracteristiques, comme les deux autres modes de combat.
+  if (etat.mode === 'mixte') {
+    return aDesAttaques ? SEARCH_MODES.MIXTE : SEARCH_MODES.STATS;
   }
   if (etat.mode === 'caracteristiques') return SEARCH_MODES.STATS;
   return aDesAttaques ? SEARCH_MODES.DAMAGE : SEARCH_MODES.STATS;

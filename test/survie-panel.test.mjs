@@ -77,3 +77,52 @@ test('sur l\'axe des degats, la courbe se lit a l\'envers', async () => {
   assert.equal(lignes[2].gain, 1000);
   assert.equal(lignes[2].ecart, -500);
 });
+
+/**
+ * Point retenu par le mode mixte.
+ *
+ * La courbe montre deja tous les compromis tenables : le curseur de la part
+ * des degats ne fait que choisir un point dessus. Le marquer repond d'un coup
+ * d'oeil a « ou m'a mene mon reglage ? », et bouger le curseur montre le
+ * marqueur glisser le long de la courbe.
+ */
+test('palierRetenu', async (t) => {
+  const { palierRetenu } = await import('../web/survie-panel.mjs');
+
+  const lignes = [
+    { palier: { damage: 4011, endurance: 5989 } },
+    { palier: { damage: 4300, endurance: 4800 } },
+    { palier: { damage: 4722, endurance: 3692 } },
+  ];
+
+  await t.test('a part pleine, le plus fort gagne', () => {
+    assert.equal(palierRetenu(lignes, 1), 2);
+  });
+
+  await t.test('a part nulle, le plus resistant gagne', () => {
+    assert.equal(palierRetenu(lignes, 0), 0);
+  });
+
+  await t.test('a l\'equilibre, le meilleur produit gagne', () => {
+    // 4011*5989 = 24 021 879 ; 4300*4800 = 20 640 000 ; 4722*3692 = 17 433 624.
+    assert.equal(palierRetenu(lignes, 0.5), 0);
+  });
+
+  await t.test('un reglage intermediaire peut retenir un point du milieu', () => {
+    const serrees = [
+      { palier: { damage: 4000, endurance: 6000 } },
+      { palier: { damage: 4600, endurance: 5200 } },
+      { palier: { damage: 4900, endurance: 4000 } },
+    ];
+    assert.equal(palierRetenu(serrees, 0.6), 1);
+  });
+
+  await t.test('sans part, rien n\'est marque', () => {
+    assert.equal(palierRetenu(lignes, null), null);
+    assert.equal(palierRetenu(lignes, undefined), null);
+  });
+
+  await t.test('une liste vide ne marque rien', () => {
+    assert.equal(palierRetenu([], 0.5), null);
+  });
+});

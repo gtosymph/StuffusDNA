@@ -12,6 +12,10 @@
  */
 import { el } from './render.mjs';
 import { iconeStat } from './icons.mjs';
+import { SEARCH_MODES } from '../src/solver/score.mjs';
+
+/** Mode qui maximise les deux mesures a la fois. */
+const MODE_MIXTE = SEARCH_MODES.MIXTE;
 
 const nombre = (v) => Math.round(v).toLocaleString('fr-FR');
 
@@ -39,8 +43,9 @@ export function lignesObjectifs(valeurs, mode, conditions) {
     mode: mesure.mode,
     valeur: Number(valeurs?.[mesure.stat]) || 0,
     // La mesure que la recherche maximise n'a pas a etre bornee par une
-    // condition : elle monte deja aussi haut que possible.
-    maximisee: mode === mesure.mode,
+    // condition : elle monte deja aussi haut que possible. Le mode mixte les
+    // maximise toutes les deux, dans la proportion reglee par le joueur.
+    maximisee: mode === mesure.mode || mode === MODE_MIXTE,
     enCondition: posees.has(mesure.stat),
   }));
 }

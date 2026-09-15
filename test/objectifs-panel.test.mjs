@@ -25,6 +25,13 @@ test('lignesObjectifs', async (t) => {
     assert.deepEqual(lignesObjectifs(VALEURS, 'endurance', []).map((l) => l.maximisee), [false, true]);
   });
 
+  await t.test('le mode mixte maximise les deux', () => {
+    // Le mixte compose les deux mesures : aucune n'est a borner par une
+    // condition, elles montent ensemble dans la proportion reglee.
+    assert.deepEqual(lignesObjectifs(VALEURS, 'mixte', []).map((l) => l.maximisee),
+      [true, true]);
+  });
+
   await t.test('le mode caracteristiques n\'en maximise aucune', () => {
     assert.deepEqual(lignesObjectifs(VALEURS, 'caracteristiques', []).map((l) => l.maximisee),
       [false, false]);

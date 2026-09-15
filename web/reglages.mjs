@@ -157,10 +157,18 @@ export function etatInitial() {
     niveau: 190, classe: 5, sexe: 0,
     /**
      * Ce que la recherche maximise : 'degats', 'endurance' (les pdv
-     * effectifs) ou 'caracteristiques'. Un etat range avant ce reglage se
-     * relit d'apres ses sorts, dans etat-stockage.
+     * effectifs), 'mixte' (les deux) ou 'caracteristiques'. Un etat range
+     * avant ce reglage se relit d'apres ses sorts, dans etat-stockage.
      */
     mode: 'caracteristiques',
+    /**
+     * Part des degats dans le score du mode mixte, entre zero et un.
+     *
+     * Elle ne sert qu'a ce mode, mais elle vit dans l'etat et non dans les
+     * options : c'est un reglage de ce que la recherche vise, au meme titre
+     * que le mode, pas une case a cocher qui change un calcul.
+     */
+    partDegats: 0.5,
     filtre: null, filtreType: null, recherche: '', filtrePk: false,
     equipped: new Map(),
     posees: new Set(),

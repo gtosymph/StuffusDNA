@@ -1038,7 +1038,25 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .simulation-score.neg { color: var(--alerte); }
 .simulation-sous { font-size: 10px; color: var(--faible); }
 
-.simulation-actions { display: flex; gap: 4px; }
+.simulation-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/*
+ * Le crayon reste discret tant que la ligne n'est pas survolee : la liste
+ * doit se lire d'un coup d'oeil, pas montrer un outil par ligne.
+ */
+.simulation-renommer {
+  opacity: .35;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+
+.simulation:hover .simulation-renommer,
+.simulation-renommer:focus-visible { opacity: 1; }
+
+/* Sans survol, un outil a demi efface ne se trouve pas : il reste entier. */
+@media (hover: none) {
+  .simulation-renommer { opacity: 1; min-height: 28px; min-width: 28px; }
+}
 
 /* Le filtre des favoris tient sur la meme ligne que les boutons. */
 .rangee-ajout .filtre-case { flex: none; white-space: nowrap; }
@@ -1064,6 +1082,45 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .compare-score.neg { color: var(--alerte); }
 .compare-sous { font-size: 10px; color: var(--faible); }
 .compare-cote button { margin-top: 4px; }
+
+/*
+ * Les deux mesures qui decident d'un build, en tete de la comparaison.
+ * Elles se lisent dans le sens de la lecture : valeur d'avant, ecart, valeur
+ * d'apres, comme les deux colonnes au-dessus.
+ */
+.compare-mesures {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bord);
+}
+
+.compare-mesure {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.compare-mesure-nom { color: var(--faible); }
+
+.compare-mesure .chiffre,
+.compare-mesure-ecart {
+  font-family: var(--chiffre);
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+  text-align: right;
+}
+
+.compare-mesure .chiffre { color: var(--texte); }
+.compare-mesure-ecart { font-weight: 640; }
+.compare-mesure-ecart.pos { color: var(--positif); }
+.compare-mesure-ecart.neg { color: var(--alerte); }
+
+/* Deux gestes par colonne : remettre l'essai, ou en faire la reference. */
+.compare-gestes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
 
 .compare-fleche { text-align: center; }
 .compare-ecart {
@@ -1244,4 +1301,88 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   font-size: .66rem; text-transform: uppercase; letter-spacing: .08em;
   color: var(--accent); border: 1px solid var(--accent-doux);
   border-radius: 999px; padding: 0 9px;
+}
+
+/* --------------------------------------------------------- Bac d'essai --- */
+
+/*
+ * Un onglet d'essai doit se reconnaitre sans lire l'adresse : c'est tout ce
+ * qui empeche de croire que l'on travaille sur son vrai profil.
+ */
+.barre-info.bac-essai {
+  background: var(--alerte);
+  color: var(--fond);
+  font-weight: 600;
+  letter-spacing: .04em;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------ Part des degats --- */
+
+/*
+ * Curseur du mode mixte. Il ne sert qu'a ce mode : les deux modes purs sont
+ * ses bornes, et les montrer ailleurs laisserait croire qu'il change quelque
+ * chose.
+ */
+.poids {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--bord);
+  margin-bottom: 6px;
+}
+
+.poids-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.poids-nom { font-size: 12px; font-weight: 620; color: var(--titre); }
+
+.poids-valeur {
+  font-family: var(--chiffre);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.curseur-poids {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+  min-height: 24px;
+}
+
+.poids-reperes { display: flex; justify-content: space-between; gap: 2px; }
+
+.poids-repere {
+  flex: 1 1 auto;
+  padding: 1px 2px;
+  font-size: 10px;
+  color: var(--faible);
+}
+
+.poids-repere.actif { color: var(--sur-accent); background: var(--accent-doux); }
+
+/*
+ * Point que le reglage retient sur la courbe. Le liseré suffit : la ligne
+ * garde sa place et sa lecture, elle est seulement designee.
+ */
+.palier.retenu {
+  border-color: var(--accent);
+  background: var(--survol-fort);
+}
+
+.palier-marque.retenu {
+  color: var(--sur-accent);
+  background: var(--accent-doux);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+@media (hover: none) {
+  .poids-repere { min-height: 28px; }
 }

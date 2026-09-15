@@ -46,7 +46,8 @@ export function migrerLimites(data) {
 export function serialiserEtat(etat) {
   return {
     niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
-    conditions: etat.conditions, sorts: etat.sorts, options: etat.options, mode: etat.mode,
+    conditions: etat.conditions, sorts: etat.sorts, options: etat.options,
+    mode: etat.mode, partDegats: etat.partDegats,
     allocation: etat.allocation, scrolls: etat.scrolls,
     limites: etat.limites, limitesVersion: VERSION_LIMITES,
     bannis: [...etat.bannis],
@@ -60,7 +61,7 @@ export function serialiserEtat(etat) {
 }
 
 /** Modes de recherche acceptes dans un etat range. */
-const MODES = new Set(['degats', 'endurance', 'caracteristiques']);
+const MODES = new Set(['degats', 'endurance', 'mixte', 'caracteristiques']);
 
 /** Enregistre l'etat courant : un rechargement ne perd plus le travail. */
 export function sauverEtat(etat) {
@@ -99,6 +100,9 @@ export function reprendreEtat(etat, catalogue) {
     mode: MODES.has(data.mode)
       ? data.mode
       : (((data.sorts?.length ?? 0) > 0 || data.options?.arme) ? 'degats' : 'caracteristiques'),
+    // Le mode mixte n'existait pas : un etat range avant lui n'a pas de part,
+    // et garde donc l'equilibre de l'etat initial.
+    ...(Number.isFinite(data.partDegats) ? { partDegats: data.partDegats } : {}),
     ...(data.options ? { options: { ...etat.options, ...data.options } } : {}),
     ...(data.allocation ? { allocation: { ...etat.allocation, ...data.allocation } } : {}),
     ...(data.scrolls ? { scrolls: { ...etat.scrolls, ...data.scrolls } } : {}),

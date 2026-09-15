@@ -16,18 +16,75 @@
  * posees chez les visiteurs.
  */
 
-/** Cles du rangement, par role. */
+/**
+ * Suffixe du bac d'essai, tire de l'adresse.
+ *
+ * Le rangement suit l'origine, pas l'onglet : deux onglets ouverts sur la
+ * meme adresse ecrivent dans les memes cles. Un essai lance dans l'un
+ * remplace alors le build porte dans l'autre, sans que rien ne le signale.
+ * « ?test » ouvre un jeu de cles a part ; « ?test=mobile » en ouvre un autre
+ * encore, pour mener deux essais en parallele.
+ *
+ * @param {string} recherche Partie « ?… » de l'adresse.
+ * @returns {string} Suffixe a coller aux cles, vide hors essai.
+ */
+export function suffixeDeBac(recherche) {
+  if (typeof recherche !== 'string') return '';
+
+  let nom;
+  try {
+    const params = new URLSearchParams(recherche);
+    if (!params.has('test')) return '';
+    nom = params.get('test') ?? '';
+  } catch {
+    return '';
+  }
+
+  // Le nom entre dans une cle de rangement : tout ce qui n'est pas une
+  // lettre ou un chiffre part, plutot que de fabriquer une cle etrange.
+  const propre = nom.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return propre && propre !== '1' ? `_test_${propre}` : '_test';
+}
+
+/**
+ * Nom effectif d'une cle, bac d'essai compris.
+ *
+ * @param {string} base Nom historique de la cle.
+ * @param {string} [recherche] Partie « ?… » de l'adresse.
+ */
+export function nomDeCle(base, recherche = adresse()) {
+  return `${base}${suffixeDeBac(recherche)}`;
+}
+
+/** Partie « ?… » de l'adresse, vide hors navigateur. */
+function adresse() {
+  try {
+    return globalThis.location?.search ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Cles du rangement, par role.
+ *
+ * Les noms de base ne changent jamais : ils portent les sauvegardes deja
+ * posees chez les visiteurs. Seul un bac d'essai leur ajoute un suffixe.
+ */
 export const CLES = Object.freeze({
-  etat: 'copyroxx_etat',
-  resultat: 'copyroxx_resultat',
-  simulations: 'copyroxx_simulations',
-  setsSorts: 'copyroxx_sets_sorts',
-  setsConditions: 'copyroxx_sets_conditions',
-  theme: 'copyroxx_theme',
-  disposition: 'copyroxx_disposition',
-  catalogue: 'copyroxx_catalogue',
-  plie: 'copyroxx_plie',
+  etat: nomDeCle('copyroxx_etat'),
+  resultat: nomDeCle('copyroxx_resultat'),
+  simulations: nomDeCle('copyroxx_simulations'),
+  setsSorts: nomDeCle('copyroxx_sets_sorts'),
+  setsConditions: nomDeCle('copyroxx_sets_conditions'),
+  theme: nomDeCle('copyroxx_theme'),
+  disposition: nomDeCle('copyroxx_disposition'),
+  catalogue: nomDeCle('copyroxx_catalogue'),
+  plie: nomDeCle('copyroxx_plie'),
 });
+
+/** Vrai quand la page tourne dans un bac d'essai. */
+export const EN_BAC_DESSAI = suffixeDeBac(adresse()) !== '';
 
 /** Toutes les cles du profil, dans l'ordre ou un import les repose. */
 export const CLES_PROFIL = Object.freeze(Object.values(CLES));

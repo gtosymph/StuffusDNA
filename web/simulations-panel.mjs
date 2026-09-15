@@ -15,6 +15,8 @@ import {
   basculerFavori, comparer, enleverSimulation, favorisEnTete, libelle,
   lireSimulations, renommerSimulation, viderSimulations,
 } from './simulations.mjs';
+import { comparerDegats } from './simulation-degats.mjs';
+import { piegerFocus } from './focus-piege.mjs';
 
 /**
  * Statistiques comparees : toutes celles du moteur.
@@ -31,6 +33,9 @@ const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleS
 /** Racine de la fenetre de comparaison, creee une seule fois. */
 let fondComparaison = null;
 
+/** Libere le clavier quand la fenetre se ferme. */
+let libererFocus = null;
+
 /** Date courte, lisible d'un coup d'oeil. */
 function quand(iso) {
   const date = new Date(iso);
@@ -42,7 +47,10 @@ function quand(iso) {
 
 /** Ferme la fenetre de comparaison. */
 export function fermerComparaison() {
-  if (fondComparaison) fondComparaison.hidden = true;
+  if (!fondComparaison) return;
+  fondComparaison.hidden = true;
+  libererFocus?.();
+  libererFocus = null;
 }
 
 /** Vignette d'une piece, avec sa bulle au survol. */
@@ -58,17 +66,39 @@ function vignette(piece, classe) {
 }
 
 /**
+ * Bandeau d'une mesure comparee : avant, ecart, apres.
+ *
+ * Deux mesures decident d'un build — ce qu'il envoie et ce qu'il encaisse.
+ * Elles passent donc en tete, avant le detail piece par piece.
+ *
+ * @param {string} titre
+ * @param {{avant: number, apres: number, ecart: number}} mesure
+ */
+function bandeauMesure(titre, mesure) {
+  return el('div', { class: 'compare-mesure' },
+    el('span', { class: 'compare-mesure-nom', text: titre }),
+    el('span', { class: 'chiffre', text: entier(mesure.avant) }),
+    el('span', { class: `compare-mesure-ecart ${mesure.ecart >= 0 ? 'pos' : 'neg'}`,
+      text: signe(mesure.ecart) }),
+    el('span', { class: 'chiffre', text: entier(mesure.apres) }));
+}
+
+/**
  * Ouvre la fenetre qui compare deux simulations.
  *
  * @param {any} gauche Simulation la plus ancienne des deux.
  * @param {any} droite Simulation la plus recente.
  * @param {{itemById: Map<number, any>, libelles: Record<string, string>,
  *   libellesOptions: Record<string, string>, nomDeClasse: (id: number) => string,
- *   onRestaurer: (s: any) => void}} options
+ *   onRestaurer: (s: any) => void, onFiger?: (s: any) => void}} options
  */
 export function ouvrirComparaison(gauche, droite, options) {
-  const { itemById, libelles, libellesOptions = {}, nomDeClasse, onRestaurer } = options;
+  const { itemById, libelles, libellesOptions = {}, nomDeClasse, onRestaurer, onFiger } = options;
   const bilan = comparer(gauche, droite, STATS_COMPAREES);
+
+  // Les degats se recalculent sort par sort : le total seul cache les
+  // compromis, et c'est justement eux que le joueur veut peser.
+  const combat = comparerDegats(gauche, droite, itemById);
 
   if (!fondComparaison) {
     fondComparaison = el('div', { class: 'picker-fond', hidden: true,
@@ -89,10 +119,17 @@ export function ouvrirComparaison(gauche, droite, options) {
       text: simulation.tenu
         ? 'Conditions tenues'
         : `${simulation.manquantes ?? 0} condition(s) en defaut` }),
-    el('button', { class: 'mini large', type: 'button', text: 'Remettre celle-ci',
-      onClick: () => { fermerComparaison(); onRestaurer(simulation); } }));
+    el('div', { class: 'compare-gestes' },
+      el('button', { class: 'mini large', type: 'button', text: 'Remettre celle-ci',
+        onClick: () => { fermerComparaison(); onRestaurer(simulation); } }),
+      onFiger ? el('button', { class: 'mini', type: 'button', text: 'Figer',
+        title: 'Prend ce stuff comme stuff porte en jeu, sans toucher au build pose',
+        onClick: () => { fermerComparaison(); onFiger(simulation); } }) : null));
 
-  const lignesStats = bilan.chiffres.filter((ligne) => ligne.ecart !== 0);
+  // Les pdv effectifs ont leur bandeau en tete : les repeter ici n'apprend rien.
+  const lignesStats = bilan.chiffres
+    .filter((ligne) => ligne.ecart !== 0 && ligne.cle !== 'pdvEffectifs');
+  const lignesCombat = combat.lignes.filter((ligne) => ligne.avant !== 0 || ligne.apres !== 0);
 
   fondComparaison.replaceChildren(el('div', { class: 'picker compare', role: 'dialog',
     'aria-label': 'Comparaison de deux simulations' },
@@ -108,12 +145,28 @@ export function ouvrirComparaison(gauche, droite, options) {
     el('div', { class: 'compare-entete' },
       colonne(gauche, 'avant'),
       el('div', { class: 'compare-fleche' },
-        el('div', { class: `compare-ecart ${bilan.ecartScore >= 0 ? 'pos' : 'neg'}`,
-          text: signe(bilan.ecartScore) }),
+        el('div', { class: `compare-ecart ${combat.total.ecart >= 0 ? 'pos' : 'neg'}`,
+          text: signe(combat.total.ecart) }),
         el('div', { class: 'compare-sous', text: 'degats' })),
       colonne(droite, 'apres')),
 
+    // Les deux mesures qui decident d'un build, avant tout le detail.
+    el('div', { class: 'compare-mesures' },
+      bandeauMesure('Degats totaux', combat.total),
+      bandeauMesure('Pdv effectifs', combat.endurance)),
+
     el('div', { class: 'picker-liste' },
+      lignesCombat.length === 0 ? null
+        : el('h3', { class: 'sous-titre', text: 'Degats par sort' }),
+      lignesCombat.length === 0 ? null
+        : el('table', { class: 'compare-table' },
+            el('tbody', {}, lignesCombat.map((ligne) => el('tr', {},
+              el('td', { text: ligne.nom }),
+              el('td', { class: 'chiffre', text: entier(ligne.avant) }),
+              el('td', { class: 'chiffre', text: entier(ligne.apres) }),
+              el('td', { class: `chiffre ${ligne.ecart >= 0 ? 'pos' : 'neg'}`,
+                text: signe(ligne.ecart) }))))),
+
       el('h3', { class: 'sous-titre', text: 'Pieces changees' }),
       bilan.ajoutees.length === 0 && bilan.enlevees.length === 0
         ? el('p', { class: 'note', text: 'Le meme stuff des deux cotes.' })
@@ -145,6 +198,8 @@ export function ouvrirComparaison(gauche, droite, options) {
           el('td', { class: 'chiffre', text: '' }))))))));
 
   fondComparaison.hidden = false;
+  libererFocus?.();
+  libererFocus = piegerFocus(fondComparaison);
 }
 
 /**
@@ -154,12 +209,13 @@ export function ouvrirComparaison(gauche, droite, options) {
  * @param {{compteur: HTMLElement|null, itemById: () => Map<number, any>,
  *   libelles: Record<string, string>, nomDeClasse: (id: number) => string,
  *   embleme: (id: number) => string, onRestaurer: (s: any) => void,
- *   onGarder: () => void, onMessage: (texte: string) => void}} options
+ *   onFiger: (s: any) => void, onGarder: () => void,
+ *   onMessage: (texte: string) => void}} options
  * @returns {{rafraichir: () => void}}
  */
 export function installerSimulations(racine, options) {
   const { compteur, itemById, libelles, libellesOptions, nomDeClasse, embleme,
-    onRestaurer, onGarder, onMessage } = options;
+    onRestaurer, onFiger, onGarder, onMessage } = options;
 
   /** Lignes cochees pour la comparaison, au plus deux. */
   const cochees = new Set();
@@ -207,9 +263,17 @@ export function installerSimulations(racine, options) {
     const [avant, apres] = [...choisies]
       .sort((a, b) => String(a.date).localeCompare(String(b.date)));
     ouvrirComparaison(avant, apres, {
-      itemById: itemById(), libelles, libellesOptions, nomDeClasse, onRestaurer,
+      itemById: itemById(), libelles, libellesOptions, nomDeClasse, onRestaurer, onFiger,
     });
   };
+
+  /** Demande un nouveau nom, et le pose. */
+  function renommer(simulation) {
+    const donne = window.prompt('Nom de la simulation :', simulation.nom ?? '');
+    if (donne === null) return;
+    renommerSimulation(simulation.id, donne);
+    dessiner();
+  }
 
   function ligne(simulation) {
     const pieces = simulation.pieces ?? [];
@@ -243,12 +307,14 @@ export function installerSimulations(racine, options) {
       el('div', { class: 'simulation-corps' },
         el('div', { class: 'simulation-tete' },
           el('span', { class: 'simulation-nom', text: nom, title: 'Cliquer pour renommer',
-            onClick: () => {
-              const donne = window.prompt('Nom de la simulation :', simulation.nom ?? '');
-              if (donne === null) return;
-              renommerSimulation(simulation.id, donne);
-              dessiner();
-            } }),
+            onClick: () => renommer(simulation) }),
+          // Le crayon dit que le nom se change. Le clic sur le texte marche
+          // toujours, mais rien ne l'annoncait : un essai garde restait
+          // « Iop 190 » parmi dix autres « Iop 190 ».
+          el('button', { class: 'mini simulation-renommer', type: 'button', text: '✎',
+            title: 'Renommer cette simulation',
+            'aria-label': `Renommer ${nom}`,
+            onClick: () => renommer(simulation) }),
           el('span', { class: `simulation-score ${simulation.tenu ? 'pos' : 'neg'}`,
             text: entier(simulation.score ?? 0),
             title: simulation.tenu
@@ -274,6 +340,11 @@ export function installerSimulations(racine, options) {
         el('button', { class: 'mini large', type: 'button', text: 'Remettre',
           title: 'Remet ce build, ses conditions, ses sorts et ses reglages',
           onClick: () => onRestaurer(simulation) }),
+        // Figer ne touche pas au build pose : le joueur garde son essai en
+        // cours et change seulement le point de comparaison des achats.
+        onFiger ? el('button', { class: 'mini', type: 'button', text: 'Figer',
+          title: 'Prend ce stuff comme stuff porte en jeu, sans toucher au build pose',
+          onClick: () => onFiger(simulation) }) : null,
         el('button', { class: 'mini', type: 'button', text: '×', title: 'Enlever cette simulation',
           onClick: () => {
             enleverSimulation(simulation.id);

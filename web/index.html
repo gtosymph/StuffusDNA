@@ -10,11 +10,19 @@
   // clignote sur le theme de depart le temps de charger le module.
   try {
     var adresse = new URLSearchParams(location.search);
+    // Bac d'essai : les cles portent un suffixe, celles de l'habillage
+    // comprises. Voir suffixeDeBac() dans stockage.mjs, qui pose la meme regle.
+    var bac = '';
+    if (adresse.has('test')) {
+      var nom = (adresse.get('test') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      bac = nom && nom !== '1' ? '_test_' + nom : '_test';
+      document.documentElement.setAttribute('data-bac', bac.slice(1));
+    }
     // « base » nomme l'habillage porte par la feuille de depart : lui seul
     // n'a pas de feuille propre a poser. « defaut » est celui d'un visiteur
     // qui n'a encore rien choisi.
     var poser = function (dossier, cle, base, defaut, id) {
-      var choix = adresse.get(cle) || localStorage.getItem('copyroxx_' + cle) || defaut;
+      var choix = adresse.get(cle) || localStorage.getItem('copyroxx_' + cle + bac) || defaut;
       if (!choix || !/^[a-z-]+$/.test(choix) || choix === base) return;
       var feuille = document.createElement('link');
       feuille.id = id;
@@ -128,9 +136,11 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
         <select id="mode-recherche">
           <option value="degats">Les degats</option>
           <option value="endurance">Les pdv effectifs</option>
+          <option value="mixte">Les deux (mixte)</option>
           <option value="caracteristiques">Les caracteristiques</option>
         </select>
       </label>
+      <div class="poids" id="poids" hidden></div>
       <div class="defilable">
         <table class="conditions">
           <tbody id="corps-conditions"></tbody>
@@ -222,7 +232,7 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
         <button id="arreter" type="button" disabled>Pause</button>
       </div>
       <div class="fils" id="etat-fils"></div>
-      <div id="message"></div>
+      <div id="message" role="status" aria-live="polite"></div>
       <div id="carte-combo"></div>
     </section>
 
@@ -291,7 +301,14 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
   import { installerRappelScore } from './barre.mjs';
   import { installerTiroir } from './tiroir.mjs';
   import { installerProfil } from './profil-panel.mjs';
+  import { EN_BAC_DESSAI } from './stockage.mjs';
   const barre = document.querySelector('.barre-actions');
+  // Un bac d'essai se voit, sinon il ne protege de rien : le joueur doit
+  // savoir d'un coup d'oeil que cet onglet n'ecrit pas dans son profil.
+  if (EN_BAC_DESSAI) {
+    document.getElementById('barre-info').textContent = 'BAC D\'ESSAI — profil separe';
+    document.getElementById('barre-info').classList.add('bac-essai');
+  }
   // La disposition passe en premier : elle deplace les sections, le theme
   // ne fait que les habiller. Le pliage vient ensuite : il equipe les titres,
   // qui suivent leur section quelle que soit la disposition.

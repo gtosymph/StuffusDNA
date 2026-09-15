@@ -7,11 +7,15 @@
 import { el } from './render.mjs';
 import { COULEUR_ELEMENT, iconeElement } from './icons.mjs';
 import { versSortMoteur } from './spells-data.mjs';
+import { piegerFocus } from './focus-piege.mjs';
 
 /** Elements proposes dans le filtre. */
 const ELEMENTS_FILTRE = ['neutre', 'terre', 'feu', 'eau', 'air'];
 
 let racine = null;
+
+/** Libere le clavier quand l'overlay se ferme. */
+let libererFocus = null;
 
 function assurerRacine() {
   if (racine) return racine;
@@ -24,7 +28,10 @@ function assurerRacine() {
 
 /** Ferme l'overlay. */
 export function fermerPicker() {
-  if (racine) racine.hidden = true;
+  if (!racine) return;
+  racine.hidden = true;
+  libererFocus?.();
+  libererFocus = null;
 }
 
 /** Construit la pastille d'une variante. */
@@ -207,4 +214,6 @@ export function ouvrirPicker({ classe, niveau, pris, onAjouter, onAjouterPlusieu
 
   dessiner();
   fond.hidden = false;
+  libererFocus?.();
+  libererFocus = piegerFocus(fond);
 }

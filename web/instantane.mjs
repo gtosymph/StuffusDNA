@@ -23,6 +23,11 @@ export function instantane(etat, build, detail) {
     nom: '',
     niveau: etat.niveau, classe: etat.classe, sexe: etat.sexe,
     score: detail.score,
+    // Les degats se gardent a part du score : le score vaut les degats quand
+    // les conditions tiennent, et moins la penalite quand elles tombent. Sans
+    // ce champ, comparer deux essais dont l'un manque une condition opposait
+    // un nombre de degats a un nombre negatif.
+    degats: detail.damage,
     tenu: detail.satisfied,
     manquantes: detail.unmet?.length ?? 0,
     pieces: [...etat.equipped.entries()].map(([cle, piece]) => ({ cle, id: piece.id })),

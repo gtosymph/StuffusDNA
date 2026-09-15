@@ -38,7 +38,97 @@ export const SEARCH_MODES = Object.freeze({
    * pas — un build qui manque une condition reste sous tous les autres.
    */
   ENDURANCE: 'endurance',
+  /**
+   * Maximiser les deux a la fois, dans la proportion voulue.
+   *
+   * Les deux modes purs posent une question tranchee. Un joueur reel veut
+   * frapper ET tenir, dans une proportion qui depend de ce qu'il joue. La
+   * part des degats (`objective.partDegats`) est le seul reglage, et les
+   * deux modes purs en sont les bornes exactes.
+   */
+  MIXTE: 'mixte',
 });
+
+/** Part des degats quand le joueur n'a rien regle : les deux a parts egales. */
+export const PART_EQUILIBRE = 0.5;
+
+/**
+ * Part des degats, bornee entre zero et un.
+ * @param {unknown} brut
+ * @returns {number}
+ */
+export function normaliserPart(brut) {
+  // Le curseur de l'interface rend une chaine : elle se lit. Mais « null » et
+  // la chaine vide valent zero pour Number, ce qui ferait passer un reglage
+  // absent pour un mode endurance pur.
+  if (brut === null || brut === undefined || brut === '') return PART_EQUILIBRE;
+
+  const part = Number(brut);
+  if (!Number.isFinite(part)) return PART_EQUILIBRE;
+  return Math.min(1, Math.max(0, part));
+}
+
+/**
+ * Score mixte : moyenne geometrique ponderee des deux mesures.
+ *
+ *     score = degats^a * endurance^(1 - a)
+ *
+ * Cette forme, et pas une somme ponderee, pour trois raisons :
+ *
+ *   1. Les bornes sont exactement les deux modes purs : a = 1 rend les degats,
+ *      a = 0 rend l'endurance. Le mixte est le cas general, pas un mode a part.
+ *   2. Multiplier une mesure par une constante multiplie TOUS les scores par
+ *      la meme constante : le classement ne bouge pas. Une somme ponderee, au
+ *      contraire, exige de regler une echelle entre deux mesures qui n'ont ni
+ *      la meme unite ni le meme ordre de grandeur — 4722 degats contre 3692
+ *      pdv effectifs sur un build, 4011 contre 5989 sur un autre.
+ *   3. Le poids agit donc sur des POURCENTAGES : a parts egales, le solveur
+ *      lache un pour cent de degats pour gagner un pour cent d'endurance.
+ *
+ * A parts egales, le carre du score vaut degats x endurance : divise par le
+ * coup de reference, c'est le nombre de tours tenus multiplie par les degats
+ * par tour, donc les degats infliges avant de tomber.
+ *
+ * @param {number} degats
+ * @param {number} endurance Points de vie effectifs.
+ * @param {number} part Part des degats, entre zero et un.
+ * @returns {number}
+ */
+export function scoreMixte(degats, endurance, part) {
+  // Une mesure qui ne compte pas ne doit pas annuler le score : a part nulle,
+  // un build sans degat reste juge sur sa seule endurance.
+  if (part >= 1) return Math.max(0, degats);
+  if (part <= 0) return Math.max(0, endurance);
+
+  const d = Math.max(0, degats);
+  const e = Math.max(0, endurance);
+  // Un build qui ne frappe pas ne vaut rien, quelle que soit sa resistance,
+  // et reciproquement : le produit le dit tout seul.
+  if (d === 0 || e === 0) return 0;
+
+  // Le score s'evalue des centaines de milliers de fois par recherche, et une
+  // exponentiation coute cher. Deux reecritures la rendent tenable :
+  //   - a parts egales, une racine remplace les deux puissances ;
+  //   - sinon, d^a * e^(1-a) s'ecrit e * (d/e)^a, une seule puissance au lieu
+  //     de deux. Mesure : 39 ns par appel contre 67, pour un ecart relatif de
+  //     deux dix-millioniemes de milliardieme, soit la precision machine.
+  if (part === PART_EQUILIBRE) return Math.sqrt(d * e);
+  return e * ((d / e) ** part);
+}
+
+/**
+ * Ce qu'un pour cent de degats laches coute en pour cent d'endurance.
+ *
+ * C'est la pente de la courbe d'indifference du score mixte. Elle se montre
+ * au joueur : le reglage ne dit rien tant qu'on ne sait pas ce qu'il echange.
+ *
+ * @param {number} part Part des degats, entre zero et un.
+ * @returns {number}
+ */
+export function tauxDechange(part) {
+  if (part >= 1) return Infinity;
+  return part / (1 - part);
+}
 
 export { STAT_DEGATS };
 
@@ -213,6 +303,24 @@ export function scoreBuild(stats, objective, options = {}) {
       penalty,
       damage,
       endurance,
+      ...(combo ? { combo } : {}),
+      satisfied,
+      unmet,
+      details,
+    };
+  }
+
+  // Mode mixte : les deux mesures comptent, dans la proportion demandee.
+  if (mode === SEARCH_MODES.MIXTE) {
+    const endurance = stats.pdvEffectifs ?? stats.pdv ?? 0;
+    const part = normaliserPart(objective.partDegats);
+
+    return {
+      score: satisfied ? scoreMixte(damage, endurance, part) : -penalty,
+      penalty,
+      damage,
+      endurance,
+      part,
       ...(combo ? { combo } : {}),
       satisfied,
       unmet,

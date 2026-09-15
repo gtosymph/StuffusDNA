@@ -8,9 +8,13 @@ import { computeSpellDetail, weaponAttack } from '../src/engine/damage.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 import { passifDe } from '../src/data/passives-defaults.mjs';
 import { libelleCriteria } from '../src/data/criteria.mjs';
+import { piegerFocus } from './focus-piege.mjs';
 
 /** Racine de la fiche, creee une seule fois. */
 let racine = null;
+
+/** Libere le clavier quand la fiche se ferme. */
+let libererFocus = null;
 
 const nombre = (v) => (v > 0 ? `+${Math.round(v)}` : String(Math.round(v)));
 const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
@@ -70,7 +74,10 @@ function blocPassif(item) {
 
 /** Ferme la fiche. */
 export function fermerFiche() {
-  if (racine) racine.hidden = true;
+  if (!racine) return;
+  racine.hidden = true;
+  libererFocus?.();
+  libererFocus = null;
 }
 
 /**
@@ -174,4 +181,6 @@ export function ouvrirFiche(item, actions = {}) {
   ));
 
   fond.hidden = false;
+  libererFocus?.();
+  libererFocus = piegerFocus(fond);
 }

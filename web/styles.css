@@ -1386,3 +1386,30 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 @media (hover: none) {
   .poids-repere { min-height: 28px; }
 }
+
+/* ------------------------------------------------- Courbe degats/survie --- */
+
+/*
+ * La forme du compromis, au-dessus du detail. La liste dit chaque palier et
+ * ses pieces ; le trace dit ou la courbe casse, donc ou il vaut la peine de
+ * s'arreter.
+ */
+.courbe-survie {
+  display: block;
+  width: 100%;
+  height: 170px;
+  margin: 4px 0 8px;
+  background: var(--champ);
+  border: 1px solid var(--bord);
+  border-radius: 4px;
+}
+
+/* Survoler un point du trace surligne sa ligne : le trace n'a pas les pieces. */
+.palier.survole {
+  border-color: var(--accent);
+  background: var(--survol-fort);
+}
+
+@media (max-width: 700px) {
+  .courbe-survie { height: 150px; }
+}

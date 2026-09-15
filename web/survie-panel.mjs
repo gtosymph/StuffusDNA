@@ -20,6 +20,7 @@
 import { el } from './render.mjs';
 import { AXE_ENDURANCE, frontiereSurvie } from '../src/solver/survie.mjs';
 import { scoreMixte } from '../src/solver/score.mjs';
+import { dessinerCourbe, pointLePlusProche } from './courbe-survie.mjs';
 
 const entier = (v) => Math.floor(v).toLocaleString('fr-FR');
 const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleString('fr-FR')}`;
@@ -120,6 +121,70 @@ function vignettes(palier, { portees, itemById }) {
 }
 
 /**
+ * Pose la courbe et la relie a la liste.
+ *
+ * Le trace montre la FORME du compromis — ou la courbe casse, donc ou il vaut
+ * la peine de s'arreter. Il ne peut pas montrer les pieces : elles vivent dans
+ * la liste, sous lui. Survoler un point y surligne donc sa ligne, et cliquer
+ * l'amene sous les yeux.
+ *
+ * @param {HTMLElement} hote
+ * @param {{lignes: any[], axe: any, retenu: number|null,
+ *   libelles: {x: string, y: string}}} vue
+ * @returns {{canvas: HTMLElement, dessiner: () => void}} Le canvas, et le
+ *   trace a lancer UNE FOIS qu'il est pose : un canvas detache n'a pas de
+ *   largeur, et se dessinerait a la taille par defaut de 300 sur 150.
+ */
+function courbe(hote, vue) {
+  const canvas = el('canvas', { class: 'courbe-survie',
+    role: 'img',
+    'aria-label': `Courbe ${vue.libelles.y} contre ${vue.libelles.x}, `
+      + `${vue.lignes.length} point(s). Le detail se lit dans la liste dessous.` });
+
+  let traces = [];
+  let survole = null;
+
+  const dessiner = () => { traces = dessinerCourbe(canvas, { ...vue, survole }); };
+
+  /** Surligne la ligne d'un point, et elle seule. */
+  const surligner = (rang) => {
+    if (rang === survole) return;
+    survole = rang;
+    for (const [i, ligne] of [...hote.querySelectorAll('.palier')].entries()) {
+      ligne.classList.toggle('survole', i === rang);
+    }
+    dessiner();
+  };
+
+  canvas.addEventListener('mousemove', (ev) => {
+    const boite = canvas.getBoundingClientRect();
+    const point = pointLePlusProche(traces, ev.clientX - boite.left, ev.clientY - boite.top);
+    canvas.style.cursor = point ? 'pointer' : 'default';
+    surligner(point ? point.rang : null);
+  });
+
+  canvas.addEventListener('mouseleave', () => surligner(null));
+
+  canvas.addEventListener('click', (ev) => {
+    const boite = canvas.getBoundingClientRect();
+    const point = pointLePlusProche(traces, ev.clientX - boite.left, ev.clientY - boite.top);
+    if (!point) return;
+    const ligne = hote.querySelectorAll('.palier')[point.rang];
+    ligne?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+
+  // Le suivi du redimensionnement se garde SUR le canvas : un observateur
+  // qu'aucune reference ne retient peut etre ramasse avant de servir.
+  if (typeof ResizeObserver === 'function') {
+    const suivi = new ResizeObserver(dessiner);
+    suivi.observe(canvas);
+    canvas.__suiviTaille = suivi;
+  }
+
+  return { canvas, dessiner };
+}
+
+/**
  * Remplit le panneau.
  *
  * @param {HTMLElement} racine
@@ -214,8 +279,12 @@ export function renderSurvie(racine, paliers, options) {
     : 'Le build le plus resistant trouve pour chaque tranche de degats. De haut '
       + 'en bas : moins de degats, plus d\'endurance.';
 
+  const trace = courbe(racine, { lignes, axe, retenu,
+    libelles: { x: trancheeSur.long, y: maximisee.long } });
+
   racine.replaceChildren(
     el('p', { class: 'note', text: entete }),
+    trace.canvas,
     el('div', { class: 'paliers' },
       ...lignes.map((ligne, rang) => (ligne.porte ? ligneDepart() : lignePalier(ligne, rang)))),
     // replaceChildren ecrit « null » en toutes lettres : la note ne se passe
@@ -229,6 +298,9 @@ export function renderSurvie(racine, paliers, options) {
               + 'lacher des degats ne vous rapporterait rien ici.' })]
       : []),
   );
+
+  // Le canvas est pose : il connait enfin sa largeur, et le trace peut partir.
+  trace.dessiner();
 
   return lignes.filter((ligne) => !ligne.porte).length;
 }

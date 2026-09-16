@@ -33,15 +33,15 @@ moteur ; la maquette garde les chiffres inventes et sert de reference visuelle.
 - La feuille des points, ouverte depuis la famille qu'elle commande.
 - Le mode « les deux » : son curseur et la courbe degats / survie sous lui,
   qui se commandent l'un l'autre.
+- Les vingt options de calcul : cinq a cote du nombre qu'elles definissent,
+  quinze dans la feuille des reglages.
 
 ## Ce qui n'est pas encore branche
 
 1. **Les essais gardes** : `garderSimulation` ne fait rien pour l'instant.
 2. **Le poids d'un minimum** : un minimum pose a la main prend le poids 1,
    donc une preference, pas un couperet. Rien ne permet encore de le monter.
-3. **Les vingt options** de calcul : seules celles des reglages par defaut
-   s'appliquent. Aucun ecran ne les montre.
-4. **« Proche de mon stuff »** : les paliers d'achat ne sont pas montres.
+3. **« Proche de mon stuff »** : les paliers d'achat ne sont pas montres.
 
 ## Les trois decisions de structure
 

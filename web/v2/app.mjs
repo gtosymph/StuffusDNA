@@ -13,9 +13,9 @@
 import { loadCatalog } from '../catalog-web.mjs';
 import { loadSpells } from '../spells-data.mjs';
 import { avatarDeClasse, nomDeClasse } from '../classes.mjs';
-import { el, renderCandidats, renderCases } from '../render.mjs';
+import { el, renderCandidats, renderCases, renderOptions } from '../render.mjs';
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
-import { etatInitial } from '../reglages.mjs';
+import { etatInitial, optionsAffichees } from '../reglages.mjs';
 import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
 import { buildCourant, scoreAffiche, sortsCalcules } from '../objectif.mjs';
 import { appliquerBuild } from '../equipement.mjs';
@@ -34,13 +34,15 @@ import { creerGestesReference } from '../gestes-reference.mjs';
 import { creerPont } from './pont.mjs';
 import { renderClasses } from './accueil.mjs';
 import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
-import { reglagesChanges, signatureRecherche } from './peremption.mjs';
+import { garderSignature, reglagesChanges, reprendreSignature } from './peremption.mjs';
 import { ouvrirIdentite } from './identite.mjs';
 import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
 import { comparaisonOuverte, fermerComparaison, ouvrirComparaison } from './vue-comparaison.mjs';
 import { FAMILLES } from './fiche.mjs';
 import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
 import { renderMelange } from './vue-melange.mjs';
+import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.mjs';
+import { rangerOptions } from './options.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -178,6 +180,10 @@ function renderVerdict(stats, degats) {
   const pdv = Number(stats.pdvEffectifs) || 0;
   $('v-pdv').textContent = nombre(pdv);
   $('pdv-phrase').textContent = `Vous encaissez ${nombre(pdv)} degats bruts avant de tomber.`;
+
+  const rangees = rangerOptions(optionsAffichees(etat.options));
+  renderOptions($('options-degats'), rangees.degats, poserOption);
+  renderOptions($('options-pdv'), rangees.pdv, poserOption);
 
   // « A acheter » n'a de sens que face a un stuff de reference : sans lui, tout
   // est un achat, et le chiffre ne dit rien.
@@ -449,6 +455,9 @@ function raccourciPalette() {
   return surMac ? '⌘K' : 'Ctrl K';
 }
 
+/** Change une option de calcul. */
+const poserOption = (cle, valeur) => setEtat({ options: { ...etat.options, [cle]: valeur } });
+
 /* ---------------------------------------------------------- Les minimums --- */
 
 /**
@@ -570,6 +579,10 @@ async function main() {
       $('barre-droite').style.display = 'flex';
     }
 
+    // Les resultats ranges reviennent avec l'etat : ils doivent etre juges
+    // face aux reglages du lancement qui les a produits, pas face a rien.
+    signatureLancement = reprendreSignature();
+
     message('');
     recherche.reprendre();
     render();
@@ -579,7 +592,7 @@ async function main() {
 }
 
 $('lancer').addEventListener('click', () => {
-  signatureLancement = signatureRecherche(etat);
+  signatureLancement = garderSignature(etat);
   recherche.lancer();
   render();
 });
@@ -603,10 +616,13 @@ window.addEventListener('keydown', (ev) => {
   }
   if (ev.key !== 'Escape') return;
   if (comparaisonOuverte()) fermerComparaison();
+  else if (reglagesOuverts()) fermerReglages();
   else if (pointsOuverts()) fermerPoints();
   else if (paletteOuverte()) fermerPalette();
 });
 
 $('comparer').addEventListener('click', comparer);
+$('reglages').addEventListener('click',
+  () => ouvrirReglages({ lireEtat, onOption: poserOption }));
 
 main();

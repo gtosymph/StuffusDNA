@@ -10,8 +10,22 @@
  * recherche cherchera-t-elle autre chose ? ». Elle ne retient donc que ce qui
  * entre dans la requete du solveur. Le stuff porte, lui, n'en fait pas partie :
  * il est un RESULTAT de la recherche, et l'inclure perimerait les resultats au
- * moment meme ou la recherche les pose.
+ * moment meme ou la recherche les pose. La repartition des points tombe sous
+ * la meme regle, pour la meme raison.
  */
+
+import { ecrire, lireTexte, nomDeCle } from '../stockage.mjs';
+
+/**
+ * Cle ou la signature du dernier lancement se range.
+ *
+ * Elle survit au rechargement, sinon des resultats ranges par une session
+ * precedente reviennent a l'ecran en se faisant passer pour frais : c'est
+ * exactement la gene que ce module existe pour supprimer. Elle ne fait pas
+ * partie des cles du profil : une signature absente vaut « perime », et se
+ * tromper de ce cote-la ne coute qu'un rappel de trop.
+ */
+const CLE = nomDeCle('copyroxx_v2_signature');
 
 /** Tout ce qui change ce que le solveur cherche. */
 const ENTREES = Object.freeze([
@@ -38,10 +52,29 @@ export function signatureRecherche(etat) {
     (etat.conditions ?? []).map((c) => [c.stat, c.target, c.max ?? null, !!c.absolute]),
     ranger(etat.bannis), ranger(etat.verrous), ranger(etat.possedees),
     etat.options,
-    etat.allocation, etat.limites, etat.scrolls,
+    // `allocation` n'y est PAS : le solveur la reecrit lui-meme a chaque
+    // build (voir src/solver/allocation.mjs). L'inclure ferait perimer chaque
+    // recherche par son propre resultat. Les parchemins et les limites, eux,
+    // restent des reglages du joueur : ils bornent ce que le solveur peut
+    // investir, et le solveur n'y touche jamais.
+    etat.limites, etat.scrolls,
     etat.reference ? [...etat.reference.itemIds].sort() : null,
   ]);
 }
+
+/** Range la signature du lancement qui vient d'avoir lieu. */
+export function garderSignature(etat) {
+  const signature = signatureRecherche(etat);
+  ecrire(CLE, signature);
+  return signature;
+}
+
+/**
+ * Reprend la signature du dernier lancement, s'il y en a eu un.
+ *
+ * @returns {string|null} Null quand rien n'a jamais ete lance ici.
+ */
+export const reprendreSignature = () => lireTexte(CLE, null);
 
 /**
  * Les resultats a l'ecran repondent-ils encore aux reglages courants ?

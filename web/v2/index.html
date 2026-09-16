@@ -24,6 +24,7 @@
     <span id="compteur-generations" class="n" style="font-size:11px;color:var(--texte-3)"></span>
     <button class="btn premier" id="lancer" type="button">Chercher</button>
     <button class="btn fantome" id="arreter" type="button" title="Pause" disabled>Pause</button>
+    <button class="btn fantome" id="reglages" type="button" title="Reglages de calcul">⚙</button>
   </div>
 </header>
 
@@ -83,11 +84,13 @@
           <div id="degats-avec-sorts" hidden>
             <small id="degats-phrase"></small>
           </div>
+          <div class="options-mesure" id="options-degats"></div>
         </div>
 
         <div>
           <dt>Pdv effectifs</dt><dd class="n" id="v-pdv">—</dd>
           <small id="pdv-phrase"></small>
+          <div class="options-mesure" id="options-pdv"></div>
         </div>
 
         <div><dt>A acheter</dt><dd class="n" id="v-achats">—</dd>

@@ -73,6 +73,19 @@ test('ce qui ne perime rien', async (t) => {
     assert.equal(change({ candidats: [{ itemIds: [1] }], paliers: [1], survie: [2] }), false);
   });
 
+  await t.test('la repartition des points : le solveur la reecrit lui-meme', () => {
+    // Le defaut vu a l'ecran : chaque recherche annoncait « reglages changes »
+    // des qu'elle rendait la main, parce qu'elle avait redistribue les points.
+    const allocation = { ...base().allocation, vitalite: 945 };
+    assert.equal(change({ allocation }), false);
+  });
+
+  await t.test('les parchemins et les limites, eux, perime bien', () => {
+    // Le solveur n'y touche jamais : ce sont des bornes que le joueur pose.
+    assert.equal(change({ scrolls: { ...base().scrolls, vitalite: true } }), true);
+    assert.equal(change({ limites: { ...base().limites, force: 200 } }), true);
+  });
+
   await t.test('chercher dans le catalogue', () => {
     assert.equal(change({ recherche: 'epee', filtrePk: true }), false);
   });

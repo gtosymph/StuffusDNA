@@ -40,6 +40,7 @@ import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
 import { comparaisonOuverte, fermerComparaison, ouvrirComparaison } from './vue-comparaison.mjs';
 import { FAMILLES } from './fiche.mjs';
 import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
+import { renderMelange } from './vue-melange.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -127,6 +128,7 @@ function render() {
   renderPlateau(stats);
   renderVerdict(stats, degats);
   renderObjectif();
+  renderMelangeOuPas(bilan, stats);
   renderSorts();
   renderAvoir(stats, degats);
   renderTrouves(bilan);
@@ -204,6 +206,29 @@ function renderObjectif() {
     ? 'Sans sort, la recherche monte vos caracteristiques. Choisissez des sorts '
       + 'pour arbitrer entre frapper et encaisser.'
     : 'La recherche fait monter cette mesure et tient les minimums demandes.';
+}
+
+/**
+ * Le reglage du melange n'existe que dans le mode qui s'en sert.
+ *
+ * Un curseur visible dans « frapper fort » laisserait croire qu'il change
+ * quelque chose ; il ne changerait rien, et le joueur chercherait longtemps
+ * pourquoi.
+ */
+function renderMelangeOuPas(bilan, stats) {
+  const enMixte = etat.mode === SEARCH_MODES.MIXTE;
+  $('melange').hidden = !enMixte;
+  if (!enMixte) return;
+
+  renderMelange($('melange'), {
+    paliers: etat.survie ?? [],
+    // `pdv` ne vient pas du score : il vit dans les statistiques du build.
+    porte: bilan
+      ? { damage: bilan.damage, endurance: bilan.endurance, pdv: Number(stats.pdv) || 0 }
+      : null,
+    part: etat.partDegats,
+    onPart: (part) => setEtat({ partDegats: part }),
+  });
 }
 
 function renderSorts() {

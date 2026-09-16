@@ -990,3 +990,26 @@ input[type="range"].curseur::-moz-range-thumb {
    commandent : c'est la qu'on se demande pourquoi une valeur est si basse. */
 .famille { display: flex; align-items: baseline; gap: 10px; }
 .famille .btn { margin-left: auto; }
+
+/* ==================================== Le curseur « les deux » et sa courbe ===
+
+   Ils se touchent parce qu'ils sont deux vues du meme reglage. */
+
+#melange { margin-top: 10px; }
+.melange-curseur { margin-top: 10px; }
+.melange-bornes {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; color: var(--texte-3);
+}
+.melange-courbe { width: 100%; height: 120px; display: block; margin-top: 8px; cursor: pointer; }
+
+/* La courbe vit dans un canvas : elle ne recoit pas la cascade, elle LIT les
+   variables. Ce sont celles de v1 ; v2 les fait pointer sur ses propres
+   jetons plutot que de laisser le trace tomber sur ses couleurs de secours. */
+:root {
+  --faible: var(--texte-3);
+  --graphe-grille: var(--filet);
+  --accent: var(--iris);
+  --cyan: var(--jade);
+  --champ: var(--surface-2);
+}

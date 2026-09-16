@@ -87,6 +87,12 @@ chercher** : elle est dans les huit premieres lignes par construction.
 
 Chaque ligne est cliquable : elle pose une exigence a la valeur atteinte.
 
+**« Tout voir » regroupe par famille**, dans l'ordre ou le jeu les montre : ce
+qui decide, principales, caracteristiques, dommages, resistances. Les huit
+lignes de « l'essentiel » servent a decider ; les trente-six de « tout voir »
+servent a retrouver une statistique qu'on connait deja — et on la cherche la
+ou le jeu l'a mise, pas dans une liste melangee.
+
 ### 4. Le catalogue devient une palette
 
 Chercher une piece est une tache ponctuelle, pas une reference constante :

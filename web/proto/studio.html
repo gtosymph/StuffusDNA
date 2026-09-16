@@ -224,6 +224,14 @@
 .ligne-val.pos { color: var(--jade); }
 .ligne-geste { opacity: 0; font-size: 10px; color: var(--iris); white-space: nowrap; }
 .groupe { padding: 14px 14px 2px; }
+
+/* Un titre de famille coiffe une dizaine de lignes : il porte un filet et
+   respire plus qu'un simple separateur de trois lignes. */
+.chapeau.famille {
+  padding: 16px 6px 6px; margin: 6px -6px 0;
+  border-top: 1px solid var(--filet); color: var(--texte-2);
+}
+.lignes > .chapeau.famille:first-child { border-top: 0; padding-top: 4px; margin-top: 0; }
 .sans-icone .ligne { grid-template-columns: minmax(0, 1fr) auto; }
 
 .fiche-piece { padding: 14px; }
@@ -570,48 +578,94 @@ const P = {
   dof2:  { nom: "Voile d'encre", img: IMG(17147), case: 'Dofus' },
 };
 
-/** Les mesures, dans l'ordre ou elles comptent. `ic` nomme l'icone. */
+/**
+ * Les mesures, avec deux groupements parce qu'il y a deux lectures.
+ *
+ *   `g`  regroupe pour la COMPARAISON : ce qui decide, les minimums, le reste.
+ *        On y cherche ce qui separe deux stuffs.
+ *   `gf` regroupe pour la FICHE : les familles du jeu. On y cherche une
+ *        statistique qu'on connait deja, et on la cherche la ou le jeu l'a
+ *        mise. Melanger les vingt-huit lignes obligeait a les lire toutes.
+ *
+ * Une mesure sans `gf` n'est pas une ligne de fiche.
+ */
 const MESURES = [
-  { g: 'Ce qui décide', k: 'degats', nom: 'Dégâts', ic: 'do' },
-  { g: 'Ce qui décide', k: 'pdve', nom: 'Pdv effectifs', ic: 'vit' },
+  { g: 'Ce qui décide', gf: 'Ce qui décide', k: 'degats', nom: 'Dégâts', ic: 'do' },
+  { g: 'Ce qui décide', gf: 'Ce qui décide', k: 'pdve', nom: 'Pdv effectifs', ic: 'vit' },
   { g: 'Ce qui décide', k: 'achats', nom: 'Pièces à acheter', ic: null, brut: true },
-  { g: 'Les minimums', k: 'pa', nom: 'PA', ic: 'pa', min: 12 },
-  { g: 'Les minimums', k: 'pm', nom: 'PM', ic: 'pm', min: 6 },
-  { g: 'Les minimums', k: 'vita', nom: 'Vitalité', ic: 'vit', min: 4000 },
-  { g: 'Les minimums', k: 'crit', nom: '% Critique', ic: 'cri', min: 90 },
-  { g: 'La fiche', k: 'sagesse', nom: 'Sagesse', ic: 'sa' },
-  { g: 'La fiche', k: 'force', nom: 'Force', ic: 'str' },
-  { g: 'La fiche', k: 'agi', nom: 'Agilité', ic: 'agi' },
-  { g: 'La fiche', k: 'pui', nom: 'Puissance', ic: 'pui' },
-  { g: 'La fiche', k: 'doa', nom: 'Dommages Air', ic: 'doa' },
-  { g: 'La fiche', k: 'tdo', nom: '% Dommages finaux', ic: 'tdo' },
-  { g: 'La fiche', k: 'rpe', nom: '% Rés. Eau', ic: 'rpe' },
-  { g: 'La fiche', k: 'rpa', nom: '% Rés. Air', ic: 'rpa' },
-  { g: 'La fiche', k: 'ini', nom: 'Initiative', ic: 'ini' },
-  { g: 'La fiche', k: 'pp', nom: 'Prospection', ic: 'pp' },
+
+  { g: 'Les minimums', gf: 'Principales', k: 'pa', nom: 'PA', ic: 'pa', min: 12 },
+  { g: 'Les minimums', gf: 'Principales', k: 'pm', nom: 'PM', ic: 'pm', min: 6 },
+  { g: 'Les minimums', gf: 'Caractéristiques', k: 'vita', nom: 'Vitalité', ic: 'vit', min: 4000 },
+  { g: 'Les minimums', gf: 'Principales', k: 'crit', nom: '% Critique', ic: 'cri', min: 90 },
+
+  { g: 'La fiche', gf: 'Principales', k: 'po', nom: 'PO', ic: 'po' },
+  { g: 'La fiche', gf: 'Principales', k: 'pdv', nom: 'Points de vie', ic: 'vit' },
+  { g: 'La fiche', gf: 'Principales', k: 'ini', nom: 'Initiative', ic: 'ini' },
+  { g: 'La fiche', gf: 'Principales', k: 'pp', nom: 'Prospection', ic: 'pp' },
+  { g: 'La fiche', gf: 'Principales', k: 'inv', nom: 'Invocations', ic: 'inv' },
+
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'sagesse', nom: 'Sagesse', ic: 'sa' },
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'force', nom: 'Force', ic: 'str' },
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'int', nom: 'Intelligence', ic: 'int' },
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'cha', nom: 'Chance', ic: 'cha' },
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'agi', nom: 'Agilité', ic: 'agi' },
+  { g: 'La fiche', gf: 'Caractéristiques', k: 'pui', nom: 'Puissance', ic: 'pui' },
+
+  { g: 'La fiche', gf: 'Dommages', k: 'do', nom: 'Dommages', ic: 'do' },
+  { g: 'La fiche', gf: 'Dommages', k: 'don', nom: 'Neutre', ic: 'don' },
+  { g: 'La fiche', gf: 'Dommages', k: 'dot', nom: 'Terre', ic: 'dot' },
+  { g: 'La fiche', gf: 'Dommages', k: 'dof', nom: 'Feu', ic: 'dof' },
+  { g: 'La fiche', gf: 'Dommages', k: 'doe', nom: 'Eau', ic: 'doe' },
+  { g: 'La fiche', gf: 'Dommages', k: 'doa', nom: 'Air', ic: 'doa' },
+  { g: 'La fiche', gf: 'Dommages', k: 'doc', nom: 'Critiques', ic: 'doc' },
+  { g: 'La fiche', gf: 'Dommages', k: 'tdo', nom: '% Dommages finaux', ic: 'tdo' },
+
+  { g: 'La fiche', gf: 'Résistances', k: 'ren', nom: 'Neutre', ic: 'ren' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rpn', nom: '% Neutre', ic: 'rpn' },
+  { g: 'La fiche', gf: 'Résistances', k: 'ret', nom: 'Terre', ic: 'ret' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rpt', nom: '% Terre', ic: 'rpt' },
+  { g: 'La fiche', gf: 'Résistances', k: 'ref', nom: 'Feu', ic: 'ref' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rpf', nom: '% Feu', ic: 'rpf' },
+  { g: 'La fiche', gf: 'Résistances', k: 'ree', nom: 'Eau', ic: 'ree' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rpe', nom: '% Eau', ic: 'rpe' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rea', nom: 'Air', ic: 'rea' },
+  { g: 'La fiche', gf: 'Résistances', k: 'rpa', nom: '% Air', ic: 'rpa' },
 ];
 
 const PORTE = {
   nom: 'Porté', porte: true, score: 3580, achats: 0,
   pieces: ['amu', 'coif', 'cape', 'cein', 'ann', 'bot', 'arme'],
-  s: { degats: 775, pdve: 9245, pa: 12, pm: 10, vita: 4080, crit: 80, sagesse: 145,
-       force: 70, agi: 110, pui: 145, doa: 30, tdo: 8, rpe: 33, rpa: 8, ini: 530, pp: 175 },
+  s: {
+    degats: 775, pdve: 9245,
+    pa: 12, pm: 10, po: 2, pdv: 5135, ini: 530, crit: 80, pp: 175, inv: 1,
+    vita: 4080, sagesse: 145, force: 70, int: -50, cha: 0, agi: 110, pui: 145,
+    do: 0, don: 17, dot: 17, dof: 15, doe: 25, doa: 30, doc: 10, tdo: 8,
+    ren: 32, rpn: 12, ret: 22, rpt: 5, ref: 10, rpf: 13, ree: 20, rpe: 33, rea: 8, rpa: 8,
+  },
 };
 
+/**
+ * Les stuffs trouves ne listent QUE ce qui differe du stuff porte.
+ *
+ * Ecrire les trente-six mesures pour chacun ferait croire qu'elles changent
+ * toutes. Ce qui n'est pas ecrit est identique, et la comparaison le masque.
+ */
 const TROUVES = [
   { nom: 'Stuff 1', score: 3617, achats: 2, echanges: [['cape', 'cape2'], ['bot', 'bot2']],
-    s: { degats: 812, pdve: 9065, pa: 12, pm: 10, vita: 4012, crit: 82, sagesse: 145,
-         force: 70, agi: 171, pui: 145, doa: 34, tdo: 8, rpe: 29, rpa: 8, ini: 608, pp: 175 } },
+    s: { degats: 812, pdve: 9065, vita: 4012, pdv: 5067, crit: 82, agi: 171,
+         doa: 34, rpe: 29, ini: 608 } },
   { nom: 'Stuff 2', score: 3601, achats: 1, echanges: [['cein', 'cein2']],
-    s: { degats: 797, pdve: 9555, pa: 12, pm: 10, vita: 4190, crit: 80, sagesse: 145,
-         force: 70, agi: 110, pui: 175, doa: 30, tdo: 10, rpe: 33, rpa: 13, ini: 670, pp: 175 } },
+    s: { degats: 797, pdve: 9555, vita: 4190, pdv: 5245, pui: 175, tdo: 10, rpa: 13, ini: 670 } },
   { nom: 'Stuff 3', score: 3594, achats: 3, echanges: [['amu', 'amu2'], ['ann', 'ann2'], ['arme', 'arme2']],
-    s: { degats: 836, pdve: 8343, pa: 12, pm: 11, vita: 3890, crit: 85, sagesse: 145,
-         force: 70, agi: 122, pui: 240, doa: 39, tdo: 11, rpe: 22, rpa: 5, ini: 470, pp: 155 } },
+    s: { degats: 836, pdve: 8343, pm: 11, vita: 3890, pdv: 4945, crit: 85, agi: 122, pui: 240,
+         doa: 39, tdo: 11, rpe: 22, rpa: 5, ini: 470, pp: 155, ree: 14 } },
   { nom: 'Stuff 4', score: 3571, achats: 1, echanges: [['coif', 'coif2']],
-    s: { degats: 775, pdve: 10647, pa: 12, pm: 10, vita: 4520, crit: 80, sagesse: 145,
-         force: 70, agi: 70, pui: 145, doa: 30, tdo: 8, rpe: 39, rpa: 17, ini: 842, pp: 175 } },
+    s: { degats: 775, pdve: 10647, vita: 4520, pdv: 5575, agi: 70, rpe: 39, rpa: 17, ini: 842, ren: 44 } },
 ];
+
+/** Valeur d'une mesure : ce que le stuff change, sinon celle du stuff porte. */
+const stat = (col, k) => (col.s[k] !== undefined ? col.s[k] : PORTE.s[k]);
 
 const nb = (v) => Math.round(v).toLocaleString('fr-FR');
 const ecart = (v) => (v > 0 ? `+${nb(v)}` : (v < 0 ? `−${nb(-v)}` : '±0'));
@@ -838,9 +892,9 @@ function dessinerTrouves() {
   // Sans sort, aucun degat n'est compte : annoncer « +37 degats » serait
   // faux. La premiere mesure devient le score, qui lui existe toujours.
   const gauche = avecDegats
-    ? { v: t.s.degats - PORTE.s.degats, nom: 'dégâts' }
+    ? { v: stat(t, 'degats') - PORTE.s.degats, nom: 'dégâts' }
     : { v: t.score - PORTE.score, nom: 'score' };
-  const dPdv = t.s.pdve - PORTE.s.pdve;
+  const dPdv = stat(t, 'pdve') - PORTE.s.pdve;
 
   const coche = el('input', { type: 'checkbox', 'aria-label': `Comparer ${t.nom}` });
   coche.checked = choisis.has(rang);
@@ -893,6 +947,24 @@ const APPOINT = ['pui', 'ini', 'sagesse', 'agi', 'tdo', 'doa'];
  * Bonus : une exigence en defaut se voit sans la chercher, puisqu'elle est
  * dans les huit premieres lignes par construction.
  */
+/** Les familles de la fiche, dans l'ordre ou le jeu les montre. */
+const FAMILLES = ['Ce qui décide', 'Principales', 'Caractéristiques', 'Dommages', 'Résistances'];
+
+/**
+ * La fiche complete, coupee par famille.
+ *
+ * MESURES est rangee pour la COMPARAISON — ce qui decide, les minimums, le
+ * reste. Parcourir cet ordre coupait une famille en deux des qu'une mesure
+ * d'une autre s'intercalait : « Principales » apparaissait deux fois. La
+ * fiche se construit donc famille par famille, pas mesure par mesure.
+ */
+function parFamille() {
+  return FAMILLES.flatMap((famille) => {
+    const dedans = MESURES.filter((m) => m.gf === famille);
+    return dedans.length ? [{ separateur: famille }, ...dedans.map((m) => ({ k: m.k }))] : [];
+  });
+}
+
 function essentiel() {
   const exigences = LIMITES.map((l) => l.k);
   const vus = new Set(['degats', 'pdve', ...exigences]);
@@ -916,18 +988,20 @@ function montrerFiche(tout = false) {
   teteNote.textContent = 'stuff porté';
   retour.hidden = true;
 
-  const entrees = tout
-    ? MESURES.filter((m) => !m.brut).map((m) => ({ k: m.k }))
-    : essentiel();
+  // « Tout voir » regroupe par famille : on y cherche une statistique qu'on
+  // connait deja, et on la cherche la ou le jeu l'a mise.
+  const entrees = tout ? parFamille() : essentiel();
 
   const lignes = entrees.map((e) => {
     if (e.separateur) {
-      return el('p', { class: 'chapeau', style: 'padding:10px 6px 4px;margin:0', text: e.separateur });
+      return el('p', { class: `chapeau ${tout ? 'famille' : ''}`.trim(),
+        style: tout ? 'margin:0' : 'padding:10px 6px 4px;margin:0', text: e.separateur });
     }
     const m = MESURES.find((x) => x.k === e.k);
     const muet = e.k === 'degats' && sorts.length === 0;
     const v = PORTE.s[e.k];
     const limite = LIMITES.find((l) => l.k === e.k);
+
     const defaut = limite && v < limite.cible;
     return el('div', { class: 'ligne', title: limite
       ? `Ton exigence : au moins ${nb(limite.cible)}`
@@ -945,7 +1019,8 @@ function montrerFiche(tout = false) {
     el('div', { style: 'padding:0 14px 16px' },
       el('button', {
         class: 'btn mini', style: 'width:100%;justify-content:center',
-        text: tout ? "Revenir à l'essentiel" : `Tout voir (${MESURES.length - 1} lignes)`,
+        text: tout ? "Revenir à l'essentiel"
+          : `Tout voir (${MESURES.filter((m) => m.gf).length} lignes)`,
         onClick: () => montrerFiche(!tout),
       })),
     ...(tout ? [
@@ -1011,8 +1086,8 @@ function montrerTrouve(t) {
   corps.replaceChildren(el('div', { class: 'fiche-piece' },
     el('p', { class: 'chapeau', text: 'Ce que cela change' }),
     el('div', { class: 'lignes sans-icone', style: 'padding:0' },
-      mesure('Dégâts', PORTE.s.degats, t.s.degats),
-      mesure('Pdv effectifs', PORTE.s.pdve, t.s.pdve),
+      mesure('Dégâts', PORTE.s.degats, stat(t, 'degats')),
+      mesure('Pdv effectifs', PORTE.s.pdve, stat(t, 'pdve')),
       mesure('Score', PORTE.score, t.score)),
 
     el('p', { class: 'chapeau', style: 'margin-top:16px',
@@ -1092,12 +1167,12 @@ function dessinerComparaison() {
 
   // Une comparaison sert a voir ce qui DIFFERE : une ligne identique partout
   // prend une rangee et n'aide a rien. Elle se masque, et elle se compte.
-  const varie = (m) => new Set(colonnes.map((c) => (m.brut ? c.achats : c.s[m.k]))).size > 1;
+  const varie = (m) => new Set(colonnes.map((c) => (m.brut ? c.achats : stat(c, m.k)))).size > 1;
   const gardees = MESURES.filter((m) => !masquerIdentiques || varie(m));
   const masquees = MESURES.length - gardees.length;
 
   const cellule = (col, m) => {
-    const v = m.brut ? col.achats : col.s[m.k];
+    const v = m.brut ? col.achats : stat(col, m.k);
     if (col.porte) {
       return el('td', { class: `porte ${m.min != null && v < m.min ? 'ecart-neg' : ''}`,
         text: m.brut ? '—' : nb(v) });

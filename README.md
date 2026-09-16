@@ -123,6 +123,27 @@ Deux regles tiennent le decoupage :
    lignes a montrer, une fonction de rendu les pose dans le document. La
    fonction pure porte les tests ; voir `web/objectifs-panel.mjs` et
    `web/survie-panel.mjs` pour le patron.
+3. **`web/app.mjs` ne fait qu'orchestrer.** Il garde l'etat, tient son
+   historique pour l'annulation, et appelle le rendu. Tout le reste part en
+   modules qu'il branche a la main : `gestes-catalogue.mjs` et
+   `gestes-reference.mjs` changent l'etat, `resultats-panel.mjs` montre ce que
+   la recherche a rendu, `branchements.mjs` relie les commandes de la page.
+
+### L'ecran
+
+Un **theme** habille l'ecran, une **disposition** en deplace les parties ; les
+deux se combinent librement et se choisissent dans la barre du haut.
+
+| Disposition | Ce qu'elle fait |
+| --- | --- |
+| Colonnes | Quatre colonnes, la disposition d'origine. |
+| Bandeau | Le resultat en tete sur toute la largeur, les colonnes dessous. |
+
+Une disposition ne recree jamais une section : elle deplace les noeuds
+existants, donc les ecouteurs, les canvas et les champs la suivent. Pour en
+ajouter une, il suffit d'un plan dans `web/layouts.mjs` et d'une feuille dans
+`web/dispositions/` ; `test/dispositions.test.mjs` verifie que la feuille
+existe.
 
 ## Les donnees
 

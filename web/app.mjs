@@ -3,48 +3,48 @@
  *
  * L'etat reste immuable : chaque changement produit un nouvel objet. Ce
  * module le garde, l'enregistre et le montre ; ce qu'il en derive vit dans
- * objectif.mjs, ce qui le change dans equipement.mjs, ce qui le range dans
- * etat-stockage.mjs, et la recherche dans recherche.mjs.
+ * objectif.mjs, ce qui le change dans equipement.mjs et gestes-*.mjs, ce qui
+ * le range dans etat-stockage.mjs, la recherche dans recherche.mjs, les
+ * panneaux de resultat dans resultats-panel.mjs, et les liaisons de commandes
+ * dans branchements.mjs.
+ *
+ * Ce qui reste ici est ce qui ne se delegue pas : la garde de l'etat, son
+ * historique pour l'annulation, et le rendu qui les montre.
  */
 import { loadCatalog } from './catalog-web.mjs';
 import { avatarDeClasse, CLASSES, emblemeDeClasse, nomDeClasse } from './classes.mjs';
-import { ajouterSimulation, libelle as libelleSimulation } from './simulations.mjs';
+import { ajouterSimulation } from './simulations.mjs';
 import { installerSimulations } from './simulations-panel.mjs';
-import { referenceDepuisSimulation } from './reference.mjs';
-import { paliersUtiles, renderPaliers, renderReglageProximite } from './proximite-panel.mjs';
-import { renderSurvie } from './survie-panel.mjs';
 import { renderPoids } from './poids-panel.mjs';
-import { renderAnalyse } from './analyse-panel.mjs';
 import { defaultThreadCount } from './solver-client.mjs';
 import * as vue from './render.mjs';
 import * as plan from './layout.mjs';
 import { loadSpells } from './spells-data.mjs';
-import { fermerFiche, ouvrirFiche } from './item-panel.mjs';
+import { ouvrirFiche } from './item-panel.mjs';
 import { renderPoints } from './points-panel.mjs';
-import { fermerPicker, ouvrirPicker } from './spell-picker.mjs';
-import { cacherBulle } from './hover-card.mjs';
-import { chargerSet, enleverSet, enregistrerSet, lireSets } from './presets.mjs';
+import { enregistrerSet, lireSets } from './presets.mjs';
 import {
   ALLOCATION_VIDE, etatInitial, GROUPES_OPTIONS, LIBELLES_OPTIONS, optionsAffichees,
 } from './reglages.mjs';
 import { reprendreEtat, sauverEtat } from './etat-stockage.mjs';
 import {
-  attaqueArme, buildCourant, cibleAffichee, itemsFiltres, objectif,
-  passifsActifs, profilDe, scoreAffiche, sortsCalcules, valeurDeReference,
+  attaqueArme, buildCourant, itemsFiltres, scoreAffiche, sortsCalcules,
 } from './objectif.mjs';
 import { enrichirSorts } from './sorts-migration.mjs';
-import * as geste from './equipement.mjs';
+import { appliquerBuild } from './equipement.mjs';
 import { instantane, patchDepuisSimulation } from './instantane.mjs';
 import { creerRecherche } from './recherche.mjs';
+import { creerGestesCatalogue } from './gestes-catalogue.mjs';
+import { creerGestesReference } from './gestes-reference.mjs';
+import { creerResultats } from './resultats-panel.mjs';
+import { brancher } from './branchements.mjs';
 
 import { STATS, STAT_LABELS } from '../src/data/stats.mjs';
 import { STAT_DEGATS } from '../src/solver/score.mjs';
 import { renderObjectifs } from './objectifs-panel.mjs';
-import { axeDe } from '../src/solver/survie.mjs';
 import { availablePoints } from '../src/engine/characteristics.mjs';
 import { computeSpellDetail } from '../src/engine/damage.mjs';
 import { ajouterLigne, enleverLigne, modifierLigne } from '../src/data/spell-lines.mjs';
-import { SEARCH_MODES } from '../src/solver/score.mjs';
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,6 +70,9 @@ const ETATS_GARDES = 30;
  * a chaque fois.
  */
 const passe = [];
+
+const lireEtat = () => etat;
+const lireCatalogue = () => catalogue;
 
 const setEtat = (patch) => {
   passe.push(etat);
@@ -99,7 +102,7 @@ function message(texte, type = 'info') {
 
 const recherche = creerRecherche({
   $,
-  lireEtat: () => etat,
+  lireEtat,
   setEtat,
   appliquer,
   message,
@@ -108,149 +111,25 @@ const recherche = creerRecherche({
 
 /** Pose un build rendu par le solveur, points de caracteristique compris. */
 function appliquer(resultat) {
-  setEtat(geste.appliquerBuild(etat, resultat, catalogue.itemById));
+  setEtat(appliquerBuild(etat, resultat, catalogue.itemById));
 }
 
-/* ---------------------------------------------------------- Equipement --- */
+/* ------------------------------------------------------------- Gestes --- */
 
-function equiper(item) {
-  const patch = geste.equiper(etat, item);
-  if (patch) setEtat(patch);
-}
+const gestes = creerGestesCatalogue({ lireEtat, lireCatalogue, setEtat, message });
 
-function bannir(item) {
-  const { patch, bannie } = geste.basculerBanni(etat, item);
-  setEtat(patch);
-  message(bannie
-    ? `« ${item.fr} » est bannie : le solveur ne la proposera plus.`
-    : `« ${item.fr} » est de nouveau proposee au solveur.`, 'info');
-}
+const gestesReference = creerGestesReference({
+  lireEtat, setEtat, message, nomDeClasse,
+  lireRecherche: () => recherche,
+});
 
-function verrouiller(item) {
-  const { patch, verrouillee } = geste.basculerVerrou(etat, item);
-  setEtat(patch);
-  message(verrouillee
-    ? `« ${item.fr} » est verrouillee : le solveur la garde dans chaque build.`
-    : `« ${item.fr} » est deverrouillee.`, 'info');
-}
-
-function retirer(cle) {
-  setEtat(geste.retirer(etat, cle));
-}
-
-/** Bannit d'un coup toutes les pieces qui passent les filtres du catalogue. */
-function bannirResultats() {
-  const cibles = itemsFiltres(etat, catalogue).filter((item) => !etat.bannis.has(item.id));
-  if (cibles.length === 0) {
-    message('Aucune piece a bannir dans ces resultats.', 'info');
-    return;
-  }
-  setEtat(geste.bannirPieces(etat, cibles));
-  message(`${cibles.length} piece(s) bannie(s). « Autoriser » sur ces memes filtres annule.`, 'info');
-}
-
-/** Autorise de nouveau toutes les pieces bannies qui passent les filtres. */
-function autoriserResultats() {
-  const cibles = itemsFiltres(etat, catalogue).filter((item) => etat.bannis.has(item.id));
-  if (cibles.length === 0) {
-    message('Aucune piece bannie dans ces resultats.', 'info');
-    return;
-  }
-  setEtat(geste.autoriserPieces(etat, cibles));
-  message(`${cibles.length} piece(s) de nouveau autorisee(s).`, 'info');
-}
-
-/** Marque comme possedees les pieces qui passent les filtres, ou les enleve. */
-function posseder(actif) {
-  const cibles = itemsFiltres(etat, catalogue)
-    .filter((item) => etat.possedees.has(item.id) !== actif);
-  if (cibles.length === 0) {
-    message(actif
-      ? 'Toutes ces pieces sont deja marquees comme possedees.'
-      : 'Aucune piece possedee dans ces resultats.', 'info');
-    return;
-  }
-  setEtat(geste.posseder(etat, cibles, actif));
-  message(actif
-    ? `${cibles.length} piece(s) marquee(s) comme possedees : elles ne coutent plus d'achat.`
-    : `${cibles.length} piece(s) enlevee(s) de votre banque.`, 'info');
-}
-
-/** Met une piece dans l'inventaire, ou l'en enleve. */
-function basculerPossedee(item) {
-  const avait = etat.possedees.has(item.id);
-  setEtat(geste.posseder(etat, [item], !avait));
-  message(avait
-    ? `${item.fr} enlevee de votre inventaire.`
-    : `${item.fr} ajoutee a votre inventaire : elle ne compte plus comme un achat.`, 'info');
-}
-
-/* --------------------------------------------------- Stuff de reference --- */
-
-/**
- * Fige le build pose comme stuff porte en jeu.
- *
- * Le piege est de figer un build que le solveur vient de trouver : il est deja
- * le meilleur connu, aucun achat ne le battra, et le panneau n'a plus rien a
- * dire. La reference n'a de sens que sur le stuff VRAIMENT porte en jeu.
- */
-function figerReference() {
-  const itemIds = [...etat.equipped.values()].map((piece) => piece.id);
-  if (itemIds.length === 0) {
-    message('Posez d\'abord les pieces que vous portez en jeu.', 'alerte');
-    return;
-  }
-
-  // Un build pose par le solveur ne porte aucune piece marquee « a la main ».
-  const duSolveur = etat.posees.size === 0 && (etat.candidats ?? []).length > 0;
-
-  // Les paliers d'avant comptaient les achats face a l'ANCIENNE reference :
-  // gardes, ils annonceraient des gains qui ne veulent plus rien dire.
-  setEtat({ reference: { itemIds, date: new Date().toISOString() }, paliers: [] });
-  message(duSolveur
-    ? `Stuff de reference fige : ${itemIds.length} piece(s). Attention, ce build `
-      + 'vient du solveur : aucun achat ne le battra. Posez votre stuff de jeu '
-      + 'et figez-le de nouveau pour voir ce que chaque achat rapporterait.'
-    : `Stuff de reference fige : ${itemIds.length} piece(s). `
-      + 'Le solveur compte maintenant ce que chaque build demande d\'acheter.',
-  duSolveur ? 'alerte' : 'info');
-}
-
-/**
- * Fige le stuff d'une simulation gardee comme stuff porte en jeu.
- *
- * Le stuff porte en jeu se garde d'ordinaire comme une simulation avant d'en
- * essayer d'autres. Sans ce geste, le reprendre demandait de le remettre en
- * place, de le figer, puis de revenir a l'essai en cours : trois pas et une
- * perte du build courant pour une seule intention.
- *
- * @param {any} simulation
- */
-function figerSimulation(simulation) {
-  const reference = referenceDepuisSimulation(simulation);
-  if (!reference) {
-    message('Cette simulation ne porte aucune piece : rien a figer.', 'alerte');
-    return;
-  }
-
-  // Les paliers d'avant comptaient les achats face a l'ANCIENNE reference.
-  setEtat({ reference, paliers: [] });
-  message(`Stuff de reference fige sur « ${libelleSimulation(simulation, nomDeClasse)} » : `
-    + `${reference.itemIds.length} piece(s). Le build porte ne bouge pas.`, 'info');
-}
-
-/** Enleve la reference : le solveur cherche de nouveau librement. */
-function oublierReference() {
-  setEtat({ reference: null, paliers: [] });
-  message('Reference enlevee. Le solveur cherche de nouveau sans contrainte d\'achat.', 'info');
-}
-
-/** Repose le stuff de reference sur le personnage. */
-function reprendreReference() {
-  if (!etat.reference) return;
-  recherche.porterAlaMain({ itemIds: etat.reference.itemIds });
-  message('Stuff de reference repose.', 'info');
-}
+const resultats = creerResultats({
+  $, lireEtat, lireCatalogue, setEtat, message,
+  lireRecherche: () => recherche,
+  reference: gestesReference,
+  sortsDuCombo,
+  garderCombo,
+});
 
 /* ------------------------------------------------- Conditions et sorts --- */
 
@@ -319,6 +198,22 @@ function sortsDuCombo(combo) {
     .filter(Boolean);
 }
 
+/** Enregistre les sorts d'un combo comme un jeu nomme. */
+function garderCombo(combo) {
+  const sorts = sortsDuCombo(combo);
+  if (sorts.length === 0) return;
+  const nom = window.prompt('Nom du jeu de sorts :', 'combo');
+  if (nom === null) return;
+  try {
+    enregistrerSet('sorts', nom, sorts);
+    remplirListesSets();
+    $('sets-sorts').value = nom.trim();
+    message(`Jeu de sorts « ${nom.trim()} » enregistre depuis le combo.`, 'info');
+  } catch (error) {
+    message(error.message, 'erreur');
+  }
+}
+
 /* ----------------------------------------------------------- Rendu --- */
 
 function render() {
@@ -338,10 +233,10 @@ function render() {
   renderPersonnage(stats);
   renderConditionsEtSorts(stats);
 
-  montrerCandidats(stats);
-  montrerProximite();
-  montrerSurvie(stats);
-  montrerAnalyse(stats);
+  resultats.montrerCandidats(stats);
+  resultats.montrerProximite();
+  resultats.montrerSurvie(stats);
+  resultats.montrerAnalyse(stats);
 
   $('annuler').disabled = passe.length === 0;
 
@@ -364,15 +259,15 @@ function render() {
   recherche.dessiner();
 
   // Le score affiche compte les memes attaques que le solveur, arme comprise.
-  if (stats) montrerScore(scoreAffiche(etat, stats), build);
+  if (stats) resultats.montrerScore(scoreAffiche(etat, stats), build);
 }
 
 /** Fiche d'une piece, avec les gestes qu'elle admet. */
 function ficheDe(item, extra = {}) {
   return ouvrirFiche(item, {
-    onBan: () => bannir(item),
-    onLock: () => verrouiller(item),
-    onPosseder: () => basculerPossedee(item),
+    onBan: () => gestes.bannir(item),
+    onLock: () => gestes.verrouiller(item),
+    onPosseder: () => gestes.basculerPossedee(item),
     banni: etat.bannis.has(item.id),
     verrouille: etat.verrous.has(item.id),
     possedee: etat.possedees.has(item.id),
@@ -392,15 +287,15 @@ function renderCatalogue() {
   vue.renderOnglets($('onglets-slot'), etat.filtre,
     (key, type) => setEtat({ filtre: key, filtreType: type ?? null }), etat.filtreType);
   vue.renderCatalogue($('grille-items'), $('compte-items'), itemsFiltres(etat, catalogue),
-    (item) => ficheDe(item, { onEquip: () => equiper(item) }), etat.bannis, etat.possedees);
+    (item) => ficheDe(item, { onEquip: () => gestes.equiper(item) }), etat.bannis, etat.possedees);
 
   const listeBannis = piecesDe(etat.bannis);
   $('compte-bannis').textContent = String(listeBannis.length);
-  vue.renderBannis($('bannis'), listeBannis, bannir);
+  vue.renderBannis($('bannis'), listeBannis, gestes.bannir);
 
   const listePossedees = piecesDe(etat.possedees);
   $('compte-possedees').textContent = String(listePossedees.length);
-  vue.renderBannis($('possedees'), listePossedees, (item) => basculerPossedee(item), {
+  vue.renderBannis($('possedees'), listePossedees, (item) => gestes.basculerPossedee(item), {
     vide: 'Aucune piece marquee. Filtrez le catalogue, puis « J\'ai ces pieces ».',
     aide: 'cliquez pour l\'enlever de votre banque',
   });
@@ -454,7 +349,7 @@ function renderStats(build, stats) {
 }
 
 function renderPersonnage(stats) {
-  const voirPiece = (cle, item) => ficheDe(item, { onRemove: () => retirer(cle), stats });
+  const voirPiece = (cle, item) => ficheDe(item, { onRemove: () => gestes.retirer(cle), stats });
   for (const [id, cases] of [
     ['slots-gauche', plan.SLOTS_GAUCHE], ['slots-droite', plan.SLOTS_DROITE],
     ['slots-artefacts', plan.SLOTS_ARTEFACTS],
@@ -504,7 +399,7 @@ function renderPanoplies(build) {
   vue.renderPanoplies($('panoplies'), build?.sets ?? [], catalogue?.setById ?? new Map(), STAT_LABELS, {
     itemById: catalogue?.itemById ?? new Map(),
     equippedIds: new Set([...etat.equipped.values()].map((p) => p.id)),
-    onPick: (piece) => ficheDe(piece, { onEquip: () => equiper(piece) }),
+    onPick: (piece) => ficheDe(piece, { onEquip: () => gestes.equiper(piece) }),
   });
 }
 
@@ -521,192 +416,6 @@ function remplirListesSets() {
 
     if (choisi && jeux.some((j) => j.nom === choisi)) noeud.value = choisi;
   }
-}
-
-function montrerScore(detail, build) {
-  const noeud = $('score');
-  noeud.textContent = nombre(Math.round(detail.score));
-  noeud.className = `score ${detail.satisfied ? 'pos' : 'neg'}`;
-  // Sans sort ni arme, le score ne mesure pas des degats mais la marge prise
-  // sur les conditions : l'annoncer « degats totaux » trompait la lecture.
-  const mode = objectif(etat).mode;
-  const enDegats = mode === SEARCH_MODES.DAMAGE;
-  const enEndurance = mode === SEARCH_MODES.ENDURANCE;
-  const enMixte = mode === SEARCH_MODES.MIXTE;
-  $('score-libelle').textContent = detail.satisfied
-    ? (enDegats ? 'Degats totaux'
-      : (enEndurance ? 'Pdv effectifs'
-        : (enMixte ? 'Score mixte' : 'Marge sur les conditions')))
-    : 'Conditions non satisfaites';
-
-  const invalides = build?.invalid?.length ?? 0;
-  // Le score mixte compose deux mesures : seul, il ne dit ni combien le build
-  // frappe ni combien il tient. Les deux nombres se lisent donc a cote.
-  const composantes = enMixte
-    ? ` ${nombre(Math.round(detail.damage ?? 0))} degats, `
-      + `${nombre(Math.round(detail.endurance ?? 0))} pdv effectifs.`
-    : '';
-  const marge = (enDegats || enEndurance || enMixte)
-    ? '' : ' Le score somme ce que le build depasse.';
-  $('score-note').textContent = detail.satisfied
-    ? `Toutes les conditions sont tenues.${composantes}${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
-    : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
-
-  vue.renderCombo($('carte-combo'), detail.combo ?? null, {
-    onAppliquer: (combo) => {
-      const sorts = sortsDuCombo(combo);
-      if (sorts.length === 0) return;
-      setEtat({ sorts });
-      message(`La liste des sorts reprend le combo : ${sorts.length} sort(s).`, 'info');
-    },
-    onGarder: (combo) => {
-      const sorts = sortsDuCombo(combo);
-      if (sorts.length === 0) return;
-      const nom = window.prompt('Nom du jeu de sorts :', 'combo');
-      if (nom === null) return;
-      try {
-        enregistrerSet('sorts', nom, sorts);
-        remplirListesSets();
-        $('sets-sorts').value = nom.trim();
-        message(`Jeu de sorts « ${nom.trim()} » enregistre depuis le combo.`, 'info');
-      } catch (error) {
-        message(error.message, 'erreur');
-      }
-    },
-  });
-}
-
-/** Montre ce que chaque piece apporte, ou investir, et quoi remplacer. */
-function montrerAnalyse(stats) {
-  const bloc = $('bloc-analyse');
-  bloc.hidden = !stats || etat.equipped.size === 0;
-  if (bloc.hidden) return;
-
-  renderAnalyse({ apports: $('apports'), sensibilite: $('sensibilite'), remplacements: $('remplacements') }, {
-    etat, catalogue, stats, cible: cibleAffichee(etat), tenu: scoreAffiche(etat, stats).satisfied,
-    contexte: {
-      level: etat.niveau, allocation: etat.allocation, scrolls: etat.scrolls,
-      passives: passifsActifs(etat), profile: profilDe(etat), setById: catalogue.setById,
-    },
-    onRemplacer: (proposition) => {
-      setEtat(geste.remplacer(etat, proposition.actuel, proposition.remplacant));
-      message(`${proposition.remplacant.fr} posee`
-        + `${proposition.actuel ? ` a la place de ${proposition.actuel.fr}` : ''}.`, 'info');
-    },
-  });
-}
-
-/** Montre les paliers « proche de mon stuff », avec ce qu'il faut acheter. */
-function montrerProximite() {
-  renderReglageProximite($('reglage-proximite'), {
-    reference: etat.reference,
-    max: etat.changementsMax,
-    possedees: etat.possedees.size,
-    portees: etat.equipped.size,
-  }, {
-    onFiger: figerReference,
-    onOublier: oublierReference,
-    onReprendre: reprendreReference,
-    onMax: (valeur) => setEtat({ changementsMax: valeur }),
-  });
-
-  const paliers = etat.reference ? (etat.paliers ?? []) : [];
-
-  // Le gain se lit face au stuff de reference, jamais face au build pose :
-  // c'est l'achat qui se decide, pas l'essai en cours.
-  const reference = valeurDeReference(etat, catalogue);
-
-  // Le compteur annonce ce que le joueur verra : les paliers qui n'apportent
-  // rien ne se montrent pas, ils ne doivent pas se compter non plus.
-  $('compte-paliers').textContent = String(paliersUtiles(paliers, reference).length);
-
-  renderPaliers($('paliers'), paliers, {
-    reference,
-    itemById: catalogue?.itemById ?? new Map(),
-    piecesReference: etat.reference?.itemIds ?? [],
-    max: etat.changementsMax,
-    possedees: etat.possedees,
-    onPorter: (palier) => {
-      recherche.porterAlaMain(palier);
-      message(`Build porte : ${palier.changements} piece(s) a acheter, `
-        + `${nombre(Math.floor(palier.damage))} de degats.`, 'info');
-    },
-  });
-}
-
-/**
- * Montre la courbe degats contre points de vie.
- * @param {Record<string, number>|null} stats Statistiques du build porte.
- */
-function montrerSurvie(stats) {
-  const bloc = $('bloc-survie');
-  const paliers = etat.survie ?? [];
-  const mode = objectif(etat).mode;
-  // L'axe suit le mode, et le titre du bloc avec lui. Le titre se pose meme
-  // quand le bloc est cache : il doit etre juste des qu'il se montre.
-  const axe = axeDe(mode);
-  $('titre-survie').textContent = axe.cle === 'endurance'
-    ? 'Degats ou survie'
-    : 'Survie ou degats';
-
-  // Le bloc n'a de sens qu'avec des degats a compter : en mode
-  // caracteristiques, il n'y a rien a echanger contre de la vie.
-  //
-  // Il se montre en revanche AVANT la premiere recherche, avec son invite :
-  // cache tant qu'il n'a pas de paliers, il n'existait que pour qui savait
-  // deja qu'il existait.
-  bloc.hidden = mode === SEARCH_MODES.STATS;
-  if (bloc.hidden) return;
-
-  const porte = stats
-    ? { pdv: stats.pdv, endurance: stats.pdvEffectifs, damage: scoreAffiche(etat, stats).damage }
-    : null;
-  const montrees = renderSurvie($('survie'), paliers, {
-    axe,
-    porte,
-    // Hors mode mixte, aucun reglage ne choisit de point : rien n'est marque.
-    part: mode === SEARCH_MODES.MIXTE ? etat.partDegats : null,
-    portees: new Set([...etat.equipped.values()].map((piece) => piece.id)),
-    itemById: catalogue.itemById,
-    onPorter: (palier) => {
-      recherche.porterAlaMain(palier);
-      // Un palier sous la condition de vie la laisse en defaut : le joueur
-      // l'a choisi, mais il doit le lire tout de suite.
-      const tenu = palier.stats ? scoreAffiche(etat, palier.stats).satisfied : true;
-      const manque = axe.cle === 'endurance' ? 'Votre condition de vie' : 'Votre condition de degats';
-      message(`Build porte : ${nombre(Math.floor(palier.pdv))} points de vie, `
-        + `${nombre(Math.floor(palier.endurance))} une fois les resistances comptees, `
-        + `${nombre(Math.floor(palier.damage))} de degats.`
-        + (tenu ? '' : ` ${manque} n'est plus tenue : baissez-la si ce build vous convient.`),
-      tenu ? 'info' : 'alerte');
-    },
-  });
-  $('compte-survie').textContent = String(montrees);
-}
-
-/** Montre les autres builds trouves, avec ce qu'il faut changer pour chacun. */
-function montrerCandidats(stats) {
-  const bloc = $('bloc-candidats');
-  const candidats = etat.candidats ?? [];
-  bloc.hidden = candidats.length === 0;
-  $('compte-candidats').textContent = String(candidats.length);
-  if (candidats.length === 0) return;
-
-  const portes = new Set([...etat.equipped.values()].map((piece) => piece.id));
-  // Le build porte sert de point de comparaison : ses degats et l'etat de ses
-  // conditions, pas son score — celui-ci change d'echelle selon qu'elles
-  // tiennent ou non.
-  const porte = stats ? scoreAffiche(etat, stats) : null;
-
-  vue.renderCandidats($('candidats'), candidats, {
-    portes,
-    itemById: catalogue.itemById,
-    porte,
-    onPorter: (candidat) => {
-      recherche.porterAlaMain(candidat);
-      message(`Build remplace par un candidat a ${nombre(Math.floor(candidat.score))}.`, 'info');
-    },
-  });
 }
 
 /* ------------------------------------------------ Simulations gardees --- */
@@ -752,150 +461,7 @@ function restaurerSimulation(simulation) {
   manquantes === 0 ? 'info' : 'erreur');
 }
 
-/* ------------------------------------------------------------ Liaison --- */
-
-function brancher() {
-  $('niveau').addEventListener('change', (e) =>
-    setEtat({ niveau: Math.max(1, Math.min(200, Number(e.target.value) || 1)) }));
-  $('classe').addEventListener('change', (e) => setEtat({ classe: Number(e.target.value) }));
-  $('sexe').addEventListener('change', (e) => setEtat({ sexe: Number(e.target.value) }));
-  $('recherche').addEventListener('input', (e) => setEtat({ recherche: e.target.value }));
-  $('filtre-pk').addEventListener('change', (e) => setEtat({ filtrePk: e.target.checked }));
-
-  $('filtre-stat').addEventListener('change', (e) =>
-    setEtat({ filtreStat: { ...etat.filtreStat, stat: e.target.value } }));
-  $('filtre-op').addEventListener('change', (e) =>
-    setEtat({ filtreStat: { ...etat.filtreStat, op: e.target.value } }));
-  $('filtre-valeur').addEventListener('input', (e) =>
-    setEtat({ filtreStat: { ...etat.filtreStat, valeur: Number(e.target.value) || 0 } }));
-  $('bannir-resultats').addEventListener('click', bannirResultats);
-  $('autoriser-resultats').addEventListener('click', autoriserResultats);
-  $('posseder-resultats').addEventListener('click', () => posseder(true));
-  $('oublier-possedees').addEventListener('click', () => posseder(false));
-  $('vider').addEventListener('click', () => setEtat({ equipped: new Map(), posees: new Set() }));
-  $('annuler').addEventListener('click', annuler);
-
-  window.addEventListener('keydown', (ev) => {
-    // Echap ferme ce qui est ouvert par-dessus la page.
-    if (ev.key === 'Escape') {
-      fermerFiche();
-      fermerPicker();
-      cacherBulle();
-      return;
-    }
-
-    // Ctrl+Z, ou Cmd+Z sur Mac : le geste attendu partout ailleurs.
-    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z' && !ev.shiftKey) {
-      const cible = ev.target;
-      // Dans un champ de saisie, le navigateur annule le texte lui-meme.
-      if (cible instanceof HTMLInputElement || cible instanceof HTMLTextAreaElement) return;
-      ev.preventDefault();
-      annuler();
-    }
-  });
-
-  $('ajouter-condition').addEventListener('click', () => {
-    const stat = $('nouvelle-condition').value;
-    if (etat.conditions.some((c) => c.stat === stat)) {
-      message(`Une condition porte deja sur "${STAT_LABELS[stat]}".`, 'erreur');
-      return;
-    }
-    setEtat({ conditions: [...etat.conditions, { stat, target: 0, weight: 1, max: null, absolute: false }] });
-  });
-
-  $('mode-recherche').addEventListener('change', (ev) => {
-    const mode = ev.target.value;
-    setEtat({ mode });
-    if (mode !== 'caracteristiques' && etat.sorts.length === 0 && !etat.options.arme) {
-      message('Aucun sort ni arme : la recherche n\'a aucun degat a compter. '
-        + 'Choisissez des sorts, ou revenez aux caracteristiques.', 'alerte');
-    }
-  });
-
-  $('enlever-sorts').addEventListener('click', () => setEtat({ sorts: [] }));
-
-  $('choisir-sorts').addEventListener('click', () => {
-    const classe = classesSorts?.find((c) => c.id === etat.classe) ?? null;
-    if (!classe) {
-      message('Sorts indisponibles pour cette classe.', 'erreur');
-      return;
-    }
-    ouvrirPicker({
-      classe,
-      niveau: etat.niveau,
-      pris: new Set(etat.sorts.map((s) => s.id)),
-      onAjouter: (sort) => setEtat({
-        sorts: [...etat.sorts.filter((s) => s.id !== sort.id), sort],
-      }),
-      // Ajout en masse : un seul rendu pour toute la liste.
-      onAjouterPlusieurs: (nouveaux) => {
-        const ids = new Set(nouveaux.map((s) => s.id));
-        const sorts = [...etat.sorts.filter((s) => !ids.has(s.id)), ...nouveaux];
-        // Premier sort pose alors que la recherche visait les
-        // caracteristiques : le joueur veut des degats, pas un rappel.
-        const bascule = etat.mode === 'caracteristiques' && sorts.length > 0;
-        setEtat({ sorts, ...(bascule ? { mode: 'degats' } : {}) });
-        if (bascule) message('La recherche maximise maintenant les degats.', 'info');
-      },
-      onEnlever: (id) => setEtat({ sorts: etat.sorts.filter((s) => s.id !== id) }),
-    });
-  });
-
-  brancherSets('sorts', 'sets-sorts', () => etat.sorts, (contenu) => setEtat({ sorts: contenu }));
-  brancherSets('conditions', 'sets-conditions', () => etat.conditions, (contenu) => setEtat({ conditions: contenu }));
-
-  document.querySelector('.colonne-perso')?.addEventListener('mouseleave', cacherBulle);
-  window.addEventListener('scroll', cacherBulle, { passive: true });
-
-  // Le graphe se dessine dans un canvas : il ne suit pas la cascade CSS.
-  // Un changement de theme demande donc un nouveau rendu.
-  window.addEventListener('copyroxx:theme', () => render());
-
-  $('lancer').addEventListener('click', () => recherche.lancer());
-  $('recommencer').addEventListener('click', () => recherche.lancer({ deZero: true }));
-  $('arreter').addEventListener('click', () => recherche.arreter());
-}
-
-/**
- * Branche les trois boutons d'un jeu enregistre.
- * @param {'sorts'|'conditions'} nature
- * @param {string} idListe
- * @param {() => any} lire Contenu courant a enregistrer.
- * @param {(contenu: any) => void} poser Applique un contenu repris.
- */
-function brancherSets(nature, idListe, lire, poser) {
-  $(`garder-${nature}`).addEventListener('click', () => {
-    const nom = window.prompt(`Nom du jeu de ${nature} :`, $(idListe).value || '');
-    if (nom === null) return;
-    try {
-      enregistrerSet(nature, nom, lire());
-      remplirListesSets();
-      $(idListe).value = nom.trim();
-      message(`Jeu de ${nature} « ${nom.trim()} » enregistre.`, 'info');
-    } catch (error) {
-      message(error.message, 'erreur');
-    }
-  });
-
-  $(`charger-${nature}`).addEventListener('click', () => {
-    const nom = $(idListe).value;
-    const contenu = nom ? chargerSet(nature, nom) : null;
-    if (!contenu) {
-      message(`Aucun jeu de ${nature} a reprendre.`, 'erreur');
-      return;
-    }
-    poser(contenu);
-    message(`Jeu de ${nature} « ${nom} » repris.`, 'info');
-  });
-
-  $(`oublier-${nature}`).addEventListener('click', () => {
-    const nom = $(idListe).value;
-    if (!nom) return;
-    enleverSet(nature, nom);
-    remplirListesSets();
-    message(`Jeu de ${nature} « ${nom} » enleve.`, 'info');
-  });
-}
+/* ----------------------------------------------------------- Demarrage --- */
 
 async function main() {
   $('fils').value = String(defaultThreadCount());
@@ -910,7 +476,12 @@ async function main() {
   $('filtre-stat').replaceChildren(
     vue.el('option', { value: '', text: 'statistique…' }),
     ...STATS.map((s) => vue.el('option', { value: s.key, text: s.fr })));
-  brancher();
+
+  brancher({
+    $, lireEtat, setEtat, message, annuler, render, gestes, recherche,
+    lireClassesSorts: () => classesSorts,
+    remplirListesSets,
+  });
   message('Chargement du catalogue…', 'info');
 
   try {
@@ -936,7 +507,7 @@ async function main() {
       nomDeClasse,
       embleme: emblemeDeClasse,
       onRestaurer: restaurerSimulation,
-      onFiger: figerSimulation,
+      onFiger: gestesReference.figerSimulation,
       onGarder: () => garderSimulation(),
       onMessage: (texte) => message(texte, 'info'),
     });

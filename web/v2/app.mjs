@@ -17,7 +17,7 @@ import { el, renderCandidats, renderCases, renderOptions } from '../render.mjs';
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
 import { etatInitial, optionsAffichees } from '../reglages.mjs';
 import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
-import { buildCourant, scoreAffiche, sortsCalcules } from '../objectif.mjs';
+import { buildCourant, scoreAffiche, sortsCalcules, valeurDeReference } from '../objectif.mjs';
 import { appliquerBuild } from '../equipement.mjs';
 import { enrichirSorts } from '../sorts-migration.mjs';
 import { creerRecherche } from '../recherche.mjs';
@@ -43,6 +43,7 @@ import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
 import { renderMelange } from './vue-melange.mjs';
 import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.mjs';
 import { rangerOptions } from './options.mjs';
+import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -167,6 +168,7 @@ function render() {
   renderSorts();
   renderAvoir(stats, degats);
   renderTrouves(bilan);
+  renderProximite();
   renderInspecteur(stats, degats);
   renderScore(bilan);
   renderFraicheur();
@@ -376,6 +378,45 @@ function renderTrouves(bilan) {
   const bouton = $('comparer');
   bouton.hidden = choisis.size === 0;
   bouton.textContent = `Comparer ${choisis.size + 1}`;
+}
+
+/**
+ * « Proche de mon stuff » : ce qu'une a trois pieces achetees rapportent.
+ *
+ * Le meilleur build du solveur demande souvent seize pieces neuves. Un joueur
+ * qui equipe deja un personnage ne veut pas tout racheter. Le gain se lit face
+ * au stuff de REFERENCE, jamais face au build pose : c'est l'achat qui se
+ * decide, pas l'essai en cours.
+ */
+function renderProximite() {
+  renderReglageProximite($('reglage-proximite'), {
+    reference: etat.reference,
+    max: etat.changementsMax,
+    possedees: etat.possedees.size,
+    portees: etat.equipped.size,
+  }, {
+    onFiger: gestesReference.figerReference,
+    onOublier: gestesReference.oublierReference,
+    onReprendre: gestesReference.reprendreReference,
+    onMax: (valeur) => setEtat({ changementsMax: valeur }),
+  });
+
+  const paliers = etat.reference ? (etat.paliers ?? []) : [];
+  const reference = valeurDeReference(etat, catalogue);
+  $('compte-paliers').textContent = String(paliersUtiles(paliers, reference).length);
+
+  renderPaliers($('paliers'), paliers, {
+    reference,
+    itemById: catalogue?.itemById ?? new Map(),
+    piecesReference: etat.reference?.itemIds ?? [],
+    max: etat.changementsMax,
+    possedees: etat.possedees,
+    onPorter: (palier) => {
+      recherche.porterAlaMain(palier);
+      message(`Stuff porte : ${palier.changements} piece(s) a acheter, `
+        + `${nombre(Math.floor(palier.damage))} de degats.`);
+    },
+  });
 }
 
 function renderInspecteur(stats, degats) {

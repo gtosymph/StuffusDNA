@@ -707,13 +707,13 @@ export function renderCandidats(root, candidats, { portes, itemById, porte, onPo
             }),
         redresse
           ? el('span', { class: 'candidat-marque',
-              title: 'Le build porte laisse une condition en defaut ; celui-ci les tient toutes',
-              text: 'conditions tenues' })
+              title: 'Le stuff porte laisse un minimum non tenu ; celui-ci les tient tous',
+              text: 'minimums tenus' })
           : null,
         casse
           ? el('span', { class: 'candidat-marque defaut',
-              title: 'Ce build ne tient pas toutes vos conditions',
-              text: 'conditions en defaut' })
+              title: 'Ce stuff ne tient pas tous vos minimums',
+              text: 'minimums non tenus' })
           : null,
         el('span', { class: 'candidat-changements',
           text: identique ? 'build porte' : `${aMettre.length} piece(s) a changer` }),

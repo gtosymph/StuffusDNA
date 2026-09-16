@@ -222,8 +222,8 @@ export function renderPaliers(racine, paliers, options) {
 
           redresse
             ? el('span', { class: 'palier-marque',
-                title: 'Votre stuff laisse une condition en defaut ; ce build les tient toutes',
-                text: 'conditions redressees' })
+                title: 'Votre stuff laisse un minimum non tenu ; ce stuff les tient tous',
+                text: 'minimums redresses' })
             : null),
 
         aAcheter.length === 0
@@ -267,8 +267,8 @@ export function renderPaliers(racine, paliers, options) {
                 reference.satisfied
                   ? null
                   : el('span', { class: 'palier-marque defaut',
-                      title: 'Une condition au moins n\'est pas tenue par votre stuff',
-                      text: 'conditions en defaut' })),
+                      title: 'Un minimum au moins n\'est pas tenu par votre stuff',
+                      text: 'minimums non tenus' })),
               el('div', { class: 'note', text: 'Votre stuff de reference, points actuels.' })),
             el('span', {}))
         : null,

@@ -1049,3 +1049,83 @@ input[type="range"].curseur::-moz-range-thumb {
 /* Une option inerte le dit : « PA a enlever » ne veut rien dire tant que le
    combo n'est pas actif, et un champ grise se lit plus vite qu'une aide. */
 .option.off { opacity: .45; }
+
+/* ============================================== Proche de mon stuff ===
+
+   Le meilleur stuff du solveur demande souvent seize pieces neuves. Un
+   joueur deja equipe veut savoir ce qu'UNE piece changee lui rapporte. */
+
+.proximite-barre {
+  display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-bottom: 9px;
+}
+.proximite-barre .note { margin: 0; flex: 1 1 100%; min-width: 0; font-size: 11.5px; color: var(--texte-3); }
+.proximite-barre .jeton { white-space: nowrap; }
+.proximite-barre .jeton.banque { color: var(--jade); border-color: var(--jade); background: none; }
+.proximite-barre .primaire, .proximite-barre .mini {
+  height: 26px; padding: 0 11px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
+}
+.proximite-barre .primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.proximite-barre .primaire:disabled { background: var(--surface-2); border-color: var(--filet); color: var(--texte-3); cursor: default; }
+.proximite-barre .mini:hover { border-color: var(--filet-clair); }
+
+.proximite-max { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--texte-3); }
+.proximite-max input {
+  width: 56px; height: 24px; padding: 0 5px; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+
+.paliers { display: flex; flex-direction: column; gap: 5px; }
+.palier {
+  display: grid; grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px; align-items: center;
+  padding: 6px 8px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.palier:hover { border-color: var(--filet-clair); }
+
+/* Le cout se lit avant le gain : c'est lui que le joueur arbitre. */
+.palier-cout {
+  display: grid; place-items: center;
+  padding: 4px 0; border-radius: 5px; background: var(--fond);
+}
+.palier-cout strong {
+  font: 620 15px/1.1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ambre);
+}
+.palier-cout span { font-size: 9px; color: var(--texte-3); }
+/* Un palier sans achat se distingue : le gain y est entierement gratuit. */
+.palier-cout.gratuit strong { color: var(--jade); }
+
+.palier-corps { min-width: 0; }
+.palier-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.palier-degats, .palier-score {
+  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+}
+.palier-ecart, .palier-gain {
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-3);
+}
+.palier-score.pos, .palier-gain.pos { color: var(--jade); }
+.palier-score.neg, .palier-gain.neg { color: var(--rose); }
+
+.palier-pieces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.palier-pieces img { width: 24px; height: 24px; object-fit: contain; }
+
+/* La ligne de depart n'est pas une proposition : elle rappelle d'ou l'on part. */
+.palier.depart { background: none; border-style: dashed; }
+.palier.depart .palier-degats, .palier.depart .palier-score { color: var(--texte-3); }
+
+/* Ce qu'un chiffre ne dit pas : un minimum redresse, un minimum perdu. */
+.palier-marque {
+  padding: 0 5px; border-radius: 999px; white-space: nowrap;
+  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--jade); border: 1px solid var(--jade);
+}
+.palier-marque.defaut { color: var(--rose); border-color: var(--rose); }
+.palier .mini.large {
+  height: 24px; padding: 0 10px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-3); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.palier .mini.large:hover { color: var(--texte); border-color: var(--filet-clair); }
+#paliers .note { font-size: 11.5px; color: var(--texte-3); }

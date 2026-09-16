@@ -1003,15 +1003,30 @@ input[type="range"].curseur::-moz-range-thumb {
 }
 .melange-courbe { width: 100%; height: 120px; display: block; margin-top: 8px; cursor: pointer; }
 
-/* La courbe vit dans un canvas : elle ne recoit pas la cascade, elle LIT les
-   variables. Ce sont celles de v1 ; v2 les fait pointer sur ses propres
-   jetons plutot que de laisser le trace tomber sur ses couleurs de secours. */
+/* Les jetons de v1, rendus a ses modules.
+
+   Certains d'entre eux ne passent pas par la cascade : la courbe LIT les
+   variables depuis un canvas, et `renderConditions` ecrit ses couleurs en
+   style inline. Aucune regle de v2 ne peut les rattraper. Les nommer ici les
+   fait pointer sur les jetons de v2, au lieu de tomber sur des couleurs de
+   secours ou sur rien du tout. */
 :root {
   --faible: var(--texte-3);
+  --titre: var(--texte);
   --graphe-grille: var(--filet);
   --accent: var(--iris);
+  --accent-doux: var(--iris-sourd);
   --cyan: var(--jade);
+  --positif: var(--jade);
+  --alerte: var(--rose);
+  --alerte-bord: var(--rose);
   --champ: var(--surface-2);
+  --carte: var(--surface);
+  --carte-haute: var(--surface-2);
+  --bord: var(--filet);
+  --bord-clair: var(--filet-clair);
+  --chiffre: var(--mono);
+  --display: var(--ui);
 }
 
 /* ======================================= Les options qui definissent un nombre ===
@@ -1299,3 +1314,92 @@ input[type="range"].curseur::-moz-range-thumb {
 .section.replie .tete-resultats ~ * { display: none; }
 .section.nue { padding: 0; border-bottom: 0; }
 .section.vise { outline: 2px solid var(--iris); outline-offset: 6px; border-radius: var(--r); }
+
+/* Le filtre par element du choix des sorts.
+
+   Chaque pastille porte la teinte de son element, posee en variable par le
+   module : la couleur vient du jeu, pas de la feuille. */
+.chip-element {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  color: var(--texte-3); font: 11px/1.4 var(--ui);
+}
+.chip-element:hover { color: var(--texte-2); border-color: var(--filet-clair); }
+.chip-element img { width: 14px; height: 14px; object-fit: contain; }
+/* Un element retenu porte sa teinte sur le texte ET le cadre : la seule
+   couleur de fond ne suffirait pas a le distinguer. */
+.chip-element.actif {
+  border-color: var(--teinte); color: var(--teinte);
+  background: color-mix(in srgb, var(--teinte) 14%, transparent);
+}
+.picker-elements .espace { flex: 1; }
+.picker-filtres .mini.large {
+  width: auto; height: 24px; padding: 0 11px; white-space: nowrap; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.picker-filtres .mini.large:hover { color: var(--texte); border-color: var(--filet-clair); }
+.picker-filtres .option { white-space: nowrap; }
+
+/* ================================== La feuille des minimums ===
+
+   Quatre champs par ligne ne tiennent pas dans un volet de trois cents
+   pixels. Ils tiennent ici. */
+
+/* Les colonnes chiffrees sont fixes, le nom prend le reste : sans cela les
+   champs a « width: 100% » poussent la table hors de la feuille, et les trois
+   dernieres colonnes se coupent. */
+table.conditions { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.conditions col.col-nom { width: auto; }
+table.conditions col.col-chiffre { width: 74px; }
+table.conditions col.col-courte { width: 40px; }
+table.conditions col.col-atteint { width: 92px; }
+table.conditions th {
+  padding: 0 4px 7px; text-align: right;
+  font-size: 9.5px; font-weight: 640; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+table.conditions th:first-child { text-align: left; }
+table.conditions td { padding: 3px 4px; vertical-align: middle; }
+table.conditions input[type="number"] {
+  width: 100%; min-width: 0; height: 24px; padding: 0 5px; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11.5px;
+}
+table.conditions .nom-stat {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--texte-2); white-space: nowrap; padding-right: 8px;
+}
+table.conditions .nom-stat img { width: 15px; height: 15px; object-fit: contain; }
+table.conditions tr.tenue .nom-stat { color: var(--jade); }
+table.conditions tr.manquee .nom-stat { color: var(--texte); }
+/* La barre montre d'un coup d'oeil la part de l'objectif deja atteinte : un
+   minimum a moitie tenu se voit sans lire le chiffre. */
+table.conditions .barre-ecart {
+  height: 2px; margin-top: 3px; border-radius: 999px; overflow: hidden;
+  background: var(--filet);
+}
+table.conditions .barre-ecart > span { display: block; height: 100%; background: var(--jade); }
+table.conditions .barre-ecart.manque > span { background: var(--rose); }
+/* « .etat » nomme le point d'un minimum dans le socle, et la colonne
+   « Atteint » ici : la cellule reprend donc tout ce que le point lui impose,
+   sans quoi elle se dessine en pastille grise de six pixels. */
+table.conditions td.etat {
+  width: auto; height: auto; flex: initial;
+  background: none; border-radius: 0; box-shadow: none;
+  text-align: right; white-space: nowrap;
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums;
+}
+table.conditions .etat .nul { color: var(--texte-3); }
+table.conditions .mini {
+  padding: 3px 7px; cursor: pointer; border-radius: var(--r);
+  background: none; border: 1px solid transparent;
+  color: var(--texte-3); font: 12px/1 var(--ui);
+}
+table.conditions .mini:hover { color: var(--texte); border-color: var(--filet); }
+/* « Abs » enfonce porte l'ambre : un maximum infranchissable n'est pas un
+   reglage comme un autre, il peut rendre la recherche impossible. */
+table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color: var(--ambre); }
+
+.rangee-ajout { display: flex; gap: 7px; margin-top: 14px; }
+.rangee-ajout select { flex: 1; min-width: 0; height: 28px; }

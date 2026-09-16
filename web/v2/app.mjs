@@ -50,6 +50,7 @@ import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
 import { renderMelange } from './vue-melange.mjs';
 import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.mjs';
 import { rangerOptions } from './options.mjs';
+import { fermerMinimums, minimumsOuverts, MINIMUM_NEUF, ouvrirMinimums } from './vue-minimums.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
 import { renderAnalyse } from '../analyse-panel.mjs';
 import { remplacer } from '../equipement.mjs';
@@ -341,6 +342,14 @@ function renderAvoir(stats, degats) {
   // les points de vie : montrer la caracteristique donnait un minimum tenu et
   // pourtant rouge, et personne ne pouvait comprendre pourquoi.
   $('compte-limites').textContent = String(etat.conditions.length);
+  $('regler-minimums').onclick = () => ouvrirMinimums({
+    lireEtat, setEtat, message,
+    lireMesures: () => {
+      const b = buildCourant(etat, catalogue);
+      const bl = b ? scoreAffiche(etat, b.stats) : null;
+      return { stats: b?.stats ?? null, degats: Number(bl?.damage) || 0 };
+    },
+  });
   $('limites').replaceChildren(...etat.conditions.map((c) => {
     const valeur = conditionValue(c.stat, stats, degats ?? 0);
     const tenu = valeur >= c.target;
@@ -655,16 +664,8 @@ function poserMinimum(stat, valeur) {
   message(`${STAT_LABELS[stat] ?? stat} : le minimum monte a ${nombre(cible)}.`);
 }
 
-/**
- * Forme d'un minimum pose a la main.
- *
- * Le poids dit combien une unite manquante coute au score. Un poids de 1 en
- * fait une preference, pas un couperet : le solveur la tiendra s'il peut, et
- * le joueur remonte le poids lui-meme si elle doit etre imperative.
- */
-const POIDS_PAR_DEFAUT = (stat, target) => ({
-  stat, target, weight: 1, max: null, absolute: false,
-});
+/** Forme d'un minimum pose a la main : la meme que dans la feuille. */
+const POIDS_PAR_DEFAUT = (stat, target) => ({ ...MINIMUM_NEUF(stat), target });
 
 /** Enleve un minimum. */
 function enleverMinimum(stat) {
@@ -794,6 +795,7 @@ window.addEventListener('keydown', (ev) => {
 
   if (ev.key !== 'Escape') return;
   if (comparaisonOuverte()) fermerComparaison();
+  else if (minimumsOuverts()) fermerMinimums();
   else if (reglagesOuverts()) fermerReglages();
   else if (pointsOuverts()) fermerPoints();
   else if (paletteOuverte()) fermerPalette();

@@ -37,6 +37,8 @@ import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
 import { reglagesChanges, signatureRecherche } from './peremption.mjs';
 import { ouvrirIdentite } from './identite.mjs';
 import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
+import { comparaisonOuverte, fermerComparaison, ouvrirComparaison } from './vue-comparaison.mjs';
+import { FAMILLES } from './fiche.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -51,6 +53,14 @@ let vierge = true;
 
 /** Vrai quand « tout voir » remplace l'essentiel dans le volet d'inspection. */
 let toutVoir = false;
+
+/**
+ * Stuffs trouves coches pour la comparaison.
+ *
+ * Ils sont gardes par reference a l'objet candidat : deux stuffs peuvent
+ * porter le meme score et les memes degats sans etre le meme stuff.
+ */
+let choisis = new Set();
 
 /**
  * Reglages qui valaient au dernier lancement, ou null si aucun n'a eu lieu.
@@ -268,12 +278,30 @@ function renderAvoir(stats, degats) {
 function renderTrouves(bilan) {
   const candidats = etat.candidats ?? [];
   $('compte-trouves').textContent = String(candidats.length);
+
+  // Une recherche neuve rend d'autres candidats : les coches d'avant ne
+  // designent plus rien, et comparer des fantomes ne veut rien dire.
+  const vivants = new Set(candidats);
+  for (const choisi of choisis) if (!vivants.has(choisi)) choisis.delete(choisi);
+
   renderCandidats($('trouves'), candidats, {
     portes: new Set([...etat.equipped.values()].map((i) => i.id)),
     itemById: catalogue?.itemById ?? new Map(),
     porte: bilan,
     onPorter: (candidat) => recherche.porterAlaMain(candidat),
+    selection: {
+      choisis,
+      onBasculer: (candidat) => {
+        if (choisis.has(candidat)) choisis.delete(candidat);
+        else choisis.add(candidat);
+        render();
+      },
+    },
   });
+
+  const bouton = $('comparer');
+  bouton.hidden = choisis.size === 0;
+  bouton.textContent = `Comparer ${choisis.size + 1}`;
 }
 
 function renderInspecteur(stats, degats) {
@@ -341,6 +369,39 @@ function renderFraicheur() {
     ? 'Un reglage a bouge depuis la derniere recherche : ce qui est montre '
       + 'repond a la question d\'avant.'
     : '';
+}
+
+/**
+ * Toutes les mesures de la fiche, dans l'ordre du jeu.
+ *
+ * La comparaison les parcourt toutes : c'est elle qui masque ce qui ne varie
+ * pas, pas la liste qui choisit d'avance ce qui merite d'etre compare.
+ */
+const MESURES_COMPARABLES = FAMILLES.flatMap(([, paires]) =>
+  paires.map(([cle, libelle]) => ({ cle, libelle })));
+
+/** Ouvre la comparaison du stuff porte et des stuffs coches. */
+function comparer() {
+  if (choisis.size === 0) return;
+
+  const colonnes = [
+    { nom: 'Porte', stats: buildCourant(etat, catalogue)?.stats ?? {} },
+    ...[...choisis].map((candidat, i) => ({
+      nom: `Trouve ${i + 1}`,
+      // Les stats d'un candidat ne sont pas rangees avec lui : on repose son
+      // stuff sur une copie de l'etat et on laisse le moteur recalculer.
+      stats: buildCourant(
+        { ...etat, ...appliquerBuild(etat, candidat, catalogue.itemById) },
+        catalogue,
+      )?.stats ?? {},
+    })),
+  ];
+
+  ouvrirComparaison({
+    mesures: MESURES_COMPARABLES,
+    colonnes,
+    minimums: new Set(etat.conditions.map((c) => c.stat)),
+  });
 }
 
 /**
@@ -506,7 +567,11 @@ window.addEventListener('keydown', (ev) => {
     basculerPalette(liensPalette);
     return;
   }
-  if (ev.key === 'Escape' && paletteOuverte()) fermerPalette();
+  if (ev.key !== 'Escape') return;
+  if (comparaisonOuverte()) fermerComparaison();
+  else if (paletteOuverte()) fermerPalette();
 });
+
+$('comparer').addEventListener('click', comparer);
 
 main();

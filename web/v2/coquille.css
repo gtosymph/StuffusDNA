@@ -822,3 +822,67 @@ tr.titre th, tr.titre td {
 
 /* Le raccourci se lit a cote du bouton qui l'utilise, jamais ailleurs. */
 .raccourci { margin-left: 8px; color: var(--texte-3); font-family: var(--mono); font-size: 11px; }
+
+/* ==================================================== La comparaison ===
+
+   Elle se pose par-dessus et se ferme : on y vient pour trancher entre deux
+   ou trois stuffs, pas pour s'y installer. */
+
+.compare-fond {
+  position: fixed; inset: 0; z-index: 88;
+  display: grid; place-items: center; padding: 24px;
+  background: rgb(6 8 13 / .7);
+}
+.compare-boite {
+  width: min(860px, 100%); max-height: 86vh;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 24px 64px rgb(0 0 0 / .62);
+}
+.compare-tete {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--filet);
+}
+.compare-tete h2 { margin: 0; font-size: 14px; font-weight: 640; color: var(--texte); }
+.compare-corps { flex: 1; min-height: 0; overflow: auto; }
+.compare-pied { padding: 8px 16px 12px; border-top: 1px solid var(--filet); }
+
+.compare { width: 100%; border-collapse: collapse; }
+.compare th, .compare td { padding: 6px 12px; text-align: right; }
+/* L'intitule reste lisible pendant qu'on fait defiler les colonnes. */
+.compare tbody th {
+  position: sticky; left: 0; z-index: 1;
+  text-align: left; font-weight: 500; color: var(--texte-2);
+  background: var(--surface);
+}
+.compare thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--surface); border-bottom: 1px solid var(--filet);
+  font-size: 10px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+.compare thead th:first-child { left: 0; z-index: 3; }
+.compare tbody tr:hover th, .compare tbody tr:hover td { background: var(--surface-2); }
+.compare td b { display: block; font-weight: 620; }
+.compare td small { display: block; font-size: 10px; color: var(--texte-3); }
+/* Un minimum se lit en valeur, pas en ecart : l'etiquette dit pourquoi cette
+   colonne ne montre pas de « + » comme les autres. */
+.marque-min {
+  margin-left: 7px; padding: 0 5px; border-radius: 999px;
+  border: 1px solid var(--iris-sourd); color: var(--iris);
+  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* Cocher un stuff trouve l'ajoute a la comparaison. */
+.candidat-cocher { display: inline-flex; align-items: center; cursor: pointer; }
+.candidat-cocher input { cursor: pointer; margin: 0; }
+
+/* Les trois lignes de « Ce que j'ai » sont des portes : elles sont devenues
+   des boutons, et un bouton porte son propre cadre. Sans cette regle, elles
+   se lisent comme trois champs de saisie vides. */
+button.avoir-ligne {
+  width: 100%; cursor: pointer; text-align: left;
+  border: 1px solid transparent; color: var(--texte-2); font: 12px/1.45 var(--ui);
+}
+button.avoir-ligne:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+button.avoir-ligne b { color: var(--texte); }

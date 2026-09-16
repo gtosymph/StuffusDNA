@@ -651,7 +651,7 @@ export function renderAnalyse(racineApports, racineSensibilite, analyse) {
  * @param {number|null} contexte.scorePorte Score du build porte, ou null.
  * @param {(candidat: any) => void} contexte.onPorter
  */
-export function renderCandidats(root, candidats, { portes, itemById, porte, onPorter }) {
+export function renderCandidats(root, candidats, { portes, itemById, porte, onPorter, selection = null }) {
   if (!candidats || candidats.length === 0) {
     fill(root, el('p', { class: 'note', text: 'Aucun autre build. Lancez une recherche.' }));
     return;
@@ -686,6 +686,16 @@ export function renderCandidats(root, candidats, { portes, itemById, porte, onPo
 
     return el('div', { class: `candidat ${identique ? 'porte' : ''}`.trim() },
       el('div', { class: 'candidat-tete' },
+        // La case a cocher n'existe que si l'appelant sait quoi en faire :
+        // v1 ne compare pas, elle ne doit pas voir apparaitre une case inerte.
+        selection
+          ? el('label', { class: 'candidat-cocher', title: 'Comparer ce stuff' },
+              el('input', {
+                type: 'checkbox',
+                ...(selection.choisis.has(candidat) ? { checked: true } : {}),
+                onChange: () => selection.onBasculer(candidat),
+              }))
+          : null,
         el('span', { class: 'candidat-score', title: 'Degats de ce build',
           text: entier(candidat.damage ?? 0) }),
         ecart === null || identique

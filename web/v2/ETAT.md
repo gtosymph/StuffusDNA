@@ -30,17 +30,17 @@ moteur ; la maquette garde les chiffres inventes et sert de reference visuelle.
 - La palette de pieces, ouverte par `⌘K` ou par « Toutes les pieces ».
 - « Mon stuff actuel » : figer le stuff porte, et compter les achats.
 - La comparaison : cocher des stuffs trouves, masquer les lignes identiques.
+- La feuille des points, ouverte depuis la famille qu'elle commande.
 
 ## Ce qui n'est pas encore branche
 
-1. **La feuille des points** de caracteristique. `points-panel.mjs` existe.
-2. **Les essais gardes** : `garderSimulation` ne fait rien pour l'instant.
-3. **Le curseur mixte** et la courbe degats / survie.
-4. **Le poids d'un minimum** : un minimum pose a la main prend le poids 1,
+1. **Les essais gardes** : `garderSimulation` ne fait rien pour l'instant.
+2. **Le curseur mixte** et la courbe degats / survie.
+3. **Le poids d'un minimum** : un minimum pose a la main prend le poids 1,
    donc une preference, pas un couperet. Rien ne permet encore de le monter.
-5. **Les vingt options** de calcul : seules celles des reglages par defaut
+4. **Les vingt options** de calcul : seules celles des reglages par defaut
    s'appliquent. Aucun ecran ne les montre.
-6. **« Proche de mon stuff »** : les paliers d'achat ne sont pas montres.
+5. **« Proche de mon stuff »** : les paliers d'achat ne sont pas montres.
 
 ## Les trois decisions de structure
 

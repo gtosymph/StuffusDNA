@@ -39,6 +39,7 @@ import { ouvrirIdentite } from './identite.mjs';
 import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
 import { comparaisonOuverte, fermerComparaison, ouvrirComparaison } from './vue-comparaison.mjs';
 import { FAMILLES } from './fiche.mjs';
+import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -314,7 +315,15 @@ function renderInspecteur(stats, degats) {
   $('tete-note').textContent = 'stuff porte';
 
   const noeud = (l) => (l.famille
-    ? el('p', { class: 'famille', text: l.famille })
+    ? el('p', { class: 'famille' }, l.famille,
+        l.famille === 'Caracteristiques'
+          ? el('button', {
+              class: 'btn mini fantome', type: 'button', text: 'Repartir mes points',
+              onClick: () => ouvrirPoints({
+                lireEtat, setEtat, lireStats: () => buildCourant(etat, catalogue)?.stats ?? null,
+              }),
+            })
+          : null)
     : el('button', {
         class: `ligne ${l.exigee ? 'exigee' : ''}`.trim(), type: 'button',
         ...(l.muet ? { disabled: true } : {}),
@@ -569,6 +578,7 @@ window.addEventListener('keydown', (ev) => {
   }
   if (ev.key !== 'Escape') return;
   if (comparaisonOuverte()) fermerComparaison();
+  else if (pointsOuverts()) fermerPoints();
   else if (paletteOuverte()) fermerPalette();
 });
 

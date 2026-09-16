@@ -11,7 +11,8 @@
  */
 import { cacherBulle } from './hover-card.mjs';
 import { fermerFiche } from './item-panel.mjs';
-import { fermerPicker, ouvrirPicker } from './spell-picker.mjs';
+import { fermerPicker } from './spell-picker.mjs';
+import { creerGestesSorts } from './gestes-sorts.mjs';
 import { chargerSet, enleverSet, enregistrerSet } from './presets.mjs';
 import { STAT_LABELS } from '../src/data/stats.mjs';
 
@@ -138,36 +139,9 @@ function brancherConditions($, lireEtat, setEtat, message) {
 
 /** Choix et retrait des sorts. */
 function brancherSorts($, lireEtat, setEtat, message, lireClassesSorts) {
-  $('enlever-sorts').addEventListener('click', () => setEtat({ sorts: [] }));
-
-  $('choisir-sorts').addEventListener('click', () => {
-    const etat = lireEtat();
-    const classe = lireClassesSorts()?.find((c) => c.id === etat.classe) ?? null;
-    if (!classe) {
-      message('Sorts indisponibles pour cette classe.', 'erreur');
-      return;
-    }
-    ouvrirPicker({
-      classe,
-      niveau: etat.niveau,
-      pris: new Set(etat.sorts.map((s) => s.id)),
-      onAjouter: (sort) => setEtat({
-        sorts: [...lireEtat().sorts.filter((s) => s.id !== sort.id), sort],
-      }),
-      // Ajout en masse : un seul rendu pour toute la liste.
-      onAjouterPlusieurs: (nouveaux) => {
-        const courant = lireEtat();
-        const ids = new Set(nouveaux.map((s) => s.id));
-        const sorts = [...courant.sorts.filter((s) => !ids.has(s.id)), ...nouveaux];
-        // Premier sort pose alors que la recherche visait les
-        // caracteristiques : le joueur veut des degats, pas un rappel.
-        const bascule = courant.mode === 'caracteristiques' && sorts.length > 0;
-        setEtat({ sorts, ...(bascule ? { mode: 'degats' } : {}) });
-        if (bascule) message('La recherche maximise maintenant les degats.', 'info');
-      },
-      onEnlever: (id) => setEtat({ sorts: lireEtat().sorts.filter((s) => s.id !== id) }),
-    });
-  });
+  const sorts = creerGestesSorts({ lireEtat, setEtat, message, lireClassesSorts });
+  $('enlever-sorts').addEventListener('click', sorts.toutEnlever);
+  $('choisir-sorts').addEventListener('click', sorts.ouvrir);
 }
 
 /**

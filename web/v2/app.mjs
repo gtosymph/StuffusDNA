@@ -14,7 +14,8 @@ import { loadCatalog } from '../catalog-web.mjs';
 import { loadSpells } from '../spells-data.mjs';
 import { avatarDeClasse, nomDeClasse } from '../classes.mjs';
 import {
-  el, renderCandidats, renderCases, renderOptions, renderPanoplies,
+  el, renderArme, renderCandidats, renderCases, renderCombo, renderOptions,
+  renderPanoplies,
 } from '../render.mjs';
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
 import { etatInitial, optionsAffichees } from '../reglages.mjs';
@@ -35,7 +36,14 @@ import { conditionValue } from '../../src/solver/condition-value.mjs';
 import { creerGestesCatalogue } from '../gestes-catalogue.mjs';
 import { creerGestesSorts } from '../gestes-sorts.mjs';
 import { brancherSets } from '../branchements.mjs';
-import { lireSets } from '../presets.mjs';
+import { enregistrerSet, lireSets } from '../presets.mjs';
+import { installerSimulations } from '../simulations-panel.mjs';
+import { ajouterSimulation } from '../simulations.mjs';
+import { instantane, patchDepuisSimulation } from '../instantane.mjs';
+import { emblemeDeClasse } from '../classes.mjs';
+import { LIBELLES_OPTIONS } from '../reglages.mjs';
+import { attaqueArme } from '../objectif.mjs';
+import { computeSpellDetail } from '../../src/engine/damage.mjs';
 import { creerGestesReference } from '../gestes-reference.mjs';
 
 import { creerPont } from './pont.mjs';
@@ -70,12 +78,26 @@ let vierge = true;
 let toutVoir = false;
 
 /**
- * Stuffs trouves coches pour la comparaison.
+ * Stuffs coches pour la comparaison, d'ou qu'ils viennent.
  *
- * Ils sont gardes par reference a l'objet candidat : deux stuffs peuvent
- * porter le meme score et les memes degats sans etre le meme stuff.
+ * Une seule table pour les trois listes : on compare un stuff trouve avec un
+ * palier d'achat et un essai garde, ce qu'aucune des trois ne permettait
+ * separement. La cle est l'OBJET lui-meme — deux stuffs peuvent porter le
+ * meme score sans etre le meme stuff — et la valeur dit d'ou il vient.
  */
-let choisis = new Set();
+const choisis = new Map();
+
+/** Oublie les coches dont l'objet n'est plus a l'ecran. */
+function nettoyerChoisis(vivants) {
+  for (const objet of choisis.keys()) if (!vivants.has(objet)) choisis.delete(objet);
+}
+
+/** Coche ou decoche un stuff, d'ou qu'il vienne. */
+function basculerChoisi(objet, nom) {
+  if (choisis.has(objet)) choisis.delete(objet);
+  else choisis.set(objet, { nom });
+  render();
+}
 
 /**
  * Reglages qui valaient au dernier lancement, ou null si aucun n'a eu lieu.
@@ -84,6 +106,9 @@ let choisis = new Set();
  * Oublier de relancer apres un reglage etait la vraie gene, pas le clic.
  */
 let signatureLancement = null;
+
+/** Panneau des essais gardes, installe une fois le catalogue charge. */
+let panneauSimulations = null;
 
 const lireEtat = () => etat;
 
@@ -137,9 +162,7 @@ function message(texte, type = 'info') {
 const recherche = creerRecherche({
   $, lireEtat, setEtat, message,
   appliquer: (resultat) => setEtat(appliquerBuild(etat, resultat, catalogue.itemById)),
-  // v2 ne range pas encore les essais : la phase suivante rebranche les
-  // simulations. Ne rien faire vaut mieux que ranger dans un panneau absent.
-  garderSimulation: () => {},
+  garderSimulation: () => garderSimulation({ siNouvelle: true, silencieux: true }),
 });
 
 /* ------------------------------------------------------------------ Modes --- */
@@ -179,10 +202,22 @@ function render() {
   renderAvoir(stats, degats);
   renderTrouves(bilan);
   renderProximite();
+  renderComparer();
   renderPanoplie(build);
   renderAnalyseDuStuff(bilan, stats);
   renderInspecteur(stats, degats);
   renderScore(bilan);
+  renderCombo($('carte-combo'), bilan?.combo ?? null, {
+    onAppliquer: (combo) => {
+      const sorts = sortsDuCombo(combo);
+      if (sorts.length === 0) return;
+      setEtat({ sorts });
+      message(`La liste des sorts reprend le combo : ${sorts.length} sort(s).`);
+    },
+    onGarder: garderCombo,
+  });
+  const arme = attaqueArme(etat);
+  renderArme($('carte-arme'), arme, arme && stats ? computeSpellDetail(arme, stats) : null);
   renderFraicheur();
   $('annuler').disabled = passe.length === 0;
 }
@@ -375,11 +410,6 @@ function renderTrouves(bilan) {
   const candidats = etat.candidats ?? [];
   $('compte-trouves').textContent = String(candidats.length);
 
-  // Une recherche neuve rend d'autres candidats : les coches d'avant ne
-  // designent plus rien, et comparer des fantomes ne veut rien dire.
-  const vivants = new Set(candidats);
-  for (const choisi of choisis) if (!vivants.has(choisi)) choisis.delete(choisi);
-
   renderCandidats($('trouves'), candidats, {
     portes: new Set([...etat.equipped.values()].map((i) => i.id)),
     itemById: catalogue?.itemById ?? new Map(),
@@ -387,17 +417,18 @@ function renderTrouves(bilan) {
     onPorter: (candidat) => recherche.porterAlaMain(candidat),
     selection: {
       choisis,
-      onBasculer: (candidat) => {
-        if (choisis.has(candidat)) choisis.delete(candidat);
-        else choisis.add(candidat);
-        render();
-      },
+      onBasculer: (candidat) => basculerChoisi(candidat,
+        `Trouve ${candidats.indexOf(candidat) + 1}`),
     },
   });
+}
 
+/** Le bandeau de comparaison : il ne parait qu'avec quelque chose a comparer. */
+function renderComparer() {
   const bouton = $('comparer');
   bouton.hidden = choisis.size === 0;
   bouton.textContent = `Comparer ${choisis.size + 1}`;
+  bouton.title = 'Compare le stuff porte et les stuffs coches, d\'ou qu\'ils viennent.';
 }
 
 /**
@@ -435,6 +466,11 @@ function renderProximite() {
       recherche.porterAlaMain(palier);
       message(`Stuff porte : ${palier.changements} piece(s) a acheter, `
         + `${nombre(Math.floor(palier.damage))} de degats.`);
+    },
+    selection: {
+      choisis,
+      onBasculer: (palier) => basculerChoisi(palier,
+        `${palier.changements} piece(s)`),
     },
   });
 }
@@ -577,26 +613,34 @@ function renderFraicheur() {
 const MESURES_COMPARABLES = FAMILLES.flatMap(([, paires]) =>
   paires.map(([cle, libelle]) => ({ cle, libelle })));
 
+/**
+ * Les statistiques d'un stuff coche.
+ *
+ * Un essai garde porte les siennes : ce sont celles qu'il AVAIT, et les
+ * recalculer aujourd'hui donnerait autre chose si les points ou les options
+ * ont bouge depuis. Un candidat ou un palier n'en porte pas : on repose son
+ * stuff sur une copie de l'etat et on laisse le moteur faire le calcul.
+ */
+function statsDe(objet) {
+  if (objet.stats) return objet.stats;
+
+  const ids = objet.itemIds ?? (objet.pieces ?? []).map((p) => p.id);
+  return buildCourant(
+    { ...etat, ...appliquerBuild(etat, { ...objet, itemIds: ids }, catalogue.itemById) },
+    catalogue,
+  )?.stats ?? {};
+}
+
 /** Ouvre la comparaison du stuff porte et des stuffs coches. */
 function comparer() {
   if (choisis.size === 0) return;
 
-  const colonnes = [
-    { nom: 'Porte', stats: buildCourant(etat, catalogue)?.stats ?? {} },
-    ...[...choisis].map((candidat, i) => ({
-      nom: `Trouve ${i + 1}`,
-      // Les stats d'un candidat ne sont pas rangees avec lui : on repose son
-      // stuff sur une copie de l'etat et on laisse le moteur recalculer.
-      stats: buildCourant(
-        { ...etat, ...appliquerBuild(etat, candidat, catalogue.itemById) },
-        catalogue,
-      )?.stats ?? {},
-    })),
-  ];
-
   ouvrirComparaison({
     mesures: MESURES_COMPARABLES,
-    colonnes,
+    colonnes: [
+      { nom: 'Porte', stats: buildCourant(etat, catalogue)?.stats ?? {} },
+      ...[...choisis].map(([objet, { nom }]) => ({ nom, stats: statsDe(objet) })),
+    ],
     minimums: new Set(etat.conditions.map((c) => c.stat)),
   });
 }
@@ -629,6 +673,77 @@ function remplirListesSets() {
       : jeux.map((j) => el('option', { value: j.nom, text: j.nom }))));
 
     if (choisi && jeux.some((j) => j.nom === choisi)) noeud.value = choisi;
+  }
+}
+
+/**
+ * Range le stuff porte parmi les essais gardes.
+ *
+ * `siNouvelle` evite d'empiler quarante fois le meme stuff : la recherche
+ * appelle cette fonction a chaque amelioration.
+ */
+function garderSimulation(choix = {}) {
+  const build = buildCourant(etat, catalogue);
+  if (!build) {
+    message('Rien a garder : le catalogue n\'est pas encore charge.');
+    return;
+  }
+
+  let ajoutee = null;
+  try {
+    ({ ajoutee } = ajouterSimulation(
+      instantane(etat, build, scoreAffiche(etat, build.stats)),
+      { siNouvelle: choix.siNouvelle }));
+  } catch (erreur) {
+    message(erreur.message, 'erreur');
+    return;
+  }
+
+  panneauSimulations?.rafraichir();
+  if (choix.silencieux || !ajoutee) return;
+  message(`Essai garde a ${nombre(Math.floor(ajoutee.score))} degats.`);
+}
+
+/** Repose un essai garde sur le personnage. */
+function restaurerSimulation(simulation) {
+  if (!catalogue) return;
+  const { patch, manquantes } = patchDepuisSimulation(etat, simulation, catalogue.itemById);
+  setEtat(patch);
+  message(manquantes === 0
+    ? 'Essai repose. « Annuler » revient au stuff d\'avant.'
+    : `Essai repose. ${manquantes} piece(s) introuvable(s) au catalogue.`,
+  manquantes === 0 ? 'info' : 'erreur');
+}
+
+/**
+ * Les sorts d'un combo, avec le nombre de lancers qu'il leur donne.
+ *
+ * Le nombre de lancers va dans « repeats » : c'est ce champ que les degats
+ * comptent. « castsPerTurn » reste la limite du jeu, elle ne bouge pas.
+ */
+function sortsDuCombo(combo) {
+  const parId = new Map(etat.sorts.map((s) => [s.id, s]));
+  return combo.lancers
+    .map((lancer) => {
+      const base = parId.get(lancer.id);
+      return base ? { ...base, repeats: lancer.lancers } : null;
+    })
+    .filter(Boolean);
+}
+
+/** Enregistre le combo comme un jeu de sorts. */
+function garderCombo(combo) {
+  const sorts = sortsDuCombo(combo);
+  if (sorts.length === 0) return;
+  const nom = window.prompt('Nom du jeu de sorts :', 'combo');
+  if (nom === null) return;
+  try {
+    enregistrerSet('sorts', nom, sorts);
+    remplirListesSets();
+    $('sets-sorts').value = nom.trim();
+    message(`Jeu de sorts « ${nom.trim()} » enregistre depuis le combo.`);
+  } catch (erreur) {
+    message(erreur.message, 'erreur');
   }
 }
 
@@ -752,6 +867,25 @@ async function main() {
     // face aux reglages du lancement qui les a produits, pas face a rien.
     signatureLancement = reprendreSignature();
 
+    panneauSimulations = installerSimulations($('simulations'), {
+      compteur: $('compte-simulations'),
+      itemById: () => catalogue?.itemById ?? new Map(),
+      libelles: STAT_LABELS,
+      // Les options se lisent par leur libelle, pas par leur cle interne.
+      libellesOptions: LIBELLES_OPTIONS,
+      nomDeClasse,
+      embleme: emblemeDeClasse,
+      onRestaurer: restaurerSimulation,
+      onFiger: gestesReference.figerSimulation,
+      onGarder: () => garderSimulation(),
+      onMessage: (texte) => message(texte),
+      selection: {
+        choisis,
+        onBasculer: (simulation) => basculerChoisi(simulation,
+          simulation.nom || `${nomDeClasse(simulation.classe)} ${simulation.niveau}`),
+      },
+    });
+
     remplirListesSets();
     message('');
     recherche.reprendre();
@@ -815,6 +949,11 @@ for (const nature of ['sorts', 'conditions']) {
 // section change sa largeur, donc il faut le redessiner.
 window.addEventListener('copyroxx:theme', () => render());
 
+$('recommencer').addEventListener('click', () => {
+  signatureLancement = garderSignature(etat);
+  recherche.lancer({ deZero: true });
+  render();
+});
 $('annuler').addEventListener('click', annuler);
 $('vider').addEventListener('click', vider);
 $('reglages').addEventListener('click',

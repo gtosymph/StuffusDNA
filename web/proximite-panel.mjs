@@ -188,9 +188,14 @@ export function paliersUtiles(paliers, reference) {
  * @param {Map<number, any>} options.itemById
  * @param {number[]} options.piecesReference Pieces du stuff de reference.
  * @param {(palier: any) => void} options.onPorter
+ * @param {{choisis: Set<any>, onBasculer: (palier: any) => void}|null} [options.selection]
+ *   Quand il est donne, chaque palier porte une case a cocher.
  */
 export function renderPaliers(racine, paliers, options) {
-  const { reference, itemById, piecesReference, onPorter, max = 0, possedees = new Set() } = options;
+  const {
+    reference, itemById, piecesReference, onPorter, max = 0, possedees = new Set(),
+    selection = null,
+  } = options;
 
   const utiles = paliersUtiles(paliers, reference);
   const aReference = new Set(piecesReference ?? []);
@@ -201,6 +206,16 @@ export function renderPaliers(racine, paliers, options) {
     const { gain, redresse } = apport(palier, reference);
 
     return el('div', { class: 'palier' },
+      // La case a cocher n'existe que si l'appelant sait quoi en faire : v1
+      // ne compare pas les paliers, elle ne doit pas voir une case inerte.
+      selection
+        ? el('label', { class: 'palier-cocher', title: 'Comparer ce stuff' },
+            el('input', {
+              type: 'checkbox',
+              ...(selection.choisis.has(palier) ? { checked: true } : {}),
+              onChange: () => selection.onBasculer(palier),
+            }))
+        : null,
       el('div', { class: `palier-cout ${palier.changements === 0 ? 'gratuit' : ''}`.trim(),
         title: palier.changements === 0
           ? 'Aucun achat : vos pieces, mieux reparties ou mieux placees'

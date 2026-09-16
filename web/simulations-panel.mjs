@@ -215,7 +215,7 @@ export function ouvrirComparaison(gauche, droite, options) {
  */
 export function installerSimulations(racine, options) {
   const { compteur, itemById, libelles, libellesOptions, nomDeClasse, embleme,
-    onRestaurer, onFiger, onGarder, onMessage } = options;
+    onRestaurer, onFiger, onGarder, onMessage, selection = null } = options;
 
   /** Lignes cochees pour la comparaison, au plus deux. */
   const cochees = new Set();
@@ -287,9 +287,16 @@ export function installerSimulations(racine, options) {
     ].filter(Boolean).join(' ');
 
     return el('div', { class: marques, 'data-simulation': simulation.id },
-      el('label', { class: 'simulation-coche', title: 'Cocher deux simulations pour les comparer' },
-        el('input', { type: 'checkbox', ...(cochees.has(simulation.id) ? { checked: true } : {}),
-          onChange: () => basculer(simulation.id) })),
+      el('label', { class: 'simulation-coche',
+        title: selection
+          ? 'Comparer cet essai avec les autres stuffs choisis'
+          : 'Cocher deux simulations pour les comparer' },
+        selection
+          ? el('input', { type: 'checkbox',
+              ...(selection.choisis.has(simulation) ? { checked: true } : {}),
+              onChange: () => selection.onBasculer(simulation) })
+          : el('input', { type: 'checkbox', ...(cochees.has(simulation.id) ? { checked: true } : {}),
+              onChange: () => basculer(simulation.id) })),
 
       // L'etoile remonte l'essai en tete et le met a l'abri du menage : la
       // liste est bornee, un favori ne part jamais pour faire de la place.

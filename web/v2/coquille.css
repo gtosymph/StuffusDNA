@@ -1403,3 +1403,145 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 
 .rangee-ajout { display: flex; gap: 7px; margin-top: 14px; }
 .rangee-ajout select { flex: 1; min-width: 0; height: 28px; }
+
+/* ================================================ Mes essais gardes ===
+
+   Quarante essais feraient une colonne interminable : la liste defile. */
+
+.simulations { display: flex; flex-direction: column; gap: 5px; max-height: 320px; overflow-y: auto; }
+.simulation {
+  display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center; gap: 9px;
+  padding: 6px 8px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.simulation:hover { border-color: var(--filet-clair); }
+.simulation.cochee { border-color: var(--iris); background: var(--iris-fond); }
+/* Un favori se repere avant d'etre lu : le lisere le signale dans la pile. */
+.simulation.favori { border-left: 3px solid var(--ambre); }
+.simulation-favori {
+  padding: 0 3px; border: 0; background: none; cursor: pointer;
+  font-size: 14px; line-height: 1; color: var(--texte-3);
+}
+.simulation-favori:hover, .simulation-favori.actif { color: var(--ambre); }
+.simulation-coche { display: flex; align-items: center; }
+.simulation-coche input { accent-color: var(--iris); margin: 0; cursor: pointer; }
+.simulation-embleme { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.simulation-corps { min-width: 0; }
+.simulation-tete { display: flex; align-items: baseline; gap: 8px; }
+.simulation-nom {
+  flex: 1; min-width: 0; cursor: text;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; font-weight: 620; color: var(--texte);
+}
+.simulation-nom:hover {
+  text-decoration: underline dotted var(--filet-clair); text-underline-offset: 3px;
+}
+.simulation-score {
+  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+}
+.simulation-score.pos { color: var(--jade); }
+.simulation-score.neg { color: var(--rose); }
+.simulation-sous { font-size: 10px; color: var(--texte-3); }
+.simulation-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.simulation-actions .mini, .simulations .mini, .rangee-ajout .mini {
+  height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-3); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.simulation-actions .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+/* Le crayon reste discret tant que la ligne n'est pas survolee : la liste se
+   lit d'un coup d'oeil, elle ne montre pas un outil par ligne. */
+.simulation-renommer { opacity: .35; padding: 0 5px; }
+.simulation:hover .simulation-renommer, .simulation-renommer:focus-visible { opacity: 1; }
+@media (hover: none) { .simulation-renommer { opacity: 1; min-height: 28px; min-width: 28px; } }
+/* Le stuff de chaque essai, en une bande : deux essais au meme score se
+   distinguent alors sans les ouvrir. */
+.simulation-stuff { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.simulation-stuff img {
+  width: 19px; height: 19px; object-fit: contain;
+  border-radius: 3px; background: var(--fond);
+}
+.rangee-ajout .filtre-case {
+  flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--texte-2); cursor: pointer;
+}
+#simulations .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* ============================== Le combo et l'arme, sous les degats ===
+
+   Ils disent d'ou vient CE chiffre-la : leur place est sous lui. */
+
+.carte-combo, .sort.arme {
+  margin-top: 10px; padding: 7px 9px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+  border-left: 2px solid var(--iris);
+}
+.sort.arme { border-left-color: var(--ambre); }
+.tete-combo, .sort-tete {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.tete-combo .titre, .nom-arme { font-size: 12px; font-weight: 620; color: var(--texte); }
+.tete-combo .pa, .meta-arme {
+  font: 10px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-3);
+}
+.ligne-combo { display: flex; align-items: center; gap: 7px; font-size: 11px; margin-top: 5px; }
+.ligne-combo img { width: 18px; height: 18px; border-radius: 3px; object-fit: contain; }
+.ligne-combo .nom {
+  flex: 1; min-width: 0; color: var(--texte-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ligne-combo .pa { font: 10px/1 var(--mono); color: var(--ambre); }
+.ligne-combo .deg { font: 11px/1 var(--mono); color: var(--jade); }
+.total-combo, .sort-moyennes {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-top: 7px; padding-top: 6px; border-top: 1px dashed var(--filet);
+  font-size: 10px; color: var(--texte-3);
+}
+.total-combo .deg, .sort-moyennes b {
+  font: 620 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+.carte-combo .mini, .sort .mini {
+  height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-3); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.lignes-arme { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+/* Chaque ligne d'arme porte la teinte de son element, posee par le module. */
+.ligne-arme {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 8px; border-radius: 999px;
+  font: 10px/1.5 var(--mono); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--teinte, var(--filet)); color: var(--teinte, var(--texte-2));
+}
+.ligne-arme img { width: 13px; height: 13px; object-fit: contain; }
+.fiche-arme.calc { padding-top: 7px; border-top: 1px solid var(--filet); }
+
+/* Les reglages du moteur : combien de fils, a quelle intensite. */
+.reglage-moteur {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--texte-3);
+}
+.reglage-moteur input { width: 44px; height: 24px; padding: 0 5px; text-align: right; }
+.reglage-moteur select { height: 24px; font-size: 11px; }
+
+/* Le bandeau de comparaison suit la page : les stuffs coches viennent des
+   trois listes, il n'appartient donc a aucune. Il se colle en bas pour
+   rester atteignable pendant qu'on fait defiler. */
+.bandeau-comparer { position: sticky; bottom: 12px; z-index: 20; display: flex; justify-content: center; }
+.bandeau-comparer .btn { box-shadow: 0 8px 24px rgb(0 0 0 / .5); }
+.bandeau-comparer .btn[hidden] { display: none; }
+
+/* La case a cocher d'un palier, comme celle d'un stuff trouve. */
+.palier-cocher { display: inline-flex; align-items: center; cursor: pointer; }
+.palier-cocher input { margin: 0; cursor: pointer; accent-color: var(--iris); }
+.palier { grid-template-columns: auto 58px minmax(0, 1fr) auto; }
+
+/* Les reglages du moteur vivent a cote de ce qu'ils commandent : la courbe
+   et l'etat des fils. La barre haute garde les gestes, pas les rouages. */
+.rangee-moteur {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 8px;
+}
+.rangee-moteur .fils { margin: 0; }
+.rangee-moteur .btn.mini { flex: none; }
+.marque { white-space: nowrap; }

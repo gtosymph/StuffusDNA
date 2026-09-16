@@ -29,7 +29,12 @@ moteur ; la maquette garde les chiffres inventes et sert de reference visuelle.
   se lit.
 - La palette de pieces, ouverte par `⌘K` ou par « Toutes les pieces ».
 - « Mon stuff actuel » : figer le stuff porte, et compter les achats.
-- La comparaison : cocher des stuffs trouves, masquer les lignes identiques.
+- La comparaison : cocher des stuffs dans les TROIS listes — trouves, paliers
+  d'achat, essais gardes — et les mettre cote a cote.
+- Les essais gardes : garder, renommer, mettre en favori, reposer, figer.
+- Le combo de sorts et la carte de l'arme portee, sous les degats.
+- Les reglages du moteur : fils, intensite, et « Recommencer ».
+- Regler ses minimums : objectif, poids, maximum, absolu.
 - La feuille des points, ouverte depuis la famille qu'elle commande.
 - Le mode « les deux » : son curseur et la courbe degats / survie sous lui,
   qui se commandent l'un l'autre.

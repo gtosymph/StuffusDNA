@@ -61,7 +61,7 @@ export function creerResultats(liens) {
       ? (enDegats ? 'Degats totaux'
         : (enEndurance ? 'Pdv effectifs'
           : (enMixte ? 'Score mixte' : 'Marge sur les conditions')))
-      : 'Conditions non satisfaites';
+      : 'Minimums non tenus';
 
     const invalides = build?.invalid?.length ?? 0;
     // Le score mixte compose deux mesures : seul, il ne dit ni combien le build
@@ -74,7 +74,7 @@ export function creerResultats(liens) {
       ? '' : ' Le score somme ce que le build depasse.';
     $('score-note').textContent = detail.satisfied
       ? `Toutes les conditions sont tenues.${composantes}${marge}${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`
-      : `${detail.unmet.length} condition(s) en defaut.${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
+      : `${detail.unmet.length} minimum(s) non tenu(s).${invalides ? ` ${invalides} piece(s) non equipable(s).` : ''}`;
 
     vue.renderCombo($('carte-combo'), detail.combo ?? null, {
       onAppliquer: (combo) => {

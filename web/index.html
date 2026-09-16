@@ -70,9 +70,9 @@
       </div>
       <div class="rangee-masse">
         <button id="bannir-resultats" class="danger" type="button"
-          title="Bannir toutes les pieces qui passent les filtres">Bannir les resultats</button>
+          title="Interdire toutes les pieces qui passent les filtres">Interdire</button>
         <button id="autoriser-resultats" type="button"
-          title="Autoriser de nouveau les pieces bannies qui passent les filtres">Autoriser</button>
+          title="Autoriser de nouveau les pieces interdites qui passent les filtres">Autoriser</button>
       </div>
       <div class="rangee-masse">
         <button id="posseder-resultats" type="button"
@@ -86,7 +86,7 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
     </section>
 
     <section class="bloc">
-      <h2>Pieces bannies <span class="compteur" id="compte-bannis">0</span></h2>
+      <h2>Pieces interdites <span class="compteur" id="compte-bannis">0</span></h2>
       <div class="bannis" id="bannis"></div>
     </section>
 
@@ -100,15 +100,15 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
   <!-- ===== Colonne 2 : statistiques, conditions, sorts ===== -->
   <div class="colonne colonne-stats">
     <section class="bloc">
-      <h2>A viser</h2>
+      <h2>Ce que je veux</h2>
       <label class="rangee-mode" for="mode-recherche"
-        title="Ce que la recherche maximise. Les conditions bornent le reste.">
-        <span>Maximiser</span>
+        title="Ce que la recherche fait monter. Les minimums bornent le reste.">
+        <span>Je veux</span>
         <select id="mode-recherche">
-          <option value="degats">Les degats</option>
-          <option value="endurance">Les pdv effectifs</option>
-          <option value="mixte">Les deux (mixte)</option>
-          <option value="caracteristiques">Les caracteristiques</option>
+          <option value="degats">Frapper fort</option>
+          <option value="endurance">Encaisser les coups</option>
+          <option value="mixte">Les deux</option>
+          <option value="caracteristiques">Monter mes caracteristiques</option>
         </select>
       </label>
       <div class="poids" id="poids" hidden></div>
@@ -140,7 +140,8 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
     </section>
 
     <section class="bloc">
-      <h2>Conditions <span class="compteur" id="compte-conditions">0</span></h2>
+      <h2>Au minimum <span class="compteur" id="compte-conditions">0</span></h2>
+      <p class="question">Ce que le stuff doit tenir, quoi qu'il arrive.</p>
       <div class="defilable">
         <table class="conditions">
           <tbody id="corps-conditions"></tbody>
@@ -153,7 +154,7 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
       <div class="rangee-sets">
         <select id="sets-conditions"></select>
         <button id="charger-conditions" type="button" title="Reprendre ce jeu">Charger</button>
-        <button id="garder-conditions" type="button" title="Enregistrer les conditions">Garder</button>
+        <button id="garder-conditions" type="button" title="Enregistrer ces minimums">Garder</button>
         <button id="oublier-conditions" class="mini" type="button" title="Enlever ce jeu">×</button>
       </div>
     </section>
@@ -237,7 +238,7 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
     </section>
 
     <section class="bloc" id="bloc-simulations">
-      <h2>Simulations <span class="compteur" id="compte-simulations">0</span></h2>
+      <h2>Mes stuffs gardes <span class="compteur" id="compte-simulations">0</span></h2>
       <p class="question">Mes essais gardes, a comparer entre eux.</p>
       <div id="simulations"></div>
     </section>
@@ -256,9 +257,9 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
     </section>
 
     <section class="bloc" id="bloc-candidats" hidden>
-      <h2>Autres builds trouves <span class="compteur" id="compte-candidats">0</span></h2>
-      <p class="question">Quels autres builds le solveur a-t-il retenus ?</p>
-      <p class="note">Chaque ligne montre les pieces a changer pour passer du build porte a celui-ci.</p>
+      <h2>Les stuffs trouves <span class="compteur" id="compte-candidats">0</span></h2>
+      <p class="question">Quels autres stuffs le solveur a-t-il retenus ?</p>
+      <p class="note">Chaque ligne montre les pieces a changer pour passer du stuff porte a celui-ci.</p>
       <div class="candidats" id="candidats"></div>
     </section>
 

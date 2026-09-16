@@ -19,10 +19,18 @@ const MODE_MIXTE = SEARCH_MODES.MIXTE;
 
 const nombre = (v) => Math.round(v).toLocaleString('fr-FR');
 
-/** Les deux mesures, et le mode de recherche qui maximise chacune. */
+/**
+ * Les deux mesures, et le mode de recherche qui maximise chacune.
+ *
+ * Chacune porte une phrase : « pdv effectifs » ne dit rien a un joueur qui
+ * ouvre l'outil pour la premiere fois, et le nombre seul ne l'apprend pas.
+ * La phrase dit ce que le nombre veut dire, avec la valeur dedans.
+ */
 export const MESURES_VISEES = Object.freeze([
-  { stat: 'degatsTotaux', libelle: 'Degats totaux', mode: 'degats' },
-  { stat: 'pdvEffectifs', libelle: 'Pdv effectifs', mode: 'endurance' },
+  { stat: 'degatsTotaux', libelle: 'Degats totaux', mode: 'degats',
+    phrase: (v) => `Vos sorts envoient ${nombre(v)} degats sur un tour.` },
+  { stat: 'pdvEffectifs', libelle: 'Pdv effectifs', mode: 'endurance',
+    phrase: (v) => `Vous encaissez ${nombre(v)} degats bruts avant de tomber.` },
 ]);
 
 /**
@@ -31,8 +39,8 @@ export const MESURES_VISEES = Object.freeze([
  * @param {{degatsTotaux: number, pdvEffectifs: number}} valeurs
  * @param {string} mode Mode de recherche choisi par le joueur.
  * @param {Set<string>|string[]} conditions Statistiques deja sous condition.
- * @returns {{stat: string, libelle: string, valeur: number, maximisee: boolean,
- *            enCondition: boolean, mode: string}[]}
+ * @returns {{stat: string, libelle: string, valeur: number, phrase: string,
+ *            maximisee: boolean, enCondition: boolean, mode: string}[]}
  */
 export function lignesObjectifs(valeurs, mode, conditions) {
   const posees = conditions instanceof Set ? conditions : new Set(conditions ?? []);
@@ -42,6 +50,7 @@ export function lignesObjectifs(valeurs, mode, conditions) {
     libelle: mesure.libelle,
     mode: mesure.mode,
     valeur: Number(valeurs?.[mesure.stat]) || 0,
+    phrase: mesure.phrase(Number(valeurs?.[mesure.stat]) || 0),
     // La mesure que la recherche maximise n'a pas a etre bornee par une
     // condition : elle monte deja aussi haut que possible. Le mode mixte les
     // maximise toutes les deux, dans la proportion reglee par le joueur.
@@ -72,8 +81,8 @@ export function renderObjectifs(racine, options) {
   const ligne = (vue) => {
     const icone = iconeStat(vue.stat);
     const titre = vue.enCondition
-      ? `${vue.libelle} — deja dans les conditions`
-      : `${vue.libelle} — cliquez pour en faire une condition`;
+      ? `${vue.phrase} Elle est deja dans les minimums.`
+      : `${vue.phrase} Cliquez pour en faire un minimum.`;
 
     return el('div', { class: `objectif ${vue.maximisee ? 'maximisee' : ''}`.trim() },
       el('button', {
@@ -89,14 +98,15 @@ export function renderObjectifs(racine, options) {
         ? el('span', { class: 'objectif-marque', title: 'La recherche maximise cette mesure',
             text: 'maximise' })
         : el('button', { class: 'mini', type: 'button',
-            title: `La recherche maximisera ${vue.libelle.toLowerCase()}`,
+            title: `La recherche fera monter ${vue.libelle.toLowerCase()}`,
             text: 'Maximiser', onClick: () => onMaximiser(vue.mode) }));
   };
 
   racine.replaceChildren(
     ...lignesObjectifs(valeurs, mode, conditions).map(ligne),
     el('p', { class: 'note',
-      text: 'La recherche maximise une mesure et borne l\'autre. Cliquez un nombre '
-        + 'pour en faire une condition, a partir de sa valeur actuelle.' }),
+      text: 'La recherche fait monter une mesure et tient l\'autre au minimum '
+        + 'demande. Cliquez un nombre pour en faire un minimum, a partir de sa '
+        + 'valeur actuelle.' }),
   );
 }

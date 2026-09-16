@@ -149,7 +149,7 @@ export function ouvrirFiche(item, actions = {}) {
       actions.onLock
         ? el('button', {
             type: 'button',
-            text: actions.verrouille ? 'Deverrouiller' : 'Verrouiller',
+            text: actions.verrouille ? 'Ne plus garder' : 'Toujours garder',
             title: actions.verrouille
               ? 'Le solveur pourra de nouveau remplacer cette piece'
               : 'Le solveur garde cette piece dans chaque build',
@@ -158,7 +158,7 @@ export function ouvrirFiche(item, actions = {}) {
       actions.onBan
         ? el('button', {
             class: actions.banni ? '' : 'danger', type: 'button',
-            text: actions.banni ? 'Autoriser' : 'Bannir',
+            text: actions.banni ? 'Autoriser' : 'Interdire',
             title: actions.banni
               ? 'Rendre cette piece au solveur'
               : 'Le solveur ne proposera plus cette piece',

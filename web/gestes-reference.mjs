@@ -78,7 +78,7 @@ export function creerGestesReference({ lireEtat, setEtat, message, lireRecherche
   /** Enleve la reference : le solveur cherche de nouveau librement. */
   function oublierReference() {
     setEtat({ reference: null, paliers: [] });
-    message('Reference enlevee. Le solveur cherche de nouveau sans contrainte d\'achat.', 'info');
+    message('Stuff actuel oublie. Le solveur cherche de nouveau sans compter les achats.', 'info');
   }
 
   /** Repose le stuff de reference sur le personnage. */

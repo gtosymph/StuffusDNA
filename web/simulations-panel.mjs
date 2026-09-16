@@ -118,7 +118,7 @@ export function ouvrirComparaison(gauche, droite, options) {
     el('div', { class: 'compare-sous',
       text: simulation.tenu
         ? 'Conditions tenues'
-        : `${simulation.manquantes ?? 0} condition(s) en defaut` }),
+        : `${simulation.manquantes ?? 0} minimum(s) non tenu(s)` }),
     el('div', { class: 'compare-gestes' },
       el('button', { class: 'mini large', type: 'button', text: 'Remettre celle-ci',
         onClick: () => { fermerComparaison(); onRestaurer(simulation); } }),
@@ -319,7 +319,7 @@ export function installerSimulations(racine, options) {
             text: entier(simulation.score ?? 0),
             title: simulation.tenu
               ? 'Toutes les conditions sont tenues'
-              : `${simulation.manquantes ?? 0} condition(s) en defaut` })),
+              : `${simulation.manquantes ?? 0} minimum(s) non tenu(s)` })),
         el('div', { class: 'simulation-sous',
           text: `${nomDeClasse(simulation.classe)} ${simulation.niveau}`
             + ` · ${pieces.length} piece(s) · ${quand(simulation.date)}` }),

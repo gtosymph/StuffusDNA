@@ -35,7 +35,7 @@ export function creerGestesCatalogue({ lireEtat, lireCatalogue, setEtat, message
     const { patch, bannie } = geste.basculerBanni(lireEtat(), item);
     setEtat(patch);
     message(bannie
-      ? `« ${item.fr} » est bannie : le solveur ne la proposera plus.`
+      ? `« ${item.fr} » est interdite : le solveur ne la proposera plus.`
       : `« ${item.fr} » est de nouveau proposee au solveur.`, 'info');
   }
 
@@ -44,8 +44,8 @@ export function creerGestesCatalogue({ lireEtat, lireCatalogue, setEtat, message
     const { patch, verrouillee } = geste.basculerVerrou(lireEtat(), item);
     setEtat(patch);
     message(verrouillee
-      ? `« ${item.fr} » est verrouillee : le solveur la garde dans chaque build.`
-      : `« ${item.fr} » est deverrouillee.`, 'info');
+      ? `« ${item.fr} » est toujours gardee : le solveur la pose dans chaque stuff.`
+      : `« ${item.fr} » n'est plus gardee d'office.`, 'info');
   }
 
   /** Enleve la piece posee dans une case. */
@@ -58,11 +58,11 @@ export function creerGestesCatalogue({ lireEtat, lireCatalogue, setEtat, message
     const etat = lireEtat();
     const cibles = itemsFiltres(etat, lireCatalogue()).filter((item) => !etat.bannis.has(item.id));
     if (cibles.length === 0) {
-      message('Aucune piece a bannir dans ces resultats.', 'info');
+      message('Aucune piece a interdire dans ces resultats.', 'info');
       return;
     }
     setEtat(geste.bannirPieces(etat, cibles));
-    message(`${cibles.length} piece(s) bannie(s). « Autoriser » sur ces memes filtres annule.`, 'info');
+    message(`${cibles.length} piece(s) interdite(s). « Autoriser » sur ces memes filtres annule.`, 'info');
   }
 
   /** Autorise de nouveau toutes les pieces bannies qui passent les filtres. */
@@ -70,7 +70,7 @@ export function creerGestesCatalogue({ lireEtat, lireCatalogue, setEtat, message
     const etat = lireEtat();
     const cibles = itemsFiltres(etat, lireCatalogue()).filter((item) => etat.bannis.has(item.id));
     if (cibles.length === 0) {
-      message('Aucune piece bannie dans ces resultats.', 'info');
+      message('Aucune piece interdite dans ces resultats.', 'info');
       return;
     }
     setEtat(geste.autoriserPieces(etat, cibles));

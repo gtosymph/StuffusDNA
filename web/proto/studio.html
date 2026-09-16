@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette v2 — Studio</title>
+<link rel="stylesheet" href="socle.css">
+<style>
+/* ===========================================================================
+   Maquette v2 — « Studio »
+
+   Trois volets : ce que je veux a gauche, le stuff au centre, le detail a
+   droite. Ce que la v1 n'avait pas, et qui compte plus que la mise en page :
+
+   1. UN ECRAN VIDE. Un debutant devait comprendre huit concepts avant
+      d'obtenir quoi que ce soit. Ici il choisit sa classe, et c'est tout :
+      niveau, sorts d'attaque et planchers de PA et PM sont poses pour lui.
+
+   2. LE VOCABULAIRE DU JOUEUR. « Mode de recherche », « conditions »,
+      « figer la reference » sont des mots de l'outil. « Ce que je veux »,
+      « au minimum », « mon stuff actuel » sont des mots du joueur.
+
+   3. LA COURBE SOUS LE CURSEUR. Le curseur mixte et la courbe degats/survie
+      sont deux vues du meme reglage : elles se touchent, et l'une pilote
+      l'autre. Separees par deux metres d'ecran, aucune ne se comprenait.
+
+   4. L'INSPECTEUR OUVRE HUIT LIGNES, pas trente-neuf. Un mur de chiffres ne
+      se lit pas, il se subit. « Tout voir » donne le reste.
+
+   5. LA COMPARAISON N'EST PAS UNE PAGE. Cocher un stuff trouve l'ouvre, et
+      elle masque les lignes identiques : ce qui ne change pas n'aide pas a
+      choisir.
+
+   Le bouton « Chercher » reste : la recherche est longue, elle se lance quand
+   le joueur le decide. Il signale en revanche que les reglages ont bouge
+   depuis la derniere fois — l'oubli etait la vraie gene, pas le clic.
+   =========================================================================== */
+
+/* ---------------------------------------------------------- Ecran vide --- */
+
+.accueil { display: grid; place-items: center; min-height: calc(100vh - var(--barre-h)); padding: 40px 20px; }
+.accueil-carte { width: 100%; max-width: 640px; text-align: center; }
+.accueil h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+.accueil p { margin: 0 0 28px; font-size: 13px; color: var(--texte-2); }
+.classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+.classe {
+  display: grid; justify-items: center; gap: 6px;
+  padding: 12px 6px 10px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11.5px/1 var(--ui); cursor: pointer;
+}
+.classe:hover { background: var(--surface-2); border-color: var(--filet-clair); color: var(--texte); }
+.classe img { width: 34px; height: 34px; object-fit: contain; }
+.accueil .apres { margin: 26px 0 0; font-size: 11.5px; color: var(--texte-3); }
+
+/* ------------------------------------------------------------- Volets --- */
+
+.appli { display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; height: calc(100vh - var(--barre-h)); }
+.volet { overflow-y: auto; min-width: 0; }
+.volet-gauche { border-right: 1px solid var(--filet); background: var(--surface); }
+.volet-droit { border-left: 1px solid var(--filet); background: var(--surface); }
+.scene { padding: 20px 28px 40px; }
+
+/* ---------- Barre haute ---------- */
+
+.score-vif { display: flex; align-items: baseline; gap: 7px; }
+.score-vif b { font: 620 19px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.score-vif span { font-size: 11px; color: var(--texte-3); }
+
+/* Le bouton dit s'il y a quelque chose a relancer : oublier de relancer
+   apres un reglage est la gene la plus frequente, et elle est muette. */
+.btn.premier.rappel { box-shadow: 0 0 0 3px rgb(240 180 41 / .22); }
+.btn .puce { width: 6px; height: 6px; border-radius: 999px; background: var(--ambre); }
+
+.pulse { display: inline-flex; gap: 3px; align-items: center; }
+.pulse i { width: 3px; height: 12px; border-radius: 2px; background: var(--iris); animation: respire 1s ease-in-out infinite; }
+.pulse i:nth-child(2) { animation-delay: .12s } .pulse i:nth-child(3) { animation-delay: .24s }
+.pulse i:nth-child(4) { animation-delay: .36s }
+@keyframes respire { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .pulse i { animation: none; opacity: .7 } }
+
+/* ---------- Volet gauche ---------- */
+
+.section { padding: 14px 14px 16px; border-bottom: 1px solid var(--filet); }
+.section:last-child { border-bottom: 0; }
+.aide { margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--texte-3); }
+
+.consequence {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 10px; padding: 8px 10px;
+  background: var(--surface-2); border-radius: var(--r);
+}
+.consequence b { font: 560 14px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.consequence em { font-style: normal; font-size: 10px; color: var(--texte-3); margin-left: 4px; }
+
+.mini-courbe { width: 100%; height: 86px; display: block; margin-top: 10px; cursor: crosshair; }
+
+.limite {
+  display: grid; grid-template-columns: 6px minmax(0, 1fr) auto auto 16px;
+  align-items: center; gap: 8px;
+  height: 30px; padding: 0 6px; margin: 0 -6px; border-radius: var(--r);
+}
+.limite:hover { background: var(--surface-2); }
+.limite-nom { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.limite-val { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.limite-val em { font-style: normal; color: var(--texte-3); margin-right: 3px; }
+.limite-reel { font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; width: 44px; text-align: right; }
+.limite .oter { visibility: hidden; border: 0; background: none; color: var(--texte-3); cursor: pointer; padding: 0; }
+.limite:hover .oter { visibility: visible; }
+.limite .oter:hover { color: var(--rose); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 8px 0 4px; border-radius: 5px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  font-size: 11.5px; color: var(--texte); cursor: pointer;
+}
+.chip:hover { border-color: var(--filet-clair); }
+.chip img { width: 16px; height: 16px; border-radius: 3px; }
+.chip.ajout { border-style: dashed; color: var(--texte-2); padding: 0 9px; }
+
+.avoir { display: grid; gap: 6px; }
+.avoir-ligne {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; background: var(--surface-2); border-radius: var(--r); font-size: 12px;
+}
+.avoir-ligne b { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 560; }
+
+/* ---------- Centre ---------- */
+
+.plateau { display: grid; grid-template-columns: auto auto auto; gap: 10px; justify-content: center; align-items: start; }
+.rangee-slots { display: grid; gap: 6px; }
+.slot {
+  width: 46px; height: 46px; border-radius: 8px; padding: 0;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  display: grid; place-items: center; cursor: pointer; position: relative;
+}
+.slot:hover { border-color: var(--filet-clair); background: var(--surface-3); }
+.slot.choisi { border-color: var(--iris); box-shadow: 0 0 0 3px rgb(127 116 255 / .18); }
+.slot img { width: 34px; height: 34px; object-fit: contain; }
+.slot.vide::after { content: ""; width: 14px; height: 14px; border: 1px dashed var(--filet-clair); border-radius: 4px; }
+
+.avatar {
+  width: 196px; height: 206px; border-radius: var(--r-lg);
+  background: radial-gradient(120% 90% at 50% 15%, var(--surface-3), var(--surface) 70%);
+  border: 1px solid var(--filet);
+  display: grid; place-items: end center; overflow: hidden;
+}
+.avatar img { max-height: 188px; filter: drop-shadow(0 8px 16px rgb(0 0 0 / .45)); }
+.artefacts { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+
+.verdict { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 0 0; }
+.verdict > div { padding: 0 16px; border-left: 1px solid var(--filet); }
+.verdict > div:first-child { border-left: 0; padding-left: 0; }
+.verdict dt { font-size: 10px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase; color: var(--texte-3); margin-bottom: 4px; }
+.verdict dd { margin: 0; font: 600 30px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -1.2px; }
+.verdict small { display: block; margin-top: 7px; font-size: 11px; line-height: 1.4; color: var(--texte-3); }
+.verdict button.pourquoi {
+  margin-top: 7px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 11px/1.4 var(--ui); color: var(--texte-3); text-align: left;
+}
+.verdict button.pourquoi { border-bottom: 1px dotted var(--filet-clair); }
+.verdict button.pourquoi:hover { color: var(--iris); border-bottom-color: var(--iris); }
+
+/* Les pas suivants SONT l'interface, pas une visite guidee : ils disent en
+   mots de joueur ce qu'il reste a faire, et s'effacent une fois faits. */
+.pas-suivants { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 0; }
+.pas {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  color: var(--texte); font: 12px/1 var(--ui); cursor: pointer;
+}
+.pas:hover { background: var(--surface-2); border-color: var(--iris); }
+.pas em { font-style: normal; color: var(--texte-3); }
+
+.regle { height: 1px; background: var(--filet); margin: 26px 0 14px; }
+.tete-resultats { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+
+.trouve {
+  display: grid; grid-template-columns: 20px 70px 70px minmax(0, 1fr) auto;
+  align-items: center; gap: 12px;
+  padding: 9px 10px; margin: 0 -10px;
+  border-radius: var(--r); cursor: pointer; border-top: 1px solid transparent;
+}
+.trouve + .trouve { border-top-color: var(--filet); }
+.trouve:hover { background: var(--surface); }
+.trouve.choisi { background: var(--iris-fond); }
+.trouve input { width: 15px; height: 15px; accent-color: var(--iris); cursor: pointer; opacity: 0; margin: 0; }
+.trouve:hover input, .trouve input:checked, .trouve input:focus-visible { opacity: 1; }
+.trouve-mesure { font: 560 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.trouve-mesure span { display: block; margin-top: 3px; font: 400 10px/1 var(--ui); color: var(--texte-3); }
+.echange { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.echange img { width: 22px; height: 22px; border-radius: 4px; background: var(--surface-2); }
+.echange .fleche { color: var(--texte-3); font-size: 11px; margin: 0 1px; }
+.achats { font: 11px/1 var(--mono); color: var(--texte-2); white-space: nowrap; }
+
+/* ---------- Volet droit ---------- */
+
+.inspecteur-tete {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 14px;
+  background: var(--surface); border-bottom: 1px solid var(--filet);
+  font-size: 12px; font-weight: 560;
+}
+.inspecteur-tete .quoi { color: var(--texte-2); font-weight: 400; }
+.inspecteur-tete .retour { border: 0; background: none; color: var(--texte-3); cursor: pointer; padding: 0 2px 0 0; font-size: 15px; line-height: 1; }
+.inspecteur-tete .retour:hover { color: var(--texte); }
+
+.lignes { padding: 4px 14px 14px; }
+.ligne {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center; gap: 8px;
+  height: 25px; padding: 0 6px; margin: 0 -6px; border-radius: 4px; cursor: pointer;
+}
+.ligne:hover { background: var(--surface-2); }
+.ligne:hover .ligne-geste { opacity: 1; }
+.ligne img { width: 14px; height: 14px; object-fit: contain; }
+.ligne-nom { font-size: 12px; color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ligne-val { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte); }
+.ligne-val.zero { color: var(--texte-3); }
+.ligne-geste { opacity: 0; font-size: 10px; color: var(--iris); white-space: nowrap; }
+.groupe { padding: 14px 14px 2px; }
+.sans-icone .ligne { grid-template-columns: minmax(0, 1fr) auto; }
+
+.fiche-piece { padding: 14px; }
+.fiche-piece header { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 14px; }
+.fiche-piece header img { width: 46px; height: 46px; border-radius: 8px; background: var(--surface-2); }
+.fiche-piece h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.fiche-piece .meta { font-size: 11px; color: var(--texte-3); }
+.gestes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 16px; }
+
+/* ---------- La comparaison ---------- */
+
+.voile {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgb(6 8 13 / .66); backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 30px;
+}
+.voile[hidden] { display: none; }
+.comparaison {
+  width: min(1240px, 100%); max-height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--fond); border: 1px solid var(--filet-clair); border-radius: var(--r-lg);
+  box-shadow: 0 24px 64px rgb(0 0 0 / .6); overflow: hidden;
+}
+.comparaison-tete { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--filet); }
+.comparaison-tete h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.comparaison-corps { overflow: auto; }
+
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+th, td { text-align: right; padding: 0 14px; height: 28px; }
+.mesure {
+  position: sticky; left: 0; z-index: 2; background: var(--fond);
+  text-align: left; font-size: 12px; font-weight: 400; color: var(--texte-2);
+  border-right: 1px solid var(--filet); white-space: nowrap; min-width: 190px;
+}
+tbody tr:hover td { background: var(--surface); }
+tbody tr:hover .mesure { color: var(--texte); background: var(--surface); }
+thead th {
+  position: sticky; top: 0; z-index: 3; background: var(--fond);
+  border-bottom: 1px solid var(--filet); padding: 12px 14px 10px; vertical-align: top; min-width: 160px; height: auto;
+}
+thead th.mesure { z-index: 4; }
+thead th.porte, td.porte { background: var(--surface); }
+tbody tr:hover td.porte { background: var(--surface-2); }
+.tete-nom { display: flex; align-items: center; gap: 7px; justify-content: flex-end; font-size: 11px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase; color: var(--texte-3); }
+.tete-nom .marqueur { width: 6px; height: 6px; border-radius: 999px; background: var(--jade); }
+.tete-score { margin: 7px 0 8px; font: 600 21px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.8px; }
+.tete-pieces { display: flex; gap: 2px; justify-content: flex-end; margin-bottom: 9px; }
+.tete-pieces img { width: 19px; height: 19px; border-radius: 3px; background: var(--surface-2); }
+.tete-pieces img.neuf { box-shadow: 0 0 0 1.5px var(--ambre); }
+td { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+tr.titre th, tr.titre td {
+  height: 30px; padding-top: 16px;
+  font: 640 10px/1 var(--ui); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--texte-3); border-top: 1px solid var(--filet); background: var(--fond);
+}
+.ecart-pos { color: var(--jade); } .ecart-neg { color: var(--rose); } .ecart-nul { color: var(--texte-3); }
+.masquees { padding: 10px 16px; font-size: 11.5px; color: var(--texte-3); border-top: 1px solid var(--filet); }
+.masquees button { border: 0; background: none; color: var(--iris); cursor: pointer; font: inherit; padding: 0; }
+
+@media (max-width: 1500px) { .appli { grid-template-columns: 276px minmax(0, 1fr) 312px; } }
+@media (max-width: 1240px) {
+  .appli { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .volet-gauche, .volet-droit { border: 0; border-top: 1px solid var(--filet); }
+}
+</style>
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque"><i></i> The Best Roxxeur</div>
+
+  <button class="identite" id="identite" hidden>
+    <img id="identite-img" src="" alt=""><b id="identite-nom"></b> <span>190 · ♂</span>
+  </button>
+
+  <div class="pousse"></div>
+
+  <div id="barre-droite" hidden style="align-items:center;gap:14px">
+    <div class="score-vif"><b class="pos" id="score">—</b> <span id="score-note">score</span></div>
+    <span id="etat-recherche" class="n" style="font-size:11px;color:var(--texte-3)">jamais lancée</span>
+    <button class="btn premier" id="chercher">▶&nbsp; Chercher</button>
+    <button class="btn fantome" id="pause" title="Pause" hidden>❚❚</button>
+    <button class="btn fantome" title="Réglages">⚙</button>
+  </div>
+</header>
+
+<!-- ===================== Écran vide ===================== -->
+<div class="accueil" id="accueil">
+  <div class="accueil-carte">
+    <h1>Quelle classe joues-tu ?</h1>
+    <p>C'est la seule chose dont j'ai besoin pour commencer.</p>
+    <div class="classes" id="classes"></div>
+    <p class="apres">Je poserai le niveau 190, tes sorts d'attaque et les PA&nbsp;/&nbsp;PM de ta classe.
+      Tu changeras tout cela ensuite.</p>
+  </div>
+</div>
+
+<!-- ===================== L'atelier ===================== -->
+<div class="appli" id="travail" hidden>
+
+  <aside class="volet volet-gauche">
+
+    <div class="section">
+      <p class="chapeau">Ce que je veux</p>
+      <div class="segmente" style="width:100%" id="objectif">
+        <button type="button" style="flex:1" data-mode="degats" aria-pressed="true">Frapper fort</button>
+        <button type="button" style="flex:1" data-mode="survie" aria-pressed="false">Encaisser</button>
+        <button type="button" style="flex:1" data-mode="mixte" aria-pressed="false">Les deux</button>
+      </div>
+
+      <div id="melange" hidden>
+        <!-- Le curseur ne montre pas son pourcentage : il montre ce qu'il
+             coute et ce qu'il rapporte. C'est cela que le joueur arbitre. -->
+        <div class="consequence">
+          <span><b id="c-degats">812</b><em>dégâts</em></span>
+          <span><b id="c-pdv">9 065</b><em>pdv effectifs</em></span>
+        </div>
+        <input type="range" min="0" max="100" value="62" id="curseur" aria-label="Part des dégâts" style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--texte-3)">
+          <span>encaisser</span><span>frapper</span>
+        </div>
+        <canvas class="mini-courbe" id="mini-courbe"></canvas>
+        <p class="aide">Chaque point est le meilleur stuff à ce niveau d'encaisse. Cliquez pour régler.</p>
+      </div>
+
+      <p class="chapeau" style="margin-top:18px">Sur ces sorts <span class="compte">3</span></p>
+      <div class="chips">
+        <span class="chip"><img src="../assets/spells/13244.png" alt="">Aiguille</span>
+        <span class="chip"><img src="../assets/spells/13298.png" alt="">Clepsydre</span>
+        <span class="chip"><img src="../assets/spells/13259.png" alt="">Compte-goutte</span>
+        <button class="chip ajout">Changer</button>
+      </div>
+      <p class="aide">Choisis automatiquement : les sorts d'attaque de ta classe.</p>
+    </div>
+
+    <div class="section">
+      <p class="chapeau">Au minimum <span class="compte">4</span></p>
+      <div id="limites"></div>
+      <button class="btn mini fantome" style="margin-top:8px;padding-left:0">+ Ajouter</button>
+      <p class="aide">Clique n'importe quel chiffre de la fiche pour en garder au moins autant.</p>
+    </div>
+
+    <div class="section">
+      <p class="chapeau">Ce que j'ai</p>
+      <div class="avoir">
+        <div class="avoir-ligne"><span>Mon stuff actuel</span><span><b>16</b> pièces</span></div>
+        <div class="avoir-ligne"><span>Pièces en banque</span><span><b>12</b></span></div>
+        <div class="avoir-ligne"><span>Pièces interdites</span><span><b>0</b></span></div>
+      </div>
+      <button class="btn mini" style="width:100%;justify-content:center;margin-top:9px">
+        Toutes les pièces&nbsp; <span style="color:var(--texte-3)">⌘K</span></button>
+      <p class="aide">Une pièce que tu possèdes déjà ne compte pas comme un achat.</p>
+    </div>
+  </aside>
+
+  <main class="volet">
+    <div class="scene">
+
+      <div class="plateau" id="plateau"></div>
+
+      <dl class="verdict">
+        <div><dt>Dégâts</dt><dd class="n">775</dd>
+          <button class="pourquoi" id="pourquoi">Pourquoi ce chiffre ?</button></div>
+        <div><dt>Pdv effectifs</dt><dd class="n">9 245</dd>
+          <small>Tu encaisses 9 245 dégâts bruts avant de tomber.</small></div>
+        <div><dt>À acheter</dt><dd class="n">2</dd>
+          <small>face à ton stuff actuel</small></div>
+      </dl>
+
+      <div class="pas-suivants" id="pas-suivants">
+        <button class="pas" data-pas="mixte">Je veux aussi tenir le coup <em>règle l'échange</em></button>
+        <button class="pas" data-pas="stuff">J'ai déjà du stuff <em>compte les achats</em></button>
+        <button class="pas" data-pas="banque">Je n'ai pas ces pièces <em>dis ce que tu as</em></button>
+      </div>
+
+      <div class="regle"></div>
+
+      <div class="tete-resultats">
+        <p class="chapeau" style="padding:0;margin:0">Les stuffs trouvés <span class="compte">8</span></p>
+        <div class="pousse"></div>
+        <button class="btn mini" id="comparer" hidden>Comparer <span id="n-compare"></span></button>
+      </div>
+
+      <div id="trouves"></div>
+    </div>
+  </main>
+
+  <aside class="volet volet-droit">
+    <div class="inspecteur-tete">
+      <button class="retour" id="retour" hidden title="Revenir à la fiche">‹</button>
+      <span id="tete-quoi">La fiche</span>
+      <span class="quoi pousse" id="tete-note">stuff porté</span>
+    </div>
+    <div id="corps-inspecteur"></div>
+  </aside>
+</div>
+
+<!-- ===================== La comparaison ===================== -->
+<div class="voile" id="voile" hidden>
+  <div class="comparaison" role="dialog" aria-modal="true" aria-label="Comparer les stuffs">
+    <div class="comparaison-tete">
+      <h2>Comparer</h2>
+      <span style="font-size:12px;color:var(--texte-3)" id="compare-note"></span>
+      <div class="pousse"></div>
+      <button class="btn fantome" id="fermer-compare">Fermer</button>
+    </div>
+    <div class="comparaison-corps" id="compare-corps"></div>
+    <div class="masquees" id="masquees"></div>
+  </div>
+</div>
+
+<script type="module">
+/* ===========================================================================
+   La maquette porte de vraies donnees : la comparaison masque les lignes
+   identiques par un calcul, pas par un choix ecrit a la main. C'est la seule
+   facon de verifier que l'idee tient.
+   =========================================================================== */
+
+const CLASSES = [
+  [1, 'Féca'], [2, 'Osamodas'], [3, 'Enutrof'], [4, 'Sram'], [5, 'Xélor'],
+  [6, 'Ecaflip'], [7, 'Eniripsa'], [8, 'Iop'], [9, 'Crâ'], [10, 'Sadida'],
+  [11, 'Sacrieur'], [12, 'Pandawa'], [13, 'Roublard'], [14, 'Zobal'],
+  [15, 'Steamer'], [16, 'Eliotrope'], [17, 'Huppermage'], [18, 'Ouginak'], [20, 'Forgelance'],
+];
+
+const IMG = (n) => `https://api.dofusdb.fr/img/items/${n}.png`;
+
+const P = {
+  amu:   { nom: 'Amunite', img: IMG(1141), case: 'Amulette' },
+  amu2:  { nom: 'Frimamulette', img: IMG(1165), case: 'Amulette' },
+  coif:  { nom: 'Casque Harnage', img: IMG(16212), case: 'Coiffe' },
+  coif2: { nom: 'Le Kim', img: IMG(16230), case: 'Coiffe' },
+  cape:  { nom: "Az'tech", img: IMG(6079), case: 'Cape' },
+  cape2: { nom: 'Épée Maudite', img: IMG(6083), case: 'Cape' },
+  cein:  { nom: 'String Tue-Mouche', img: IMG(10132), case: 'Ceinture' },
+  cein2: { nom: 'Ougature', img: IMG(10135), case: 'Ceinture' },
+  ann:   { nom: 'Kralano', img: IMG(9142), case: 'Anneau' },
+  ann2:  { nom: 'Annolamour', img: IMG(9145), case: 'Anneau' },
+  bot:   { nom: 'Sandales Circulaires', img: IMG(11113), case: 'Bottes' },
+  bot2:  { nom: 'Grésilobottes', img: IMG(11165), case: 'Bottes' },
+  arme:  { nom: 'Lame Usicke', img: IMG(19038), case: 'Arme' },
+  arme2: { nom: 'Hache du Korriandre', img: IMG(19061), case: 'Arme' },
+  bou:   { nom: 'Bouclier du Captain', img: IMG(82014), case: 'Bouclier' },
+  dof:   { nom: 'Dofusteuse', img: IMG(17251), case: 'Dofus' },
+  dof2:  { nom: "Voile d'encre", img: IMG(17147), case: 'Dofus' },
+};
+
+/** Les mesures, dans l'ordre ou elles comptent. `ic` nomme l'icone. */
+const MESURES = [
+  { g: 'Ce qui décide', k: 'degats', nom: 'Dégâts', ic: 'do' },
+  { g: 'Ce qui décide', k: 'pdve', nom: 'Pdv effectifs', ic: 'vit' },
+  { g: 'Ce qui décide', k: 'achats', nom: 'Pièces à acheter', ic: null, brut: true },
+  { g: 'Les minimums', k: 'pa', nom: 'PA', ic: 'pa', min: 12 },
+  { g: 'Les minimums', k: 'pm', nom: 'PM', ic: 'pm', min: 6 },
+  { g: 'Les minimums', k: 'vita', nom: 'Vitalité', ic: 'vit', min: 4000 },
+  { g: 'Les minimums', k: 'crit', nom: '% Critique', ic: 'cri', min: 90 },
+  { g: 'La fiche', k: 'sagesse', nom: 'Sagesse', ic: 'sa' },
+  { g: 'La fiche', k: 'force', nom: 'Force', ic: 'str' },
+  { g: 'La fiche', k: 'agi', nom: 'Agilité', ic: 'agi' },
+  { g: 'La fiche', k: 'pui', nom: 'Puissance', ic: 'pui' },
+  { g: 'La fiche', k: 'doa', nom: 'Dommages Air', ic: 'doa' },
+  { g: 'La fiche', k: 'tdo', nom: '% Dommages finaux', ic: 'tdo' },
+  { g: 'La fiche', k: 'rpe', nom: '% Rés. Eau', ic: 'rpe' },
+  { g: 'La fiche', k: 'rpa', nom: '% Rés. Air', ic: 'rpa' },
+  { g: 'La fiche', k: 'ini', nom: 'Initiative', ic: 'ini' },
+  { g: 'La fiche', k: 'pp', nom: 'Prospection', ic: 'pp' },
+];
+
+const PORTE = {
+  nom: 'Porté', porte: true, score: 3580, achats: 0,
+  pieces: ['amu', 'coif', 'cape', 'cein', 'ann', 'bot', 'arme'],
+  s: { degats: 775, pdve: 9245, pa: 12, pm: 10, vita: 4080, crit: 80, sagesse: 145,
+       force: 70, agi: 110, pui: 145, doa: 30, tdo: 8, rpe: 33, rpa: 8, ini: 530, pp: 175 },
+};
+
+const TROUVES = [
+  { nom: 'Stuff 1', score: 3617, achats: 2, echanges: [['cape', 'cape2'], ['bot', 'bot2']],
+    s: { degats: 812, pdve: 9065, pa: 12, pm: 10, vita: 4012, crit: 82, sagesse: 145,
+         force: 70, agi: 171, pui: 145, doa: 34, tdo: 8, rpe: 29, rpa: 8, ini: 608, pp: 175 } },
+  { nom: 'Stuff 2', score: 3601, achats: 1, echanges: [['cein', 'cein2']],
+    s: { degats: 797, pdve: 9555, pa: 12, pm: 10, vita: 4190, crit: 80, sagesse: 145,
+         force: 70, agi: 110, pui: 175, doa: 30, tdo: 10, rpe: 33, rpa: 13, ini: 670, pp: 175 } },
+  { nom: 'Stuff 3', score: 3594, achats: 3, echanges: [['amu', 'amu2'], ['ann', 'ann2'], ['arme', 'arme2']],
+    s: { degats: 836, pdve: 8343, pa: 12, pm: 11, vita: 3890, crit: 85, sagesse: 145,
+         force: 70, agi: 122, pui: 240, doa: 39, tdo: 11, rpe: 22, rpa: 5, ini: 470, pp: 155 } },
+  { nom: 'Stuff 4', score: 3571, achats: 1, echanges: [['coif', 'coif2']],
+    s: { degats: 775, pdve: 10647, pa: 12, pm: 10, vita: 4520, crit: 80, sagesse: 145,
+         force: 70, agi: 70, pui: 145, doa: 30, tdo: 8, rpe: 39, rpa: 17, ini: 842, pp: 175 } },
+];
+
+const nb = (v) => Math.round(v).toLocaleString('fr-FR');
+const ecart = (v) => (v > 0 ? `+${nb(v)}` : (v < 0 ? `−${nb(-v)}` : '±0'));
+const tonEcart = (v) => (v > 0 ? 'ecart-pos' : (v < 0 ? 'ecart-neg' : 'ecart-nul'));
+
+const el = (t, a = {}, ...k) => {
+  const n = document.createElement(t);
+  for (const [c, v] of Object.entries(a)) {
+    if (v == null || v === false) continue;
+    if (c === 'class') n.className = v;
+    else if (c === 'html') n.innerHTML = v;
+    else if (c === 'text') n.textContent = v;
+    else if (c.startsWith('on')) n.addEventListener(c.slice(2).toLowerCase(), v);
+    else n.setAttribute(c, v === true ? '' : String(v));
+  }
+  n.append(...k.flat().filter(Boolean));
+  return n;
+};
+
+/** Les pieces d'un stuff trouve : celles du porte, echanges appliques. */
+function piecesDe(build) {
+  const dedans = [...PORTE.pieces];
+  for (const [avant, apres] of (build.echanges ?? [])) {
+    const i = dedans.indexOf(avant);
+    if (i !== -1) dedans[i] = apres;
+  }
+  return dedans;
+}
+
+/* ------------------------------------------------------------ Accueil --- */
+
+const accueil = document.getElementById('accueil');
+const travail = document.getElementById('travail');
+
+document.getElementById('classes').replaceChildren(...CLASSES.map(([id, nom]) =>
+  el('button', { class: 'classe', onClick: () => entrer(id, nom) },
+    el('img', { src: `../assets/breeds/${id}.png`, alt: '' }), nom)));
+
+function entrer(id, nom) {
+  accueil.hidden = true;
+  travail.hidden = false;
+  document.getElementById('identite').hidden = false;
+  const droite = document.getElementById('barre-droite');
+  droite.hidden = false;
+  droite.style.display = 'flex';
+  document.getElementById('identite-img').src = `../assets/avatars/${id}-0.png`;
+  document.getElementById('identite-nom').textContent = nom;
+  const av = document.querySelector('.avatar img');
+  av.src = `../assets/avatars/${id}-0.png`;
+  av.alt = nom;
+  // Un premier resultat arrive sans que le joueur ait rien regle : c'est la
+  // promesse de l'ecran vide, et elle doit tenir tout de suite.
+  chercher();
+}
+
+/* ---------------------------------------------------------- Recherche --- */
+
+const btnChercher = document.getElementById('chercher');
+const etat = document.getElementById('etat-recherche');
+const pause = document.getElementById('pause');
+let enCours = false;
+
+/** Marque que les reglages ont bouge : le bouton le dit, au lieu de se taire. */
+function aChange() {
+  if (enCours) return;
+  btnChercher.classList.add('rappel');
+  btnChercher.replaceChildren(el('span', { class: 'puce' }), 'Relancer');
+  etat.textContent = 'réglages changés';
+}
+
+function chercher() {
+  enCours = true;
+  btnChercher.classList.remove('rappel');
+  btnChercher.textContent = 'Chercher';
+  btnChercher.disabled = true;
+  pause.hidden = false;
+  etat.replaceChildren(el('span', { class: 'pulse', html: '<i></i><i></i><i></i><i></i>' }));
+
+  // Le score monte pendant la recherche : le progres se voit, il ne s'attend pas.
+  const score = document.getElementById('score');
+  let v = 0;
+  const pas = setInterval(() => {
+    v = Math.min(PORTE.score, v + Math.ceil((PORTE.score - v) / 6) + 7);
+    score.textContent = nb(v);
+    if (v < PORTE.score) return;
+    clearInterval(pas);
+    enCours = false;
+    btnChercher.disabled = false;
+    pause.hidden = true;
+    etat.textContent = 'gén. 301';
+    document.getElementById('score-note').textContent = 'score · minimums tenus';
+  }, 45);
+}
+
+btnChercher.addEventListener('click', chercher);
+
+/* ------------------------------------------------------- Volet gauche --- */
+
+const LIMITES = [
+  { nom: 'PA', cible: 12, reel: 12 },
+  { nom: 'PM', cible: 6, reel: 10 },
+  { nom: 'Vitalité', cible: 4000, reel: 4080 },
+  { nom: '% Critique', cible: 90, reel: 80 },
+];
+
+document.getElementById('limites').replaceChildren(...LIMITES.map((l) => {
+  const tenue = l.reel >= l.cible;
+  return el('div', { class: 'limite' },
+    el('i', { class: `etat ${tenue ? 'tenue' : 'defaut'}`, title: tenue ? 'tenue' : 'en défaut' }),
+    el('span', { class: 'limite-nom', text: l.nom }),
+    el('span', { class: 'limite-val', html: `<em>≥</em>${nb(l.cible)}` }),
+    el('span', { class: `limite-reel ${tenue ? 'pos' : 'neg'}`, text: nb(l.reel) }),
+    el('button', { class: 'oter', title: 'Enlever', text: '×', onClick: aChange }));
+}));
+
+const melange = document.getElementById('melange');
+for (const b of document.querySelectorAll('#objectif button')) {
+  b.addEventListener('click', () => {
+    for (const a of document.querySelectorAll('#objectif button')) a.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-pressed', 'true');
+    melange.hidden = b.dataset.mode !== 'mixte';
+    if (!melange.hidden) requestAnimationFrame(() => dessinerCourbe());
+    aChange();
+  });
+}
+
+const curseur = document.getElementById('curseur');
+curseur.addEventListener('input', () => {
+  const part = Number(curseur.value) / 100;
+  document.getElementById('c-degats').textContent = nb(690 + part * 220);
+  document.getElementById('c-pdv').textContent = nb(12600 - part * 5600);
+  dessinerCourbe(part);
+  aChange();
+});
+
+/* ---------------------------------------------------------- Le stuff --- */
+
+function slot(cle, taille) {
+  const p = P[cle];
+  const b = el('button', { class: `slot${p ? '' : ' vide'}`, title: p?.nom });
+  if (taille) { b.style.width = `${taille}px`; b.style.height = `${taille}px`; }
+  if (p) {
+    b.append(el('img', { src: p.img, alt: '' }));
+    b.addEventListener('click', () => montrerPiece(cle, b));
+  }
+  return b;
+}
+
+document.getElementById('plateau').replaceChildren(
+  el('div', { class: 'rangee-slots' }, ['amu', 'coif', 'cape', 'cein'].map((c) => slot(c))),
+  el('div', {},
+    el('div', { class: 'avatar' }, el('img', { src: '', alt: '' })),
+    el('div', { class: 'artefacts' }, ['dof', 'dof2', null, null, null, null].map((c) => slot(c, 40)))),
+  el('div', { class: 'rangee-slots' }, ['ann', 'bot', 'arme', 'bou'].map((c) => slot(c))),
+);
+
+/* ----------------------------------------------------- Stuffs trouves --- */
+
+const choisis = new Set();
+const btnComparer = document.getElementById('comparer');
+
+document.getElementById('trouves').replaceChildren(...TROUVES.map((t, rang) => {
+  const dDeg = t.s.degats - PORTE.s.degats;
+  const dPdv = t.s.pdve - PORTE.s.pdve;
+
+  const coche = el('input', { type: 'checkbox', 'aria-label': `Comparer ${t.nom}` });
+  coche.addEventListener('click', (e) => e.stopPropagation());
+  coche.addEventListener('change', () => {
+    if (coche.checked) choisis.add(rang); else choisis.delete(rang);
+    btnComparer.hidden = choisis.size === 0;
+    document.getElementById('n-compare').textContent = `(${choisis.size + 1})`;
+  });
+
+  const ligne = el('div', { class: 'trouve' },
+    coche,
+    el('span', { class: `trouve-mesure ${tonEcart(dDeg)}`, html: `${ecart(dDeg)}<span>dégâts</span>` }),
+    el('span', { class: `trouve-mesure ${tonEcart(dPdv)}`, html: `${ecart(dPdv)}<span>pdv eff.</span>` }),
+    el('span', { class: 'echange' }, t.echanges.flatMap(([a, b]) => [
+      el('img', { src: P[a].img, alt: '', title: P[a].nom }),
+      el('span', { class: 'fleche', text: '→' }),
+      el('img', { src: P[b].img, alt: '', title: P[b].nom }),
+      el('span', { style: 'width:10px' }),
+    ])),
+    el('span', { class: 'achats', text: `${t.achats} achat${t.achats > 1 ? 's' : ''}` }));
+
+  ligne.addEventListener('click', () => {
+    for (const a of document.querySelectorAll('.trouve, .slot')) a.classList.remove('choisi');
+    ligne.classList.add('choisi');
+    montrerTrouve(t);
+  });
+  return ligne;
+}));
+
+/* --------------------------------------------------------- Inspecteur --- */
+
+const teteQuoi = document.getElementById('tete-quoi');
+const teteNote = document.getElementById('tete-note');
+const retour = document.getElementById('retour');
+const corps = document.getElementById('corps-inspecteur');
+
+/** Les huit lignes qui suffisent presque toujours. */
+const ESSENTIEL = ['degats', 'pdve', 'pa', 'pm', 'vita', 'crit', 'pui', 'ini'];
+
+const bloc = (titre, lignes) => [
+  el('div', { class: 'groupe' }, el('p', { class: 'chapeau', text: titre })),
+  el('div', { class: 'lignes sans-icone' }, lignes),
+];
+
+function montrerFiche(tout = false) {
+  teteQuoi.textContent = 'La fiche';
+  teteNote.textContent = 'stuff porté';
+  retour.hidden = true;
+
+  const cles = tout ? MESURES.filter((m) => !m.brut).map((m) => m.k) : ESSENTIEL;
+  const lignes = cles.map((k) => {
+    const m = MESURES.find((x) => x.k === k);
+    const v = PORTE.s[k];
+    return el('div', { class: 'ligne', title: 'Cliquez pour en garder au moins autant', onClick: aChange },
+      m.ic ? el('img', { src: `../assets/stats/${m.ic}.png`, alt: '' }) : el('span'),
+      el('span', { class: 'ligne-nom', text: m.nom }),
+      el('span', { class: 'ligne-geste', text: 'garder ≥' }),
+      el('span', { class: `ligne-val n ${v ? '' : 'zero'}`, text: nb(v) }));
+  });
+
+  corps.replaceChildren(
+    el('div', { class: 'groupe' }, el('p', { class: 'chapeau', text: tout ? 'Tout' : "L'essentiel" })),
+    el('div', { class: 'lignes' }, lignes),
+    el('div', { style: 'padding:0 14px 16px' },
+      el('button', {
+        class: 'btn mini', style: 'width:100%;justify-content:center',
+        text: tout ? "Revenir à l'essentiel" : `Tout voir (${MESURES.length - 1} lignes)`,
+        onClick: () => montrerFiche(!tout),
+      })),
+    ...bloc('Panoplies', el('div', { class: 'ligne' },
+      el('span', { class: 'ligne-nom', text: 'Panoplie de Frigostine' }),
+      el('span', { class: 'ligne-val n', text: '3 / 8' }))),
+  );
+}
+
+function montrerPiece(cle, noeud) {
+  for (const a of document.querySelectorAll('.slot, .trouve')) a.classList.remove('choisi');
+  noeud.classList.add('choisi');
+  const p = P[cle];
+  teteQuoi.textContent = p.nom;
+  teteNote.textContent = p.case.toLowerCase();
+  retour.hidden = false;
+
+  const paire = (nom, val, ton) => el('div', { class: 'ligne' },
+    el('span', { class: 'ligne-nom', text: nom }),
+    el('span', { class: `ligne-val n ${ton ?? ''}`, text: val }));
+
+  corps.replaceChildren(el('div', { class: 'fiche-piece' },
+    el('header', {},
+      el('img', { src: p.img, alt: '' }),
+      el('div', {}, el('h3', { text: p.nom }),
+        el('div', { class: 'meta', text: 'Niveau 189 · Panoplie de Frigostine' }))),
+
+    el('p', { class: 'chapeau', text: 'Ce qu\'elle pèse dans ton stuff' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      paire('Dégâts', '+94', 'pos'), paire('Pdv effectifs', '+1 130', 'pos')),
+
+    el('p', { class: 'chapeau', style: 'margin-top:16px', text: 'Ce qu\'elle donne' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      paire('Vitalité', '+420', 'pos'), paire('Agilité', '+61', 'pos'),
+      paire('% Critique', '+8', 'pos'), paire('Intelligence', '−30', 'neg')),
+
+    el('div', { class: 'gestes' },
+      el('button', { class: 'btn', text: 'Interdire' }),
+      el('button', { class: 'btn', text: 'Toujours garder' }),
+      el('button', { class: 'btn', text: "Je l'ai déjà" }),
+      el('button', { class: 'btn', text: 'Enlever' }))));
+}
+
+function montrerTrouve(t) {
+  teteQuoi.textContent = 'Stuff trouvé';
+  teteNote.textContent = 'face au tien';
+  retour.hidden = false;
+
+  const mesure = (nom, avant, apres) => el('div', { class: 'ligne' },
+    el('span', { class: 'ligne-nom', text: nom }),
+    el('span', { class: 'ligne-val n',
+      html: `${nb(avant)} → <b class="${apres > avant ? 'pos' : (apres < avant ? 'neg' : '')}">${nb(apres)}</b>` }));
+
+  corps.replaceChildren(el('div', { class: 'fiche-piece' },
+    el('p', { class: 'chapeau', text: 'Ce que cela change' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      mesure('Dégâts', PORTE.s.degats, t.s.degats),
+      mesure('Pdv effectifs', PORTE.s.pdve, t.s.pdve),
+      mesure('Score', PORTE.score, t.score)),
+
+    el('p', { class: 'chapeau', style: 'margin-top:16px',
+      text: `Le${t.echanges.length > 1 ? 's' : ''} ${t.echanges.length} échange${t.echanges.length > 1 ? 's' : ''}` }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      t.echanges.map(([a, b]) => el('div', { class: 'ligne', style: 'height:auto;padding:8px 6px' },
+        el('span', { class: 'ligne-nom', style: 'white-space:normal',
+          html: `${P[a].nom}<br><span style="color:var(--texte-3)">→ ${P[b].nom}</span>` }),
+        el('span', { class: 'ligne-val', style: 'font-family:var(--ui);font-size:11px;color:var(--texte-3)', text: P[b].case })))),
+
+    el('p', { class: 'chapeau', style: 'margin-top:16px', text: 'Ce que cela coûte' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      el('div', { class: 'ligne' },
+        el('span', { class: 'ligne-nom', text: 'Pièces à acheter' }),
+        el('span', { class: 'ligne-val n', text: String(t.achats) }))),
+
+    el('div', { class: 'gestes' },
+      el('button', { class: 'btn premier', style: 'grid-column:1/-1;justify-content:center', text: 'Porter ce stuff' }))));
+}
+
+retour.addEventListener('click', () => {
+  for (const a of document.querySelectorAll('.slot, .trouve')) a.classList.remove('choisi');
+  montrerFiche();
+});
+
+document.getElementById('pourquoi').addEventListener('click', () => {
+  teteQuoi.textContent = 'Pourquoi 775 dégâts';
+  teteNote.textContent = 'où investir';
+  retour.hidden = false;
+  const paire = (nom, val) => el('div', { class: 'ligne' },
+    el('span', { class: 'ligne-nom', text: nom }),
+    el('span', { class: 'ligne-val pos n', text: val }));
+
+  corps.replaceChildren(el('div', { class: 'fiche-piece' },
+    el('p', { class: 'chapeau', text: 'Ce que chaque pièce apporte' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      [['Lame Usicke', 214], ['Casque Harnage', 138], ["Az'tech", 94], ['Kralano', 88],
+       ['Amunite', 71], ['String Tue-Mouche', 60], ['Sandales Circulaires', 55]]
+        .map(([n, v]) => paire(n, `+${v}`))),
+    el('p', { class: 'chapeau', style: 'margin-top:16px', text: 'Où investir un point' }),
+    el('div', { class: 'lignes sans-icone', style: 'padding:0' },
+      [['1 % Dommages finaux', '+7,8'], ['10 Puissance', '+5,1'],
+       ['1 % Critique', '+2,4'], ['10 Agilité', '+1,9']].map(([n, v]) => paire(n, v)))));
+});
+
+montrerFiche();
+
+/* ------------------------------------------------------------- Les pas --- */
+
+document.getElementById('pas-suivants').addEventListener('click', (ev) => {
+  const pas = ev.target.closest('.pas');
+  if (!pas) return;
+  if (pas.dataset.pas === 'mixte') document.querySelector('#objectif button[data-mode="mixte"]').click();
+  pas.remove();
+});
+
+/* ------------------------------------------------------- Comparaison --- */
+
+const voile = document.getElementById('voile');
+let masquerIdentiques = true;
+
+btnComparer.addEventListener('click', () => { voile.hidden = false; dessinerComparaison(); });
+document.getElementById('fermer-compare').addEventListener('click', () => { voile.hidden = true; });
+voile.addEventListener('click', (e) => { if (e.target === voile) voile.hidden = true; });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') voile.hidden = true; });
+
+function dessinerComparaison() {
+  const colonnes = [PORTE, ...[...choisis].sort((a, b) => a - b).map((i) => TROUVES[i])];
+  document.getElementById('compare-note').textContent = `${colonnes.length} stuffs`;
+
+  // Une comparaison sert a voir ce qui DIFFERE : une ligne identique partout
+  // prend une rangee et n'aide a rien. Elle se masque, et elle se compte.
+  const varie = (m) => new Set(colonnes.map((c) => (m.brut ? c.achats : c.s[m.k]))).size > 1;
+  const gardees = MESURES.filter((m) => !masquerIdentiques || varie(m));
+  const masquees = MESURES.length - gardees.length;
+
+  const cellule = (col, m) => {
+    const v = m.brut ? col.achats : col.s[m.k];
+    if (col.porte) {
+      return el('td', { class: `porte ${m.min != null && v < m.min ? 'ecart-neg' : ''}`,
+        text: m.brut ? '—' : nb(v) });
+    }
+    if (m.brut) return el('td', { text: String(v) });
+    // Un minimum se lit en valeur absolue : ce qui compte est s'il est tenu,
+    // pas de combien il bouge. Le reste se lit en ecart.
+    if (m.min != null) return el('td', { class: v < m.min ? 'ecart-neg' : '', text: nb(v) });
+    return el('td', { class: tonEcart(v - PORTE.s[m.k]), text: ecart(v - PORTE.s[m.k]) });
+  };
+
+  const rangs = [];
+  let groupe = null;
+  for (const m of gardees) {
+    if (m.g !== groupe) {
+      groupe = m.g;
+      rangs.push(el('tr', { class: 'titre' },
+        el('th', { class: 'mesure', text: groupe }),
+        colonnes.map((c) => el('td', { class: c.porte ? 'porte' : '' }))));
+    }
+    rangs.push(el('tr', {},
+      el('th', { class: 'mesure', text: m.min != null ? `${m.nom} ≥ ${nb(m.min)}` : m.nom }),
+      colonnes.map((c) => cellule(c, m))));
+  }
+
+  document.getElementById('compare-corps').replaceChildren(el('table', {},
+    el('thead', {}, el('tr', {},
+      el('th', { class: 'mesure' }),
+      colonnes.map((c) => el('th', { class: c.porte ? 'porte' : '' },
+        el('div', { class: 'tete-nom' }, c.porte ? el('span', { class: 'marqueur' }) : null, c.nom),
+        el('div', { class: `tete-score n ${!c.porte && c.score > PORTE.score ? 'pos' : ''}`, text: nb(c.score) }),
+        el('div', { class: 'tete-pieces' }, piecesDe(c).map((k) => el('img', {
+          class: !c.porte && !PORTE.pieces.includes(k) ? 'neuf' : null,
+          src: P[k].img, alt: '', title: P[k].nom,
+        }))),
+        el('button', {
+          class: `btn mini ${c.porte ? '' : 'premier'}`, style: 'width:100%;justify-content:center',
+          text: c.porte ? 'Porté' : 'Porter', disabled: c.porte,
+        }))))),
+    el('tbody', {}, rangs)));
+
+  document.getElementById('masquees').replaceChildren(masquees > 0
+    ? el('span', {},
+        `${masquees} ligne${masquees > 1 ? 's' : ''} identique${masquees > 1 ? 's' : ''} sur tous ces stuffs. `,
+        el('button', { text: 'Tout montrer', onClick: () => { masquerIdentiques = false; dessinerComparaison(); } }))
+    : el('span', {}, 'Toutes les lignes sont montrées. ',
+        el('button', { text: 'Masquer les identiques', onClick: () => { masquerIdentiques = true; dessinerComparaison(); } })));
+}
+
+/* -------------------------------------------------------- Mini courbe --- */
+
+const mini = document.getElementById('mini-courbe');
+const COURBE = [
+  [3800, 902], [4400, 861], [5000, 828], [5600, 802], [6200, 790], [6900, 781],
+  [7500, 779], [8200, 777], [9245, 775], [10100, 746], [11000, 702], [12200, 640],
+  [13500, 561], [14900, 470], [16400, 372], [18000, 268], [19800, 160],
+];
+const RANG_PORTE = 8;
+
+function dessinerCourbe(part = Number(curseur.value) / 100) {
+  const st = getComputedStyle(document.documentElement);
+  const j = (n) => st.getPropertyValue(n).trim();
+  const r = window.devicePixelRatio || 1;
+  const l = mini.clientWidth, h = mini.clientHeight;
+  if (!l) return;
+  mini.width = l * r; mini.height = h * r;
+  const c = mini.getContext('2d');
+  c.setTransform(r, 0, 0, r, 0, 0);
+  c.clearRect(0, 0, l, h);
+
+  const M = { haut: 8, bas: 14, gauche: 4, droite: 4 };
+  const xs = COURBE.map((p) => p[0]), ys = COURBE.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y0 = Math.min(...ys) * 0.94, y1 = Math.max(...ys) * 1.03;
+  const px = (v) => M.gauche + ((v - x0) / (x1 - x0)) * (l - M.gauche - M.droite);
+  const py = (v) => h - M.bas - ((v - y0) / (y1 - y0)) * (h - M.haut - M.bas);
+
+  const g = c.createLinearGradient(0, M.haut, 0, h - M.bas);
+  g.addColorStop(0, 'rgba(127,116,255,.22)'); g.addColorStop(1, 'rgba(127,116,255,0)');
+  c.beginPath();
+  COURBE.forEach(([x, y], i) => (i ? c.lineTo(px(x), py(y)) : c.moveTo(px(x), py(y))));
+  c.lineTo(px(x1), h - M.bas); c.lineTo(px(x0), h - M.bas); c.closePath();
+  c.fillStyle = g; c.fill();
+
+  c.beginPath();
+  COURBE.forEach(([x, y], i) => (i ? c.lineTo(px(x), py(y)) : c.moveTo(px(x), py(y))));
+  c.strokeStyle = j('--iris'); c.lineWidth = 1.5; c.stroke();
+
+  const rangChoisi = Math.round((1 - part) * (COURBE.length - 1));
+  COURBE.forEach(([x, y], i) => {
+    const gros = i === RANG_PORTE || i === rangChoisi;
+    c.beginPath(); c.arc(px(x), py(y), gros ? 4 : 2, 0, Math.PI * 2);
+    c.fillStyle = i === RANG_PORTE ? j('--jade') : (i === rangChoisi ? j('--ambre') : j('--iris'));
+    c.fill();
+    if (gros) { c.strokeStyle = j('--surface'); c.lineWidth = 2; c.stroke(); }
+  });
+
+  c.fillStyle = j('--texte-3'); c.font = `10px ${j('--mono')}`;
+  c.textAlign = 'left'; c.fillText('peu d\'encaisse', M.gauche, h - 3);
+  c.textAlign = 'right'; c.fillText('beaucoup', l - M.droite, h - 3);
+}
+
+mini.addEventListener('click', (ev) => {
+  const r = mini.getBoundingClientRect();
+  const x = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+  curseur.value = String(Math.round((1 - x) * 100));
+  curseur.dispatchEvent(new Event('input'));
+});
+new ResizeObserver(() => { if (!melange.hidden) dessinerCourbe(); }).observe(mini);
+</script>
+</body></html>

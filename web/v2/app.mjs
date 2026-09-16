@@ -34,6 +34,8 @@ import { conditionValue } from '../../src/solver/condition-value.mjs';
 
 import { creerGestesCatalogue } from '../gestes-catalogue.mjs';
 import { creerGestesSorts } from '../gestes-sorts.mjs';
+import { brancherSets } from '../branchements.mjs';
+import { lireSets } from '../presets.mjs';
 import { creerGestesReference } from '../gestes-reference.mjs';
 
 import { creerPont } from './pont.mjs';
@@ -601,6 +603,26 @@ function raccourciPalette() {
   return surMac ? '⌘K' : 'Ctrl K';
 }
 
+/**
+ * Remplit les listes de jeux enregistres.
+ *
+ * Le choix courant se garde s'il existe encore : recharger la liste apres un
+ * enregistrement ne doit pas faire sauter la selection du joueur.
+ */
+function remplirListesSets() {
+  for (const [nature, id] of [['sorts', 'sets-sorts'], ['conditions', 'sets-conditions']]) {
+    const noeud = $(id);
+    const choisi = noeud.value;
+    const jeux = lireSets(nature);
+
+    noeud.replaceChildren(...(jeux.length === 0
+      ? [el('option', { value: '', text: 'aucun jeu enregistre' })]
+      : jeux.map((j) => el('option', { value: j.nom, text: j.nom }))));
+
+    if (choisi && jeux.some((j) => j.nom === choisi)) noeud.value = choisi;
+  }
+}
+
 /** Change une option de calcul. */
 const poserOption = (cle, valeur) => setEtat({ options: { ...etat.options, [cle]: valeur } });
 
@@ -729,6 +751,7 @@ async function main() {
     // face aux reglages du lancement qui les a produits, pas face a rien.
     signatureLancement = reprendreSignature();
 
+    remplirListesSets();
     message('');
     recherche.reprendre();
     render();
@@ -777,6 +800,19 @@ window.addEventListener('keydown', (ev) => {
 });
 
 $('comparer').addEventListener('click', comparer);
+for (const nature of ['sorts', 'conditions']) {
+  brancherSets({
+    $, message, remplirListesSets, nature,
+    idListe: `sets-${nature}`,
+    lire: () => lireEtat()[nature],
+    poser: (contenu) => setEtat({ [nature]: contenu }),
+  });
+}
+
+// Le graphe vit dans un canvas : il ne suit pas la cascade. Replier une
+// section change sa largeur, donc il faut le redessiner.
+window.addEventListener('copyroxx:theme', () => render());
+
 $('annuler').addEventListener('click', annuler);
 $('vider').addEventListener('click', vider);
 $('reglages').addEventListener('click',

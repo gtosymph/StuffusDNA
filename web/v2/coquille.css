@@ -1207,3 +1207,95 @@ input[type="range"].curseur::-moz-range-thumb {
 }
 .remplacement .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
 #bloc-analyse .note, #panoplies .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* ================================== Jeux enregistres, profil, repli ===
+
+   Trois conforts de v1 qui rejoignent v2. */
+
+/* Un jeu de sorts ou de minimums : la liste prend la place, les trois
+   commandes sont serrees a droite. */
+.rangee-jeux { display: flex; gap: 5px; align-items: center; margin-top: 10px; }
+.rangee-jeux select { flex: 1; min-width: 0; height: 24px; font-size: 11px; }
+.rangee-jeux .btn.mini { flex: none; }
+
+.menu-profil { position: relative; }
+.bascule-profil {
+  height: 26px; padding: 0 11px 0 24px; cursor: pointer; position: relative;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 12px/1 var(--ui);
+}
+.bascule-profil:hover { color: var(--texte); border-color: var(--filet-clair); }
+/* Un disque : la marque convenue d'un compte, ici d'un profil local. */
+.bascule-profil::before {
+  content: ''; position: absolute; left: 9px; top: 50%;
+  width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+.bascule-profil.alerte { color: var(--rose); border-color: var(--rose); }
+
+.panneau-profil {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  width: 320px; max-width: calc(100vw - 24px);
+  display: grid; gap: 9px; padding: 13px;
+  background: var(--surface); border: 1px solid var(--filet-clair); border-radius: var(--r-lg);
+  box-shadow: 0 14px 36px rgb(0 0 0 / .55);
+}
+/* « display: grid » l'emporterait sur le « display: none » de [hidden]. */
+.panneau-profil[hidden] { display: none; }
+.profil-titre {
+  font-size: 10px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+.profil-place {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11.5px; color: var(--texte-3);
+}
+.profil-place strong {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-weight: 500; color: var(--texte);
+}
+.profil-place strong.alerte { color: var(--rose); }
+.profil-note { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--texte-3); }
+.profil-alerte, .profil-succes {
+  padding: 7px 9px; border-radius: var(--r); font-size: 10.5px; line-height: 1.5;
+  border: 1px solid var(--filet);
+}
+.profil-alerte { color: var(--rose); border-color: var(--rose); }
+.profil-succes { color: var(--texte-2); }
+.profil-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.profil-actions button {
+  height: 26px; padding: 0 10px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+  color: var(--texte); font: 11px/1 var(--ui);
+}
+.profil-actions button:hover { border-color: var(--filet-clair); }
+.profil-actions .primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.profil-actions .danger { grid-column: 1 / -1; color: var(--rose); }
+.profil-actions .danger:hover { border-color: var(--rose); }
+
+/* Le bac d'essai se voit : sans cela il ne protege de rien. */
+.marque.bac-essai { color: var(--ambre); }
+
+/* ---- Repli d'une section ---- */
+
+/* Le titre devient la commande ; un chevron dit dans quel sens il agit. */
+.chapeau.pliable { cursor: pointer; user-select: none; }
+.chapeau.pliable::after {
+  content: ''; flex: none; order: 10;
+  width: 6px; height: 6px;
+  border-right: 1.5px solid var(--texte-3);
+  border-bottom: 1.5px solid var(--texte-3);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.chapeau.pliable:hover { color: var(--texte-2); }
+.chapeau.pliable:hover::after { border-color: var(--iris); }
+.chapeau.pliable:focus-visible { outline: 2px solid var(--iris); outline-offset: 3px; }
+.chapeau.pliable[aria-expanded="false"]::after { transform: rotate(-45deg) translate(-1px, 1px); }
+
+/* Repliee, la section garde son titre et son compteur : seule la matiere
+   part. Au centre, le titre vit dans une tete : elle reste avec lui. */
+.section.replie > *:not(.chapeau):not(.tete-resultats):not(.regle) { display: none; }
+.section.replie .tete-resultats ~ * { display: none; }
+.section.nue { padding: 0; border-bottom: 0; }
+.section.vise { outline: 2px solid var(--iris); outline-offset: 6px; border-radius: var(--r); }

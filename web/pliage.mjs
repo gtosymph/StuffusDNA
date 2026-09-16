@@ -17,6 +17,16 @@ const CLE = CLES.plie;
 /** Sections que le pliage laisse tranquilles : leur titre est leur contenu. */
 const JAMAIS = new Set(['Catalogue']);
 
+/**
+ * Ou trouver les titres et les sections.
+ *
+ * Les deux coquilles ne nomment pas leurs blocs pareil : v1 titre en « h2 »
+ * dans un « .bloc », v2 en « .chapeau » dans une « .section ». Le pliage ne
+ * depend pas de ces noms, seulement du fait qu'un titre commande une section.
+ * `installerPliage` les pose une fois ; `montrerSection` les relit.
+ */
+let ou = { titres: '.bloc > h2', section: '.bloc', compteur: '.compteur' };
+
 /** Lit l'ensemble des sections repliees. */
 function lire() {
   const brut = lireJson(CLE, []);
@@ -35,13 +45,13 @@ function garder(plies) {
  */
 function nom(titre) {
   const copie = titre.cloneNode(true);
-  for (const compteur of copie.querySelectorAll('.compteur')) compteur.remove();
+  for (const compteur of copie.querySelectorAll(ou.compteur)) compteur.remove();
   return copie.textContent.trim();
 }
 
 /** Rend une section pliable par son titre. */
 function equiper(titre, plies) {
-  const section = titre.closest('.bloc');
+  const section = titre.closest(ou.section);
   const cle = nom(titre);
   if (!section || JAMAIS.has(cle)) return;
 
@@ -78,8 +88,8 @@ function equiper(titre, plies) {
  * @param {string} cle Libelle de la section, sans son compteur.
  */
 export function montrerSection(cle) {
-  const titre = [...document.querySelectorAll('.bloc > h2')].find((h) => nom(h) === cle);
-  const section = titre?.closest('.bloc');
+  const titre = [...document.querySelectorAll(ou.titres)].find((h) => nom(h) === cle);
+  const section = titre?.closest(ou.section);
   if (!section) return;
 
   if (section.classList.contains('replie')) titre.click();
@@ -89,10 +99,17 @@ export function montrerSection(cle) {
   setTimeout(() => section.classList.remove('vise'), 1400);
 }
 
-/** Installe le pliage sur toutes les sections titrees. */
-export function installerPliage() {
+/**
+ * Installe le pliage sur toutes les sections titrees.
+ *
+ * @param {{titres?: string, section?: string, compteur?: string}} [reglage]
+ *   Ou trouver les titres et les sections, quand la coquille ne les nomme pas
+ *   comme v1.
+ */
+export function installerPliage(reglage = {}) {
+  ou = { ...ou, ...reglage };
   const plies = lire();
-  for (const titre of document.querySelectorAll('.bloc > h2')) equiper(titre, plies);
+  for (const titre of document.querySelectorAll(ou.titres)) equiper(titre, plies);
 
   // La note du score dit combien de conditions manquent : elle mene a la
   // section qui permet de les corriger.

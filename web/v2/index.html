@@ -11,6 +11,7 @@
 
 <header class="barre">
   <div class="marque"><i></i> The Best Roxxeur</div>
+  <div id="menus"></div>
 
   <button class="identite" id="identite" hidden type="button">
     <img id="identite-img" src="" alt=""><b id="identite-nom"></b>
@@ -48,25 +49,38 @@
 
   <aside class="volet volet-gauche">
     <div class="section">
-      <p class="chapeau">Ce que je veux</p>
+      <p class="chapeau pliable">Ce que je veux</p>
       <div class="segmente" style="width:100%" id="objectif"></div>
       <p class="aide" id="aide-objectif"></p>
       <div id="melange" hidden></div>
+    </div>
 
-      <p class="chapeau" style="margin-top:18px">Sur ces sorts
-        <span class="compte" id="compte-sorts">0</span></p>
+    <div class="section">
+      <p class="chapeau pliable">Sur ces sorts <span class="compte" id="compte-sorts">0</span></p>
       <div class="chips" id="chips-sorts"></div>
       <p class="aide" id="aide-sorts"></p>
+      <div class="rangee-jeux">
+        <select id="sets-sorts" aria-label="Jeux de sorts enregistres"></select>
+        <button class="btn mini" id="charger-sorts" type="button" title="Reprendre ce jeu">Reprendre</button>
+        <button class="btn mini" id="garder-sorts" type="button" title="Enregistrer ces sorts">Garder</button>
+        <button class="btn mini fantome" id="oublier-sorts" type="button" title="Enlever ce jeu">×</button>
+      </div>
     </div>
 
     <div class="section">
-      <p class="chapeau">Au minimum <span class="compte" id="compte-limites">0</span></p>
+      <p class="chapeau pliable">Au minimum <span class="compte" id="compte-limites">0</span></p>
       <div id="limites"></div>
       <p class="aide">Cliquez n'importe quel chiffre de la fiche pour en garder au moins autant.</p>
+      <div class="rangee-jeux">
+        <select id="sets-conditions" aria-label="Jeux de minimums enregistres"></select>
+        <button class="btn mini" id="charger-conditions" type="button" title="Reprendre ce jeu">Reprendre</button>
+        <button class="btn mini" id="garder-conditions" type="button" title="Enregistrer ces minimums">Garder</button>
+        <button class="btn mini fantome" id="oublier-conditions" type="button" title="Enlever ce jeu">×</button>
+      </div>
     </div>
 
     <div class="section">
-      <p class="chapeau">Ce que j'ai</p>
+      <p class="chapeau pliable">Ce que j'ai</p>
       <div class="avoir" id="avoir"></div>
       <button class="btn" id="ouvrir-palette" type="button"
         style="width:100%;justify-content:center;margin-top:9px">Toutes les pieces</button>
@@ -103,40 +117,43 @@
 
       <div class="regle"></div>
 
-      <div class="tete-resultats">
-        <p class="chapeau" style="padding:0;margin:0">Les stuffs trouves
-          <span class="compte" id="compte-trouves">0</span></p>
-        <div class="pousse"></div>
-        <button class="btn mini" id="comparer" type="button" hidden>Comparer</button>
-      </div>
-
-      <div id="trouves"></div>
-
-      <div class="regle"></div>
-
-      <div class="tete-resultats">
-        <p class="chapeau" style="padding:0;margin:0">Proche de mon stuff
-          <span class="compte" id="compte-paliers">0</span></p>
-      </div>
-      <p class="aide">Si je n'achete qu'une a trois pieces, que puis-je gagner ?</p>
-      <div id="reglage-proximite"></div>
-      <div id="paliers"></div>
-
-      <div class="regle"></div>
-
-      <section id="bloc-panoplies" hidden>
+      <div class="section nue">
         <div class="tete-resultats">
-          <p class="chapeau" style="padding:0;margin:0">Bonus de panoplie
+          <p class="chapeau pliable" style="padding:0;margin:0">Les stuffs trouves
+            <span class="compte" id="compte-trouves">0</span></p>
+          <div class="pousse"></div>
+          <button class="btn mini" id="comparer" type="button" hidden>Comparer</button>
+        </div>
+        <div id="trouves"></div>
+      </div>
+
+      <div class="regle"></div>
+
+      <div class="section nue">
+        <div class="tete-resultats">
+          <p class="chapeau pliable" style="padding:0;margin:0">Proche de mon stuff
+            <span class="compte" id="compte-paliers">0</span></p>
+        </div>
+        <p class="aide">Si je n'achete qu'une a trois pieces, que puis-je gagner ?</p>
+        <div id="reglage-proximite"></div>
+        <div id="paliers"></div>
+      </div>
+
+      <div class="regle"></div>
+
+      <section class="section nue" id="bloc-panoplies" hidden>
+        <div class="tete-resultats">
+          <p class="chapeau pliable" style="padding:0;margin:0">Bonus de panoplie
             <span class="compte" id="compte-bonus"
               title="Chaque panoplie apporte (pieces − 1) bonus">0</span></p>
         </div>
         <div class="panoplies" id="panoplies"></div>
       </section>
 
-      <section id="bloc-analyse" hidden>
+      <section class="section nue" id="bloc-analyse">
         <div class="regle"></div>
         <div class="tete-resultats">
-          <p class="chapeau" style="padding:0;margin:0">Analyse du stuff</p>
+          <p class="chapeau pliable" style="padding:0;margin:0">Analyse du stuff</p>
         </div>
         <p class="aide">D'ou vient mon score, et ou investir pour le monter ?</p>
         <p class="chapeau" style="margin-top:14px">Apport de chaque piece</p>
@@ -166,6 +183,24 @@
 
 <div id="message" role="status" aria-live="polite" class="message-v2"></div>
 
+<script type="module">
+  import { installerProfil } from '../profil-panel.mjs';
+  import { installerPliage } from '../pliage.mjs';
+  import { EN_BAC_DESSAI } from '../stockage.mjs';
+
+  // Un bac d'essai se voit, sinon il ne protege de rien : le joueur doit
+  // savoir d'un coup d'oeil que cet onglet n'ecrit pas dans son profil.
+  if (EN_BAC_DESSAI) {
+    const marque = document.querySelector('.marque');
+    marque.append(document.createTextNode(' — BAC D\'ESSAI'));
+    marque.classList.add('bac-essai');
+  }
+
+  installerProfil(document.getElementById('menus'));
+  // v2 ne nomme pas ses blocs comme v1 : les titres pliables se marquent, et
+  // un titre commande la section qui le contient.
+  installerPliage({ titres: '.chapeau.pliable', section: '.section', compteur: '.compte' });
+</script>
 <script type="module" src="./app.mjs"></script>
 </body>
 </html>

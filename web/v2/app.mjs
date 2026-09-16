@@ -13,11 +13,16 @@
 import { loadCatalog } from '../catalog-web.mjs';
 import { loadSpells } from '../spells-data.mjs';
 import { avatarDeClasse, nomDeClasse } from '../classes.mjs';
-import { el, renderCandidats, renderCases, renderOptions } from '../render.mjs';
+import {
+  el, renderCandidats, renderCases, renderOptions, renderPanoplies,
+} from '../render.mjs';
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
 import { etatInitial, optionsAffichees } from '../reglages.mjs';
 import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
-import { buildCourant, scoreAffiche, sortsCalcules, valeurDeReference } from '../objectif.mjs';
+import {
+  buildCourant, cibleAffichee, passifsActifs, profilDe, scoreAffiche, sortsCalcules,
+  valeurDeReference,
+} from '../objectif.mjs';
 import { appliquerBuild } from '../equipement.mjs';
 import { enrichirSorts } from '../sorts-migration.mjs';
 import { creerRecherche } from '../recherche.mjs';
@@ -44,6 +49,8 @@ import { renderMelange } from './vue-melange.mjs';
 import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.mjs';
 import { rangerOptions } from './options.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
+import { renderAnalyse } from '../analyse-panel.mjs';
+import { remplacer } from '../equipement.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -169,6 +176,8 @@ function render() {
   renderAvoir(stats, degats);
   renderTrouves(bilan);
   renderProximite();
+  renderPanoplie(build);
+  renderAnalyseDuStuff(bilan, stats);
   renderInspecteur(stats, degats);
   renderScore(bilan);
   renderFraicheur();
@@ -417,6 +426,60 @@ function renderProximite() {
         + `${nombre(Math.floor(palier.damage))} de degats.`);
     },
   });
+}
+
+/**
+ * Les bonus de panoplie actifs.
+ *
+ * Le compte en tete est celui que les trophees verifient : (pieces − 1) par
+ * panoplie, jamais le nombre de panoplies.
+ */
+function renderPanoplie(build) {
+  const sets = build?.sets ?? [];
+  $('compte-bonus').textContent = String(
+    sets.reduce((n, s) => n + Math.max(0, s.pieces - 1), 0));
+  $('bloc-panoplies').hidden = sets.length === 0;
+
+  renderPanoplies($('panoplies'), sets, catalogue?.setById ?? new Map(), STAT_LABELS, {
+    itemById: catalogue?.itemById ?? new Map(),
+    equippedIds: new Set([...etat.equipped.values()].map((p) => p.id)),
+    onPick: (piece) => ouvrirFiche(piece, { onEquip: () => gestes.equiper(piece) }),
+  });
+}
+
+/**
+ * D'ou vient le score, et ou investir pour le monter.
+ *
+ * Sans piece portee, il n'y a rien a analyser : le bloc disparait plutot que
+ * de montrer trois listes vides.
+ */
+function renderAnalyseDuStuff(bilan, stats) {
+  const bloc = $('bloc-analyse');
+  bloc.hidden = !bilan || etat.equipped.size === 0;
+  if (bloc.hidden) return;
+
+  renderAnalyse(
+    { apports: $('apports'), sensibilite: $('sensibilite'), remplacements: $('remplacements') },
+    {
+      etat,
+      catalogue,
+      stats,
+      cible: cibleAffichee(etat),
+      tenu: bilan.satisfied,
+      contexte: {
+        level: etat.niveau,
+        allocation: etat.allocation,
+        scrolls: etat.scrolls,
+        passives: passifsActifs(etat),
+        profile: profilDe(etat),
+        setById: catalogue.setById,
+      },
+      onRemplacer: (proposition) => {
+        setEtat(remplacer(etat, proposition.actuel, proposition.remplacant));
+        message(`${proposition.remplacant.fr} posee`
+          + `${proposition.actuel ? ` a la place de ${proposition.actuel.fr}` : ''}.`);
+      },
+    });
 }
 
 function renderInspecteur(stats, degats) {

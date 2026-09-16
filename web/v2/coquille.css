@@ -1129,3 +1129,81 @@ input[type="range"].curseur::-moz-range-thumb {
 }
 .palier .mini.large:hover { color: var(--texte); border-color: var(--filet-clair); }
 #paliers .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* ============================================= Bonus de panoplie ===
+
+   Chaque panoplie apporte (pieces − 1) bonus : c'est ce compte que les
+   trophees verifient, pas le nombre de panoplies. */
+
+.panoplies { display: grid; gap: 7px; }
+.panoplie {
+  padding: 7px 9px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.panoplie-tete {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-bottom: 5px; font-size: 11.5px; color: var(--texte);
+}
+.panoplie-tete .pieces {
+  color: var(--iris); font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.panoplie dl {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 0; font-size: 10.5px;
+}
+.panoplie dt { display: flex; align-items: center; gap: 5px; color: var(--texte-3); }
+.panoplie dt img { width: 14px; height: 14px; object-fit: contain; }
+.panoplie dd {
+  margin: 0; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+.panoplie dd.pos { color: var(--jade); }
+.panoplie dd.neg { color: var(--rose); }
+.panoplie img.piece, .panoplie .piece-panoplie { width: 22px; height: 22px; object-fit: contain; }
+
+/* ================================================ Analyse du stuff ===
+
+   La jauge occupe le FOND de la ligne : le nom garde toute la largeur, au
+   lieu d'etre coupe par une barre qui prendrait sa place. */
+
+.apports, .sensibilite, .remplacements { display: grid; gap: 3px; }
+.apport, .mesure, .remplacement {
+  position: relative; display: flex; align-items: center; gap: 7px;
+  padding: 4px 6px; border-radius: 4px; overflow: hidden; font-size: 11px;
+}
+.apport > *, .mesure > *, .remplacement > * { position: relative; z-index: 1; }
+.apport:hover, .mesure:hover, .remplacement:hover { background: var(--surface-2); }
+.apport-icone { width: 18px; height: 18px; flex: none; object-fit: contain; }
+.mesure-icone { width: 14px; height: 14px; flex: none; object-fit: contain; }
+.apport-nom, .mesure-nom {
+  flex: 1; min-width: 0; color: var(--texte-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.apport-jauge { position: absolute; inset: 0; z-index: 0; border-radius: 4px; }
+.apport-jauge i {
+  display: block; height: 100%; border-radius: 4px;
+  background: color-mix(in srgb, var(--iris) 26%, transparent);
+}
+.apport-valeur, .mesure-gain {
+  flex: none; text-align: right;
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+.apport-valeur.neg { color: var(--rose); }
+.apport-valeur.nul { color: var(--texte-3); }
+/* Une piece decisive porte l'ambre sur son nom EN PLUS de sa marque. */
+.apport.decisive .apport-nom { color: var(--ambre); }
+.apport-marque {
+  flex: none; width: 10px; text-align: center;
+  font: 700 11px var(--mono); color: var(--ambre);
+}
+.remplacement-fleche { flex: none; color: var(--texte-3); }
+.remplacement .apport-icone.vide {
+  display: inline-block; box-sizing: border-box;
+  border: 1px dashed var(--filet-clair); border-radius: 3px;
+}
+.remplacement .mini {
+  flex: none; height: 22px; padding: 0 8px; cursor: pointer;
+  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.remplacement .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+#bloc-analyse .note, #panoplies .note { font-size: 11.5px; color: var(--texte-3); }

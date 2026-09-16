@@ -122,6 +122,31 @@
       <div id="reglage-proximite"></div>
       <div id="paliers"></div>
 
+      <div class="regle"></div>
+
+      <section id="bloc-panoplies" hidden>
+        <div class="tete-resultats">
+          <p class="chapeau" style="padding:0;margin:0">Bonus de panoplie
+            <span class="compte" id="compte-bonus"
+              title="Chaque panoplie apporte (pieces − 1) bonus">0</span></p>
+        </div>
+        <div class="panoplies" id="panoplies"></div>
+      </section>
+
+      <section id="bloc-analyse" hidden>
+        <div class="regle"></div>
+        <div class="tete-resultats">
+          <p class="chapeau" style="padding:0;margin:0">Analyse du stuff</p>
+        </div>
+        <p class="aide">D'ou vient mon score, et ou investir pour le monter ?</p>
+        <p class="chapeau" style="margin-top:14px">Apport de chaque piece</p>
+        <div class="apports" id="apports"></div>
+        <p class="chapeau" style="margin-top:14px">Ou investir pour gagner des degats</p>
+        <div class="sensibilite" id="sensibilite"></div>
+        <p class="chapeau" style="margin-top:14px">Meilleur remplacement par case</p>
+        <div class="remplacements" id="remplacements"></div>
+      </section>
+
       <!-- La courbe de la recherche. Elle vit ici tant que le volet de
            reglage fin n'existe pas : mieux vaut un graphe visible qu'un
            graphe absent qui laisse croire que rien ne tourne. -->

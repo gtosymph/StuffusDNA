@@ -1,0 +1,176 @@
+/* Socle commun aux maquettes.
+
+   Ce fichier ne sert qu'aux propositions de refonte : il ne touche ni
+   styles.css ni les themes. Il porte le systeme de design propose — couleur,
+   typographie, rythme — et les quelques composants natifs que les deux
+   directions partagent. */
+
+:root {
+  /* Fond bleu-noir, neutres teintes vers l'accent : un gris pur se lit
+     comme un defaut, un gris legerement iris se lit comme un choix. */
+  --fond: #0d1017;
+  --surface: #141824;
+  --surface-2: #1b2030;
+  --surface-3: #232a3c;
+  --filet: #242a3a;
+  --filet-clair: #313a52;
+
+  --texte: #e4e8f2;
+  --texte-2: #8f9ab4;
+  --texte-3: #5c657d;
+
+  --iris: #7f74ff;
+  --iris-sourd: #463fa0;
+  --iris-fond: #1c1b3a;
+  --sur-iris: #f2f1ff;
+
+  --jade: #3fcf8e;
+  --rose: #ff6b81;
+  --ambre: #f0b429;
+
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  --r: 6px;
+  --r-lg: 10px;
+  --barre-h: 44px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 13px/1.45 var(--ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tout chiffre s'aligne en colonne : une mesure qui danse d'une ligne a
+   l'autre ne se compare pas d'un coup d'oeil. */
+.n { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+
+:focus-visible { outline: 2px solid var(--iris); outline-offset: 2px; border-radius: 3px; }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 9px; border: 2px solid var(--fond); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------------------------------------------------------- Barre haute --- */
+
+.barre {
+  height: var(--barre-h);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--filet);
+  position: sticky; top: 0; z-index: 30;
+}
+
+.marque { display: flex; align-items: center; gap: 8px; font-weight: 620; font-size: 13px; letter-spacing: -0.1px; }
+.marque i { width: 9px; height: 9px; background: var(--iris); border-radius: 2px; transform: rotate(45deg); display: block; }
+
+/* Le personnage est une identite, pas un formulaire : il se lit comme une
+   pastille et s'ouvre au clic. */
+.identite {
+  display: flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 10px 0 4px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  border-radius: 999px; color: var(--texte); font: inherit; cursor: pointer;
+}
+.identite:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.identite img { width: 20px; height: 20px; border-radius: 999px; object-fit: cover; background: var(--surface-3); }
+.identite b { font-weight: 560; }
+.identite span { color: var(--texte-2); font-size: 12px; }
+
+.pousse { margin-left: auto; }
+
+/* ------------------------------------------------ Controle segmente --- */
+
+/* Un menu deroulant cache ses options et coute deux clics. Trois choix
+   tiennent cote a cote : ils se lisent et se prennent d'un seul geste. */
+.segmente {
+  display: inline-flex; padding: 2px;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: 7px;
+}
+.segmente button {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  padding: 4px 10px; border-radius: 5px; white-space: nowrap;
+  font: 12px/1 var(--ui); font-weight: 540; color: var(--texte-2);
+}
+.segmente button:hover { color: var(--texte); }
+.segmente button[aria-pressed="true"] {
+  background: var(--surface-3); color: var(--texte);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .35);
+}
+
+/* ------------------------------------------------------------ Boutons --- */
+
+.btn {
+  appearance: none; cursor: pointer;
+  height: 28px; padding: 0 12px;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.btn.premier { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.btn.premier:hover { background: #8d84ff; border-color: #8d84ff; }
+.btn.fantome { background: transparent; border-color: transparent; color: var(--texte-2); }
+.btn.fantome:hover { background: var(--surface-2); color: var(--texte); }
+.btn.mini { height: 22px; padding: 0 8px; font-size: 11px; }
+
+/* --------------------------------------------------------- Etiquettes --- */
+
+/* Un intitule de section n'est pas un titre de carte : il n'a ni cadre ni
+   fond, il nomme seulement ce qui suit. */
+.chapeau {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; padding: 0 0 6px;
+  font-size: 10px; font-weight: 640; letter-spacing: 0.8px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+.chapeau .compte { margin-left: auto; font-family: var(--mono); letter-spacing: 0; color: var(--texte-3); }
+
+.pastille {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 20px; padding: 0 8px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  font-size: 11px; color: var(--texte-2);
+}
+
+/* Etat d'une limite : tenue, ou non. La couleur seule ne suffit pas, la
+   forme du point la double. */
+.etat { width: 6px; height: 6px; border-radius: 999px; background: var(--texte-3); flex: none; }
+.etat.tenue { background: var(--jade); }
+.etat.defaut { background: var(--rose); box-shadow: 0 0 0 3px rgb(255 107 129 / .15); }
+
+.pos { color: var(--jade); }
+.neg { color: var(--rose); }
+.att { color: var(--ambre); }
+
+/* --------------------------------------------------------- Champs --- */
+
+input[type="number"], input[type="text"], input[type="search"], select {
+  height: 26px; padding: 0 8px;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: 12px/1 var(--ui);
+}
+input.n { font-family: var(--mono); text-align: right; }
+input:hover, select:hover { border-color: var(--filet-clair); }
+
+/* Un curseur natif s'habille : la piste porte le sens, pas le pouce. */
+input[type="range"] {
+  appearance: none; width: 100%; height: 18px; background: transparent; margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--jade), var(--surface-3) 50%, var(--iris));
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none; width: 14px; height: 14px; margin-top: -5px;
+  background: var(--texte); border-radius: 999px; border: 0;
+  box-shadow: 0 1px 3px rgb(0 0 0 / .5);
+}

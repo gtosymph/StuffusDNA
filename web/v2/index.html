@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Best Roxxeur — v2</title>
+<link rel="stylesheet" href="socle.css">
+<link rel="stylesheet" href="coquille.css">
+</head>
+<body>
+
+<header class="barre">
+  <div class="marque"><i></i> The Best Roxxeur</div>
+
+  <button class="identite" id="identite" hidden type="button">
+    <img id="identite-img" src="" alt=""><b id="identite-nom"></b>
+    <span id="identite-detail"></span>
+  </button>
+
+  <div class="pousse"></div>
+
+  <div id="barre-droite" hidden style="align-items:center;gap:14px">
+    <div class="score-vif"><b class="pos" id="score">—</b> <span id="score-note">score</span></div>
+    <span id="compteur-generations" class="n" style="font-size:11px;color:var(--texte-3)"></span>
+    <button class="btn premier" id="lancer" type="button">Chercher</button>
+    <button class="btn fantome" id="arreter" type="button" title="Pause" disabled>Pause</button>
+  </div>
+</header>
+
+<!-- ===================== Ecran vide ===================== -->
+<div class="accueil" id="accueil">
+  <div class="accueil-carte">
+    <h1>Quelle classe joues-tu ?</h1>
+    <p>C'est la seule chose dont j'ai besoin pour commencer.</p>
+    <div class="classes" id="classes"></div>
+    <p class="apres">Je poserai le niveau 190 et les PA&nbsp;/&nbsp;PM de ta classe, et je chercherai
+      tout de suite. Tu choisiras tes sorts juste apres, quand tu verras l'ecran.</p>
+  </div>
+</div>
+
+<!-- ===================== L'atelier ===================== -->
+<div class="appli" id="travail" hidden>
+
+  <aside class="volet volet-gauche">
+    <div class="section">
+      <p class="chapeau">Ce que je veux</p>
+      <div class="segmente" style="width:100%" id="objectif"></div>
+      <p class="aide" id="aide-objectif"></p>
+
+      <p class="chapeau" style="margin-top:18px">Sur ces sorts
+        <span class="compte" id="compte-sorts">0</span></p>
+      <div class="chips" id="chips-sorts"></div>
+      <p class="aide" id="aide-sorts"></p>
+    </div>
+
+    <div class="section">
+      <p class="chapeau">Au minimum <span class="compte" id="compte-limites">0</span></p>
+      <div id="limites"></div>
+      <p class="aide">Cliquez n'importe quel chiffre de la fiche pour en garder au moins autant.</p>
+    </div>
+
+    <div class="section">
+      <p class="chapeau">Ce que j'ai</p>
+      <div class="avoir" id="avoir"></div>
+      <button class="btn" id="ouvrir-palette" type="button"
+        style="width:100%;justify-content:center;margin-top:9px">Toutes les pieces</button>
+      <p class="aide">Une piece que vous possedez deja ne compte pas comme un achat.</p>
+    </div>
+  </aside>
+
+  <main class="volet">
+    <div class="scene">
+      <div class="plateau" id="plateau"></div>
+
+      <dl class="verdict">
+        <div>
+          <dt>Degats</dt>
+          <dd class="n vide-mesure" id="v-degats">—</dd>
+          <div id="degats-sans-sorts">
+            <button class="appel" id="appel-sorts" type="button">Choisissez des sorts pour compter des degats</button>
+          </div>
+          <div id="degats-avec-sorts" hidden>
+            <small id="degats-phrase"></small>
+          </div>
+        </div>
+
+        <div>
+          <dt>Pdv effectifs</dt><dd class="n" id="v-pdv">—</dd>
+          <small id="pdv-phrase"></small>
+        </div>
+
+        <div><dt>A acheter</dt><dd class="n" id="v-achats">—</dd>
+          <small id="achats-phrase">face a votre stuff actuel</small></div>
+      </dl>
+
+      <div class="regle"></div>
+
+      <div class="tete-resultats">
+        <p class="chapeau" style="padding:0;margin:0">Les stuffs trouves
+          <span class="compte" id="compte-trouves">0</span></p>
+        <div class="pousse"></div>
+      </div>
+
+      <div id="trouves"></div>
+
+      <!-- La courbe de la recherche. Elle vit ici tant que le volet de
+           reglage fin n'existe pas : mieux vaut un graphe visible qu'un
+           graphe absent qui laisse croire que rien ne tourne. -->
+      <canvas id="graphe" class="graphe-v2" height="120"></canvas>
+      <div class="fils" id="etat-fils"></div>
+    </div>
+  </main>
+
+  <aside class="volet volet-droit">
+    <div class="inspecteur-tete">
+      <span id="tete-quoi">La fiche</span>
+      <span class="quoi pousse" id="tete-note">stuff porte</span>
+    </div>
+    <div id="corps-inspecteur"></div>
+  </aside>
+</div>
+
+<div id="message" role="status" aria-live="polite" class="message-v2"></div>
+
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>

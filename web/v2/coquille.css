@@ -1,0 +1,824 @@
+/* Coquille de v2 : la mise en page des trois volets.
+
+   Elle sort de la maquette `proto/studio.html` sans retouche de valeurs : ce
+   qui a ete juge a l'ecran doit arriver ici tel quel. Le socle porte les
+   jetons, la couleur et les controles ; ce fichier porte la structure.
+
+   Trois volets : ce que je veux, ce que j'ai, ce que cela donne. */
+
+/* ===========================================================================
+   Maquette v3 — « Studio »
+
+   Trois volets : ce que je veux a gauche, le stuff au centre, le detail a
+   droite. Ce que la v1 n'avait pas, et qui compte plus que la mise en page :
+
+   1. UN ECRAN VIDE. Un debutant devait comprendre huit concepts avant
+      d'obtenir quoi que ce soit. Ici il choisit sa classe, et c'est tout :
+      niveau, sorts d'attaque et planchers de PA et PM sont poses pour lui.
+
+   2. LE VOCABULAIRE DU JOUEUR. « Mode de recherche », « conditions »,
+      « figer la reference » sont des mots de l'outil. « Ce que je veux »,
+      « au minimum », « mon stuff actuel » sont des mots du joueur.
+
+   3. LA COURBE SOUS LE CURSEUR. Le curseur mixte et la courbe degats/survie
+      sont deux vues du meme reglage : elles se touchent, et l'une pilote
+      l'autre. Separees par deux metres d'ecran, aucune ne se comprenait.
+
+   4. L'INSPECTEUR OUVRE HUIT LIGNES, pas trente-neuf. Un mur de chiffres ne
+      se lit pas, il se subit. « Tout voir » donne le reste.
+
+   5. LA COMPARAISON N'EST PAS UNE PAGE. Cocher un stuff trouve l'ouvre, et
+      elle masque les lignes identiques : ce qui ne change pas n'aide pas a
+      choisir.
+
+   Le bouton « Chercher » reste : la recherche est longue, elle se lance quand
+   le joueur le decide. Il signale en revanche que les reglages ont bouge
+   depuis la derniere fois — l'oubli etait la vraie gene, pas le clic.
+   =========================================================================== */
+
+/* ---------------------------------------------------------- Ecran vide --- */
+
+.accueil { display: grid; place-items: center; min-height: calc(100vh - var(--barre-h)); padding: 40px 20px; }
+.accueil-carte { width: 100%; max-width: 640px; text-align: center; }
+.accueil h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+.accueil p { margin: 0 0 28px; font-size: 13px; color: var(--texte-2); }
+.classes { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+.classe {
+  display: grid; justify-items: center; gap: 6px;
+  padding: 12px 6px 10px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11.5px/1 var(--ui); cursor: pointer;
+}
+.classe:hover { background: var(--surface-2); border-color: var(--filet-clair); color: var(--texte); }
+.classe img { width: 34px; height: 34px; object-fit: contain; }
+.accueil .apres { margin: 26px 0 0; font-size: 11.5px; color: var(--texte-3); }
+
+/* ------------------------------------------------------------- Volets --- */
+
+.appli { display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; height: calc(100vh - var(--barre-h)); }
+.volet { overflow-y: auto; min-width: 0; }
+.volet-gauche { border-right: 1px solid var(--filet); background: var(--surface); }
+.volet-droit { border-left: 1px solid var(--filet); background: var(--surface); }
+.scene { padding: 20px 28px 40px; }
+
+/* ---------- Barre haute ---------- */
+
+.score-vif { display: flex; align-items: baseline; gap: 7px; }
+.score-vif b { font: 620 19px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.score-vif span { font-size: 11px; color: var(--texte-3); }
+
+/* Le bouton dit s'il y a quelque chose a relancer : oublier de relancer
+   apres un reglage est la gene la plus frequente, et elle est muette. */
+.btn.premier.rappel { box-shadow: 0 0 0 3px rgb(240 180 41 / .22); }
+.btn .puce { width: 6px; height: 6px; border-radius: 999px; background: var(--ambre); }
+
+.pulse { display: inline-flex; gap: 3px; align-items: center; }
+.pulse i { width: 3px; height: 12px; border-radius: 2px; background: var(--iris); animation: respire 1s ease-in-out infinite; }
+.pulse i:nth-child(2) { animation-delay: .12s } .pulse i:nth-child(3) { animation-delay: .24s }
+.pulse i:nth-child(4) { animation-delay: .36s }
+@keyframes respire { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .pulse i { animation: none; opacity: .7 } }
+
+/* ---------- Volet gauche ---------- */
+
+.section { padding: 14px 14px 16px; border-bottom: 1px solid var(--filet); }
+.section:last-child { border-bottom: 0; }
+.aide { margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--texte-3); }
+
+.consequence {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 10px; padding: 8px 10px;
+  background: var(--surface-2); border-radius: var(--r);
+}
+.consequence b { font: 560 14px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.consequence em { font-style: normal; font-size: 10px; color: var(--texte-3); margin-left: 4px; }
+
+.mini-courbe { width: 100%; height: 86px; display: block; margin-top: 10px; cursor: crosshair; }
+
+.limite {
+  display: grid; grid-template-columns: 6px minmax(0, 1fr) auto auto 16px;
+  align-items: center; gap: 8px;
+  height: 30px; padding: 0 6px; margin: 0 -6px; border-radius: var(--r);
+}
+.limite:hover { background: var(--surface-2); }
+.limite-nom { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.limite-val { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.limite-val em { font-style: normal; color: var(--texte-3); margin-right: 3px; }
+.limite-reel { font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; width: 44px; text-align: right; }
+.limite .oter { visibility: hidden; border: 0; background: none; color: var(--texte-3); cursor: pointer; padding: 0; }
+.limite:hover .oter { visibility: visible; }
+.limite .oter:hover { color: var(--rose); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 8px 0 4px; border-radius: 5px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  font-size: 11.5px; color: var(--texte); cursor: pointer;
+}
+.chip:hover { border-color: var(--filet-clair); }
+.chip img { width: 16px; height: 16px; border-radius: 3px; }
+.chip.ajout { border-style: dashed; color: var(--texte-2); padding: 0 9px; }
+
+.avoir { display: grid; gap: 6px; }
+.avoir-ligne {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; background: var(--surface-2); border-radius: var(--r); font-size: 12px;
+}
+.avoir-ligne b { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 560; }
+
+/* ---------- Centre ---------- */
+
+.plateau { display: grid; grid-template-columns: auto auto auto; gap: 10px; justify-content: center; align-items: start; }
+.rangee-slots { display: grid; gap: 6px; }
+.slot {
+  width: 46px; height: 46px; border-radius: 8px; padding: 0;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  display: grid; place-items: center; cursor: pointer; position: relative;
+}
+.slot:hover { border-color: var(--filet-clair); background: var(--surface-3); }
+.slot.choisi { border-color: var(--iris); box-shadow: 0 0 0 3px rgb(127 116 255 / .18); }
+.slot img { width: 34px; height: 34px; object-fit: contain; }
+.slot.vide::after { content: ""; width: 14px; height: 14px; border: 1px dashed var(--filet-clair); border-radius: 4px; }
+
+.avatar {
+  width: 196px; height: 206px; border-radius: var(--r-lg);
+  background: radial-gradient(120% 90% at 50% 15%, var(--surface-3), var(--surface) 70%);
+  border: 1px solid var(--filet);
+  display: grid; place-items: end center; overflow: hidden;
+}
+.avatar img { max-height: 188px; filter: drop-shadow(0 8px 16px rgb(0 0 0 / .45)); }
+.artefacts { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+
+.verdict { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 0 0; }
+.verdict > div { padding: 0 16px; border-left: 1px solid var(--filet); }
+.verdict > div:first-child { border-left: 0; padding-left: 0; }
+.verdict dt { font-size: 10px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase; color: var(--texte-3); margin-bottom: 4px; }
+.verdict dd { margin: 0; font: 600 30px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -1.2px; }
+.verdict small { display: block; margin-top: 7px; font-size: 11px; line-height: 1.4; color: var(--texte-3); }
+.verdict button.pourquoi {
+  margin-top: 7px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 11px/1.4 var(--ui); color: var(--texte-3); text-align: left;
+}
+.verdict button.pourquoi { border-bottom: 1px dotted var(--filet-clair); }
+.verdict button.pourquoi:hover { color: var(--iris); border-bottom-color: var(--iris); }
+
+/* Les pas suivants SONT l'interface, pas une visite guidee : ils disent en
+   mots de joueur ce qu'il reste a faire, et s'effacent une fois faits. */
+.pas-suivants { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 0; }
+.pas {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  color: var(--texte); font: 12px/1 var(--ui); cursor: pointer;
+}
+.pas:hover { background: var(--surface-2); border-color: var(--iris); }
+.pas em { font-style: normal; color: var(--texte-3); }
+
+.regle { height: 1px; background: var(--filet); margin: 26px 0 14px; }
+.tete-resultats { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+
+.trouve {
+  display: grid; grid-template-columns: 20px 70px 70px minmax(0, 1fr) auto;
+  align-items: center; gap: 12px;
+  padding: 9px 10px; margin: 0 -10px;
+  border-radius: var(--r); cursor: pointer; border-top: 1px solid transparent;
+}
+.trouve + .trouve { border-top-color: var(--filet); }
+.trouve:hover { background: var(--surface); }
+.trouve.choisi { background: var(--iris-fond); }
+.trouve input { width: 15px; height: 15px; accent-color: var(--iris); cursor: pointer; opacity: 0; margin: 0; }
+.trouve:hover input, .trouve input:checked, .trouve input:focus-visible { opacity: 1; }
+.trouve-mesure { font: 560 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.trouve-mesure span { display: block; margin-top: 3px; font: 400 10px/1 var(--ui); color: var(--texte-3); }
+.echange { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.echange img { width: 22px; height: 22px; border-radius: 4px; background: var(--surface-2); }
+.echange .fleche { color: var(--texte-3); font-size: 11px; margin: 0 1px; }
+.achats { font: 11px/1 var(--mono); color: var(--texte-2); white-space: nowrap; }
+
+/* ---------- Volet droit ---------- */
+
+.inspecteur-tete {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 14px;
+  background: var(--surface); border-bottom: 1px solid var(--filet);
+  font-size: 12px; font-weight: 560;
+}
+.inspecteur-tete .quoi { color: var(--texte-2); font-weight: 400; }
+.inspecteur-tete .retour { border: 0; background: none; color: var(--texte-3); cursor: pointer; padding: 0 2px 0 0; font-size: 15px; line-height: 1; }
+.inspecteur-tete .retour:hover { color: var(--texte); }
+
+.lignes { padding: 4px 14px 14px; }
+.ligne {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center; gap: 8px;
+  height: 25px; padding: 0 6px; margin: 0 -6px; border-radius: 4px; cursor: pointer;
+}
+.ligne:hover { background: var(--surface-2); }
+.ligne:hover .ligne-geste { opacity: 1; }
+.ligne img { width: 14px; height: 14px; object-fit: contain; }
+.ligne-nom { font-size: 12px; color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ligne-val { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte); }
+.ligne-val.zero { color: var(--texte-3); }
+.ligne-val.neg { color: var(--rose); }
+.ligne-val.pos { color: var(--jade); }
+.ligne-geste { opacity: 0; font-size: 10px; color: var(--iris); white-space: nowrap; }
+.groupe { padding: 14px 14px 2px; }
+
+/* Un titre de famille coiffe une dizaine de lignes : il porte un filet et
+   respire plus qu'un simple separateur de trois lignes. */
+.chapeau.famille {
+  padding: 16px 6px 6px; margin: 6px -6px 0;
+  border-top: 1px solid var(--filet); color: var(--texte-2);
+}
+.lignes > .chapeau.famille:first-child { border-top: 0; padding-top: 4px; margin-top: 0; }
+.sans-icone .ligne { grid-template-columns: minmax(0, 1fr) auto; }
+
+.fiche-piece { padding: 14px; }
+.fiche-piece header { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 14px; }
+.fiche-piece header img { width: 46px; height: 46px; border-radius: 8px; background: var(--surface-2); }
+.fiche-piece h3 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.fiche-piece .meta { font-size: 11px; color: var(--texte-3); }
+.gestes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 16px; }
+
+/* ---------- La comparaison ---------- */
+
+.voile {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgb(6 8 13 / .66); backdrop-filter: blur(3px);
+  display: grid; place-items: center; padding: 30px;
+}
+.voile[hidden] { display: none; }
+.comparaison {
+  width: min(1240px, 100%); max-height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--fond); border: 1px solid var(--filet-clair); border-radius: var(--r-lg);
+  box-shadow: 0 24px 64px rgb(0 0 0 / .6); overflow: hidden;
+}
+.comparaison-tete { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--filet); }
+.comparaison-tete h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.comparaison-corps { overflow: auto; }
+
+table { border-collapse: separate; border-spacing: 0; width: 100%; }
+th, td { text-align: right; padding: 0 14px; height: 28px; }
+.mesure {
+  position: sticky; left: 0; z-index: 2; background: var(--fond);
+  text-align: left; font-size: 12px; font-weight: 400; color: var(--texte-2);
+  border-right: 1px solid var(--filet); white-space: nowrap; min-width: 190px;
+}
+tbody tr:hover td { background: var(--surface); }
+tbody tr:hover .mesure { color: var(--texte); background: var(--surface); }
+thead th {
+  position: sticky; top: 0; z-index: 3; background: var(--fond);
+  border-bottom: 1px solid var(--filet); padding: 12px 14px 10px; vertical-align: top; min-width: 160px; height: auto;
+}
+thead th.mesure { z-index: 4; }
+thead th.porte, td.porte { background: var(--surface); }
+tbody tr:hover td.porte { background: var(--surface-2); }
+.tete-nom { display: flex; align-items: center; gap: 7px; justify-content: flex-end; font-size: 11px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase; color: var(--texte-3); }
+.tete-nom .marqueur { width: 6px; height: 6px; border-radius: 999px; background: var(--jade); }
+.tete-score { margin: 7px 0 8px; font: 600 21px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.8px; }
+.tete-pieces { display: flex; gap: 2px; justify-content: flex-end; margin-bottom: 9px; }
+.tete-pieces img { width: 19px; height: 19px; border-radius: 3px; background: var(--surface-2); }
+.tete-pieces img.neuf { box-shadow: 0 0 0 1.5px var(--ambre); }
+td { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; }
+tr.titre th, tr.titre td {
+  height: 30px; padding-top: 16px;
+  font: 640 10px/1 var(--ui); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--texte-3); border-top: 1px solid var(--filet); background: var(--fond);
+}
+.ecart-pos { color: var(--jade); } .ecart-neg { color: var(--rose); } .ecart-nul { color: var(--texte-3); }
+.masquees { padding: 10px 16px; font-size: 11.5px; color: var(--texte-3); border-top: 1px solid var(--filet); }
+.masquees button { border: 0; background: none; color: var(--iris); cursor: pointer; font: inherit; padding: 0; }
+
+/* Une option qui change ce qu'un nombre VEUT DIRE se lit a cote de ce
+   nombre. « Arme comprise » et « melee » definissent les degats ; le coup de
+   reference et le plafond definissent les pdv effectifs. Les seize autres
+   options partent dans les reglages : elles ne changent pas la lecture. */
+.options-mesure { display: grid; gap: 5px; margin-top: 9px; }
+.option {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--texte-2); cursor: pointer;
+}
+.option input { width: 13px; height: 13px; accent-color: var(--iris); margin: 0; cursor: pointer; }
+.option:hover { color: var(--texte); }
+.option-val {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 11px; color: var(--texte-3);
+}
+.option-val input {
+  width: 46px; height: 20px; padding: 0 5px;
+  font: 11px/1 var(--mono); text-align: right;
+}
+.radios { display: inline-flex; gap: 10px; }
+
+/* Le segmente grise ses trois choix tant qu'aucun sort n'est pose : sans
+   degats a compter, aucun des trois ne veut dire quoi que ce soit. */
+.segmente.inactif { opacity: .45; }
+.segmente.inactif button { cursor: not-allowed; }
+
+.vide-mesure { color: var(--texte-3); }
+.appel {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 11px/1.4 var(--ui); color: var(--iris);
+  border-bottom: 1px solid var(--iris-sourd);
+}
+.appel:hover { border-bottom-color: var(--iris); }
+
+.pas.premier-pas { border-color: var(--iris); background: var(--iris-fond); }
+
+/* La feuille des points : les curseurs, les parchemins et les limites ont
+   besoin de place. L'inspecteur ne la leur donnait pas. */
+.feuille { width: min(560px, 100%); }
+.points-ligne {
+  display: grid; grid-template-columns: 16px 88px minmax(0, 1fr) 54px 42px 58px;
+  align-items: center; gap: 10px;
+  height: 34px; padding: 0 8px; margin: 0 -8px; border-radius: var(--r);
+}
+.points-ligne:hover { background: var(--surface); }
+.points-ligne img { width: 14px; height: 14px; }
+.points-ligne > span:nth-child(2) { font-size: 12px; }
+.points-ligne input[type="range"] { height: 14px; }
+.points-ligne input[type="range"]::-webkit-slider-runnable-track { background: var(--surface-3); }
+.points-bilan {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 10px 14px; background: var(--surface); border-radius: var(--r); margin-bottom: 12px;
+}
+.points-bilan b { font: 600 18px/1 var(--mono); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 1500px) { .appli { grid-template-columns: 276px minmax(0, 1fr) 312px; } }
+@media (max-width: 1240px) {
+  .appli { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .volet-gauche, .volet-droit { border: 0; border-top: 1px solid var(--filet); }
+}
+
+/* ------------------------------------------------------- Propre a v2 --- */
+
+/* La maquette dessinait un plateau fige. Ici les cases viennent de
+   `renderCases`, donc elles ont besoin de leur propre habillage : le socle
+   de v1 n'est pas charge. */
+
+.plateau { grid-template-columns: auto auto auto; }
+.rangee-artefacts {
+  grid-column: 1 / -1;
+  display: flex; gap: 8px; justify-content: center; margin-top: 10px;
+}
+.colonne-cases { display: flex; flex-direction: column; gap: 8px; }
+.avatar-v2 {
+  width: 190px; height: 250px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r-lg);
+}
+.avatar-v2 img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.case-slot {
+  width: 46px; height: 46px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  border-radius: var(--r); cursor: pointer; color: var(--texte-3);
+}
+.case-slot:hover { border-color: var(--filet-clair); }
+.case-slot img { width: 38px; height: 38px; object-fit: contain; }
+/* La couleur ne porte jamais seule : le lisere double la pastille. */
+.case-slot.vide { cursor: default; border-style: dashed; }
+.case-slot.pose { border-color: var(--ambre); }
+.case-slot.verrou { border-color: var(--iris); }
+
+.limite {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 5px 0; border-bottom: 1px solid var(--filet);
+  font-size: 12px; color: var(--texte-2);
+}
+.limite b { color: var(--texte); }
+
+.graphe-v2 { width: 100%; margin-top: 18px; display: block; }
+.fils { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fil { font: 11px/1 var(--mono); color: var(--texte-3); }
+
+/* Le message se pose au-dessus de tout : une erreur de chargement doit se
+   lire meme quand l'ecran vide occupe la page entiere. */
+.message-v2 {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  z-index: 60; padding: 8px 14px; border-radius: 999px;
+  background: var(--surface-3); border: 1px solid var(--filet-clair);
+  font-size: 12px; color: var(--texte-2); max-width: 70vw;
+}
+.message-v2:empty { display: none; }
+.message-v2.erreur { border-color: var(--rose); color: var(--rose); }
+
+/* La fiche porte une icone par ligne : la grille de `.ligne` reserve sa
+   premiere colonne pour elle. Sans image, le libelle y tomberait et se
+   couperait a une lettre. */
+.ligne-icone { width: 16px; height: 16px; object-fit: contain; }
+.ligne-icone[src=""] { visibility: hidden; }
+
+/* La courbe prend la place qu'on lui donne : sans hauteur bornee, elle
+   repousse les stuffs trouves hors de l'ecran. */
+.graphe-v2 { max-height: 130px; }
+
+/* Un minimum montre sa valeur observee et sa cible. Le point double la
+   couleur : un minimum en defaut ne doit pas dependre du seul rouge. */
+.limite { gap: 8px; }
+.limite-nom { flex: 1; min-width: 0; }
+.limite.defaut b { color: var(--rose); }
+
+/* ============================================ Fiche d'une piece et bulle ===
+
+   `item-panel.mjs` et `hover-card.mjs` se reutilisent tels quels, mais ils
+   posent leur balisage en comptant sur `styles.css`, que v2 ne charge pas :
+   sans ces regles, la fiche tombe en bas de page, sans cadre ni couleur.
+
+   Les valeurs ne sont pas copiees de v1 : elles sont reecrites avec les
+   jetons de v2. Les deux ecrans gardent ainsi chacun leur habillage, et une
+   retouche de l'un ne deteint pas sur l'autre. */
+
+.fiche-fond {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgb(6 8 13 / .66);
+  backdrop-filter: blur(2px);
+}
+
+.fiche {
+  width: min(430px, 100%); max-height: 86vh; overflow-y: auto;
+  padding: 16px;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px rgb(0 0 0 / .6);
+}
+
+.fiche-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.fiche-tete img { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
+.fiche-tete > div { flex: 1; min-width: 0; }
+.fiche-nom { font-size: 14px; font-weight: 640; color: var(--texte); }
+.fiche-sous { font-size: 11px; color: var(--texte-3); }
+
+.fiche-condition, .fiche-note, .fiche-arme, .fiche-passif {
+  margin: 0 0 10px; padding: 8px 10px;
+  background: var(--surface-2); border-radius: var(--r);
+  font-size: 11.5px; color: var(--texte-2);
+}
+.fiche-condition .cle { color: var(--ambre); margin-right: 6px; }
+.fiche-condition code { font-family: var(--mono); color: var(--texte); word-break: break-all; }
+.titre-arme, .titre-arme-calc, .titre-passif {
+  font-size: 10px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--texte-3); margin-bottom: 5px;
+}
+
+.fiche-stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0 0 14px; }
+.fiche-stats dt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texte-2); }
+.fiche-stats dt img { width: 15px; height: 15px; object-fit: contain; }
+.fiche-stats dd {
+  margin: 0; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px;
+}
+.fiche-stats dd.pos { color: var(--jade); }
+.fiche-stats dd.neg { color: var(--rose); }
+
+.fiche-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.fiche-actions button {
+  flex: 1 1 auto; min-height: 28px; padding: 0 12px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
+}
+.fiche-actions button:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.fiche-actions button.primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.fiche-actions button.danger { color: var(--rose); border-color: var(--iris-sourd); }
+.fiche-actions button.possede { color: var(--jade); border-color: var(--jade); }
+/* Le bouton « × » de la tete n'est pas une action : il ne prend pas de place. */
+.fiche-tete .mini {
+  flex: none; width: 24px; height: 24px; padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-3); font: 13px/1 var(--ui);
+}
+.fiche .note { font-size: 11.5px; color: var(--texte-3); margin: 0 0 12px; }
+
+/* L'infobulle suit la souris : elle ne doit jamais attraper le clic, sans
+   quoi elle se placerait entre le curseur et la piece qu'elle decrit. */
+.bulle {
+  position: fixed; z-index: 90; pointer-events: none;
+  width: 260px; padding: 10px 12px;
+  background: var(--surface-2); border: 1px solid var(--filet-clair);
+  border-radius: var(--r); box-shadow: 0 12px 34px rgb(0 0 0 / .55);
+  font-size: 11.5px; color: var(--texte-2);
+}
+.bulle-tete { display: flex; flex-direction: column; margin-bottom: 7px; }
+.bulle-nom { font-size: 12.5px; font-weight: 620; color: var(--texte); }
+.bulle-sous { font-size: 10.5px; color: var(--texte-3); }
+.bulle-stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin: 0; }
+.bulle-stats dt { font-size: 11px; }
+.bulle-stats dd {
+  margin: 0; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
+}
+.bulle-stats dd.pos { color: var(--jade); }
+.bulle-stats dd.neg { color: var(--rose); }
+.bulle-condition { color: var(--ambre); margin-bottom: 6px; }
+.bulle-reste, .bulle-vide, .bulle-aide { color: var(--texte-3); font-size: 10.5px; margin-top: 6px; }
+.bulle-arme, .bulle-arme-calc, .bulle-passif { margin-top: 7px; }
+.bulle-arme-moyenne, .bulle-arme-cout { color: var(--texte); }
+
+/* ===================================== Overlay du choix des sorts ===
+
+   Meme situation que la fiche : `spell-picker.mjs` se reutilise tel quel,
+   mais son habillage vit dans `styles.css`. Les regles sont reecrites avec
+   les jetons de v2. Voir ETAT.md, « la dette d'habillage ». */
+
+.picker-fond {
+  position: fixed; inset: 0; z-index: 85;
+  display: grid; place-items: center; padding: 16px;
+  background: rgb(6 8 13 / .66);
+}
+.picker {
+  width: min(880px, 100%); max-height: 86vh;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 20px 56px rgb(0 0 0 / .6);
+}
+.picker-tete {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 16px 10px; border-bottom: 1px solid var(--filet);
+}
+.picker-tete > div:first-child { flex: 1; }
+.picker-titre { font-size: 15px; font-weight: 640; color: var(--texte); }
+.picker-sous { font-size: 11px; color: var(--texte-3); }
+.picker-tete .mini, .picker-filtres .mini {
+  height: 24px; padding: 0 9px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.picker-tete .mini:hover, .picker-filtres .mini:hover { color: var(--texte); }
+.picker-filtres {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 16px; border-bottom: 1px solid var(--filet);
+}
+.picker-filtres input[type="search"] { flex: 1; min-width: 0; }
+.picker-elements { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.picker-elements .espace { flex: 1; }
+.picker-liste {
+  overflow-y: auto; padding: 10px 16px 14px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+
+.couple-sorts {
+  display: grid; gap: 4px; padding: 5px; border-radius: var(--r); align-items: stretch;
+  background: var(--fond); border: 1px solid var(--filet);
+}
+.couple-sorts.duo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.couple-sorts .carte-sort { min-width: 0; }
+.lien-couple {
+  display: grid; place-items: center; padding: 0 2px;
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--texte-3);
+}
+@media (max-width: 700px) {
+  .couple-sorts.duo { grid-template-columns: minmax(0, 1fr); }
+  .couple-sorts.duo .lien-couple { padding: 2px 0; }
+}
+
+.carte-sort {
+  padding: 8px 10px; border-radius: 7px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+/* Un sort deja pris porte le lisere de l'accent en plus de son fond : la
+   couleur seule ne dit pas assez qu'il est retenu. */
+.carte-sort.prise { border-color: var(--iris); background: var(--iris-fond); }
+.tete-sort { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tete-sort img { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; flex: 0 0 26px; }
+.tete-sort .ident { flex: 1; min-width: 0; }
+.tete-sort .nom { font-size: 13px; font-weight: 620; color: var(--texte); }
+.tete-sort .meta { font-size: 10px; color: var(--texte-3); font-family: var(--mono); }
+
+.variantes { display: flex; flex-wrap: wrap; gap: 4px; }
+.variante {
+  display: flex; align-items: baseline; gap: 6px; cursor: pointer;
+  padding: 4px 9px; font-size: 11px; border-radius: 5px;
+  background: var(--surface-3); border: 1px solid var(--filet);
+  border-left: 3px solid var(--teinte, var(--iris));
+  color: var(--texte-2);
+}
+.variante:hover { border-color: var(--filet-clair); color: var(--texte); }
+.variante .niv { color: var(--texte-3); font: 400 10px var(--mono); }
+.variante .plage { font: 620 11px var(--mono); color: var(--texte); }
+.variante .cc { font: 400 10px var(--mono); color: var(--ambre); }
+.picker .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* Les sorts retenus, dans le volet de gauche. */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 5px 3px 9px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  font-size: 11.5px; color: var(--texte-2);
+}
+.chip button {
+  width: 17px; height: 17px; padding: 0; cursor: pointer;
+  background: transparent; border: 0; border-radius: 999px;
+  color: var(--texte-3); font: 12px/1 var(--ui);
+}
+.chip button:hover { background: var(--surface-3); color: var(--rose); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* =========================================== Les stuffs trouves ===
+
+   Une ligne se lit comme une DIFFERENCE face au stuff porte : ce qui entre,
+   ce qui sort, ce que l'echange rapporte. */
+
+.candidats { display: grid; gap: 6px; }
+.candidat {
+  padding: 7px 9px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.candidat.porte { border-color: var(--iris); }
+.candidat-tete { display: flex; align-items: center; gap: 8px; }
+.candidat-score {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: 620; color: var(--jade);
+}
+.candidat-ecart { font-family: var(--mono); font-size: 11px; }
+.candidat-ecart.pos { color: var(--jade); }
+.candidat-ecart.neg { color: var(--ambre); }
+.candidat-changements { flex: 1; font-size: 10px; color: var(--texte-3); }
+.candidat-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.candidat-legende {
+  font-size: 8px; text-transform: uppercase; letter-spacing: .4px; color: var(--texte-3);
+}
+/* Le lisere dit le sens de l'echange ; l'opacite le double sur les sortantes,
+   pour qui ne separe pas le vert du gris. */
+.piece-candidat { width: 26px; height: 26px; border-radius: 4px; border: 1px solid transparent; }
+.piece-candidat.entrante { border-color: var(--jade); }
+.piece-candidat.sortante { border-color: var(--filet); opacity: .55; }
+.candidat-marque {
+  padding: 0 5px; border-radius: 999px; white-space: nowrap;
+  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--jade); border: 1px solid var(--jade);
+}
+.candidat-marque.defaut { color: var(--rose); border-color: var(--rose); }
+.candidat .mini {
+  height: 22px; padding: 0 8px; cursor: pointer;
+  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.candidat .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+#trouves .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* Le mode « caracteristiques » n'est pas un des trois segments : c'est l'etat
+   ou l'outil se met faute de degats a compter. Tant qu'il dure, aucun segment
+   n'est enfonce, et le groupe s'efface au lieu de paraitre casse. */
+.segmente.sans-choix button { opacity: .5; }
+
+/* Des reglages ont bouge depuis la derniere recherche : le bouton le dit.
+   La pastille double le changement de mot, qui passe seul inapercu dans une
+   barre ou rien d'autre ne bouge. */
+.btn.rappel { background: var(--ambre); border-color: var(--ambre); color: #241a02; }
+.btn.rappel:hover { background: #f5c04a; border-color: #f5c04a; }
+.btn .puce {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: currentColor; flex: none;
+}
+
+/* ============================================ Feuille du personnage ===
+
+   Une feuille, pas un volet : trois reglages qui ne bougent presque jamais
+   ne meritent pas de place permanente, et ne meritent pas d'etre
+   introuvables. */
+
+.feuille-fond {
+  position: fixed; inset: 0; z-index: 84;
+  display: grid; place-items: center; padding: 20px;
+  background: rgb(6 8 13 / .66);
+}
+.feuille {
+  width: min(400px, 100%); max-height: 86vh; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 20px 56px rgb(0 0 0 / .6);
+}
+.feuille-tete {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid var(--filet);
+}
+.feuille-tete h2 { margin: 0; font-size: 14px; font-weight: 640; color: var(--texte); }
+.feuille-corps { padding: 16px; }
+/* Le portrait est un apercu, pas une illustration : il se borne en hauteur.
+   Sans `overflow`, l'avatar sort du cadre a sa taille d'origine et recouvre
+   les reglages qui le suivent. */
+.portrait {
+  display: grid; place-items: center; height: 160px; overflow: hidden;
+  margin-bottom: 14px;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r-lg);
+}
+.portrait img { max-height: 148px; max-width: 100%; object-fit: contain; }
+.rangee-reglage {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--filet);
+  font-size: 12.5px; color: var(--texte-2);
+}
+.rangee-reglage select { min-width: 150px; }
+.rangee-reglage input[type="number"] { width: 78px; }
+.rangee-reglage .segmente button { min-width: 34px; }
+
+/* Chaque chiffre de la fiche est une porte : il se clique pour en garder au
+   moins autant. La ligne devient donc un bouton, sans en avoir l'air. */
+.ligne {
+  width: 100%; text-align: left; cursor: pointer; font: inherit;
+  background: transparent; border: 0; border-radius: var(--r);
+}
+.ligne:hover:not(:disabled) { background: var(--surface-2); }
+.ligne:disabled { cursor: default; }
+.ligne.exigee .ligne-nom { color: var(--texte); }
+
+/* Le « × » d'un minimum ne se voit qu'au survol de sa ligne : quatre croix
+   permanentes tirent l'oeil plus que les valeurs qu'elles accompagnent. */
+.limite .oter {
+  width: 18px; height: 18px; padding: 0; flex: none; cursor: pointer;
+  background: transparent; border: 0; border-radius: 999px;
+  color: var(--texte-3); font: 12px/1 var(--ui); opacity: 0;
+}
+.limite:hover .oter, .limite .oter:focus-visible { opacity: 1; }
+.limite .oter:hover { background: var(--surface-3); color: var(--rose); }
+
+/* ================================================ La palette de pieces ===
+
+   Une palette, pas une colonne : chercher une piece est ponctuel. Elle prend
+   toute la place le temps du choix, et rend l'ecran ensuite. */
+
+.palette-fond {
+  position: fixed; inset: 0; z-index: 86;
+  display: grid; place-items: start center; padding: 56px 20px 20px;
+  background: rgb(6 8 13 / .66);
+}
+.palette {
+  width: min(880px, 100%); max-height: calc(100vh - 92px);
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 24px 64px rgb(0 0 0 / .62);
+}
+.palette-tete {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--filet);
+}
+/* Le champ est la premiere chose que la palette montre : il occupe la
+   largeur, parce que c'est par lui qu'on arrive presque toujours. */
+.palette-tete input[type="search"] { flex: 1; min-width: 0; height: 30px; }
+
+.palette-onglets {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  padding: 10px 14px 0;
+}
+.palette-onglets button {
+  padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  color: var(--texte-3); font: 11px/1.4 var(--ui);
+}
+.palette-onglets button:hover { color: var(--texte-2); border-color: var(--filet-clair); }
+.palette-onglets button[aria-pressed="true"] {
+  background: var(--iris-fond); border-color: var(--iris-sourd); color: var(--texte);
+}
+
+.palette-filtres {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--filet);
+}
+.palette-filtres input[type="number"] { width: 78px; }
+.palette-filtres .option {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--texte-2); cursor: pointer;
+}
+
+.palette-grille {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 4px; padding: 12px 14px;
+  /* Les rangees s'etirent par defaut et `aspect-ratio` perd : une case
+     devient un rectangle haut, et l'icone flotte au milieu du vide. */
+  grid-auto-rows: min-content; align-items: start;
+}
+.case-item {
+  aspect-ratio: 1; display: grid; place-items: center; position: relative;
+  padding: 0; overflow: hidden; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: 5px;
+}
+.case-item:hover { border-color: var(--iris); background: var(--surface-3); }
+.case-item img { width: 100%; height: 100%; object-fit: contain; }
+/* Une piece interdite porte la croix EN PLUS du gris : la couleur seule ne
+   dirait rien a qui ne separe pas les gris. */
+.case-item.bannie { opacity: .35; filter: grayscale(.8); }
+.case-item.bannie::after {
+  content: '✕'; position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--rose); font-size: 15px; font-weight: 700;
+}
+.case-item.possedee::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  border: 1px solid var(--jade); border-radius: 5px;
+}
+
+.palette-pied {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 9px 14px; border-top: 1px solid var(--filet);
+}
+.palette-pied .aide:first-child { flex: none; color: var(--texte-2); }
+.palette-pied .aide { margin: 0; }
+
+/* Le raccourci se lit a cote du bouton qui l'utilise, jamais ailleurs. */
+.raccourci { margin-left: 8px; color: var(--texte-3); font-family: var(--mono); font-size: 11px; }

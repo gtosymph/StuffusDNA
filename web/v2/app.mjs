@@ -1,0 +1,512 @@
+/**
+ * Orchestration de v2.
+ *
+ * v2 est une seconde coquille, pas un second outil. Le moteur, l'etat, la
+ * recherche et les panneaux viennent de `src/` et de `web/` sans copie : ce
+ * module ne fait que poser une autre mise en page par-dessus, et se branche
+ * aux modules de v1 par le pont. Tant que les deux ecrans vivent cote a cote,
+ * une correction dans le moteur profite aux deux le meme jour.
+ *
+ * Ce qui lui appartient en propre : l'ecran vide, les trois volets, et l'ordre
+ * dans lequel un debutant rencontre les concepts. Le reste est emprunte.
+ */
+import { loadCatalog } from '../catalog-web.mjs';
+import { loadSpells } from '../spells-data.mjs';
+import { avatarDeClasse, nomDeClasse } from '../classes.mjs';
+import { el, renderCandidats, renderCases } from '../render.mjs';
+import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
+import { etatInitial } from '../reglages.mjs';
+import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
+import { buildCourant, scoreAffiche, sortsCalcules } from '../objectif.mjs';
+import { appliquerBuild } from '../equipement.mjs';
+import { enrichirSorts } from '../sorts-migration.mjs';
+import { creerRecherche } from '../recherche.mjs';
+import { ouvrirFiche } from '../item-panel.mjs';
+import { iconeStat } from '../icons.mjs';
+import { SEARCH_MODES } from '../../src/solver/score.mjs';
+import { STAT_LABELS } from '../../src/data/stats.mjs';
+import { conditionValue } from '../../src/solver/condition-value.mjs';
+
+import { creerGestesCatalogue } from '../gestes-catalogue.mjs';
+import { creerGestesSorts } from '../gestes-sorts.mjs';
+import { creerGestesReference } from '../gestes-reference.mjs';
+
+import { creerPont } from './pont.mjs';
+import { renderClasses } from './accueil.mjs';
+import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
+import { reglagesChanges, signatureRecherche } from './peremption.mjs';
+import { ouvrirIdentite } from './identite.mjs';
+import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
+
+const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
+
+const nombre = (n) => Math.round(n).toLocaleString('fr-FR');
+
+let etat = etatInitial();
+let catalogue = null;
+let classesSorts = null;
+
+/** Vrai tant que le joueur n'a pas choisi sa classe : l'ecran vide tient. */
+let vierge = true;
+
+/** Vrai quand « tout voir » remplace l'essentiel dans le volet d'inspection. */
+let toutVoir = false;
+
+/**
+ * Reglages qui valaient au dernier lancement, ou null si aucun n'a eu lieu.
+ *
+ * Il sert a dire que ce qui est a l'ecran repond a une question precedente.
+ * Oublier de relancer apres un reglage etait la vraie gene, pas le clic.
+ */
+let signatureLancement = null;
+
+const lireEtat = () => etat;
+
+function setEtat(patch) {
+  etat = { ...etat, ...patch };
+  sauverEtat(etat);
+  render();
+}
+
+function message(texte, type = 'info') {
+  const zone = $('message');
+  zone.textContent = texte ?? '';
+  zone.className = `message-v2 ${texte ? type : ''}`.trim();
+}
+
+/* --------------------------------------------------------------- Recherche --- */
+
+const recherche = creerRecherche({
+  $, lireEtat, setEtat, message,
+  appliquer: (resultat) => setEtat(appliquerBuild(etat, resultat, catalogue.itemById)),
+  // v2 ne range pas encore les essais : la phase suivante rebranche les
+  // simulations. Ne rien faire vaut mieux que ranger dans un panneau absent.
+  garderSimulation: () => {},
+});
+
+/* ------------------------------------------------------------------ Modes --- */
+
+/**
+ * Les trois objectifs proposes.
+ *
+ * « Caracteristiques » n'y figure pas : ce n'est plus un choix dans une liste,
+ * c'est l'etat dans lequel l'outil se met quand il n'a aucun degat a compter.
+ * Le joueur ne le choisit jamais, il le constate.
+ */
+const OBJECTIFS = Object.freeze([
+  [SEARCH_MODES.DAMAGE, 'Frapper fort'],
+  [SEARCH_MODES.ENDURANCE, 'Encaisser'],
+  [SEARCH_MODES.MIXTE, 'Les deux'],
+]);
+
+/** Vrai quand aucun sort n'est pose : tout ce qui parle de degats se tait. */
+const sansSorts = () => sortsCalcules(etat).length === 0;
+
+/* ----------------------------------------------------------------- Rendu --- */
+
+function render() {
+  if (vierge) return;
+
+  const build = buildCourant(etat, catalogue);
+  const stats = build?.stats ?? {};
+  const bilan = build ? scoreAffiche(etat, stats) : null;
+  const degats = sansSorts() ? null : (Number(bilan?.damage) || 0);
+
+  renderIdentite();
+  renderPlateau(stats);
+  renderVerdict(stats, degats);
+  renderObjectif();
+  renderSorts();
+  renderAvoir(stats, degats);
+  renderTrouves(bilan);
+  renderInspecteur(stats, degats);
+  renderScore(bilan);
+  renderFraicheur();
+}
+
+function renderIdentite() {
+  $('identite-img').src = avatarDeClasse(etat.classe, etat.sexe);
+  $('identite-nom').textContent = nomDeClasse(etat.classe);
+  $('identite-detail').textContent = `${etat.niveau} · ${etat.sexe ? '♀' : '♂'}`;
+}
+
+function renderPlateau(stats) {
+  const colonne = (id, cles) => {
+    const noeud = $(id);
+    renderCases(noeud, cles, etat.equipped, etat.posees,
+      (cle, item) => ouvrirFicheDe(cle, item), etat.verrous, stats);
+    return noeud;
+  };
+
+  const plateau = $('plateau');
+  if (!plateau.firstChild) {
+    plateau.replaceChildren(
+      el('div', { class: 'colonne-cases', id: 'cases-gauche' }),
+      el('div', { class: 'avatar-v2' }, el('img', { id: 'avatar-image', alt: '' })),
+      el('div', { class: 'colonne-cases', id: 'cases-droite' }),
+      el('div', { class: 'rangee-artefacts', id: 'cases-artefacts' }));
+  }
+  colonne('cases-gauche', SLOTS_GAUCHE);
+  colonne('cases-droite', SLOTS_DROITE);
+  colonne('cases-artefacts', SLOTS_ARTEFACTS);
+  $('avatar-image').src = avatarDeClasse(etat.classe, etat.sexe);
+}
+
+function renderVerdict(stats, degats) {
+  const vDegats = $('v-degats');
+  vDegats.textContent = degats === null ? '—' : nombre(degats);
+  vDegats.classList.toggle('vide-mesure', degats === null);
+  $('degats-sans-sorts').hidden = degats !== null;
+  $('degats-avec-sorts').hidden = degats === null;
+  if (degats !== null) {
+    $('degats-phrase').textContent = `Vos sorts envoient ${nombre(degats)} degats sur un tour.`;
+  }
+
+  const pdv = Number(stats.pdvEffectifs) || 0;
+  $('v-pdv').textContent = nombre(pdv);
+  $('pdv-phrase').textContent = `Vous encaissez ${nombre(pdv)} degats bruts avant de tomber.`;
+
+  // « A acheter » n'a de sens que face a un stuff de reference : sans lui, tout
+  // est un achat, et le chiffre ne dit rien.
+  const aAcheter = etat.reference
+    ? [...etat.equipped.values()].filter((item) => !etat.reference.itemIds.includes(item.id)
+        && !etat.possedees.has(item.id)).length
+    : null;
+  $('v-achats').textContent = aAcheter === null ? '—' : nombre(aAcheter);
+  $('achats-phrase').textContent = aAcheter === null
+    ? 'Dites-moi quel stuff vous portez pour compter les achats.'
+    : 'face a votre stuff actuel';
+}
+
+function renderObjectif() {
+  const muet = sansSorts();
+  $('objectif').classList.toggle('inactif', muet);
+  $('objectif').classList.toggle('sans-choix', etat.mode === SEARCH_MODES.STATS);
+  $('objectif').replaceChildren(...OBJECTIFS.map(([cle, texte]) => el('button', {
+    type: 'button', style: 'flex:1', 'data-mode': cle,
+    'aria-pressed': String(etat.mode === cle),
+    ...(muet ? { disabled: true } : {}),
+    onClick: () => setEtat({ mode: cle }),
+  }, texte)));
+
+  $('aide-objectif').textContent = muet
+    ? 'Sans sort, la recherche monte vos caracteristiques. Choisissez des sorts '
+      + 'pour arbitrer entre frapper et encaisser.'
+    : 'La recherche fait monter cette mesure et tient les minimums demandes.';
+}
+
+function renderSorts() {
+  const sorts = sortsCalcules(etat);
+  $('compte-sorts').textContent = String(sorts.length);
+  $('chips-sorts').replaceChildren(...etat.sorts.map((sort) => el('span', { class: 'chip' },
+    sort.name ?? sort.fr ?? String(sort.id),
+    el('button', {
+      type: 'button', text: '×', title: `Enlever ${sort.name ?? sort.fr ?? 'ce sort'}`,
+      onClick: () => setEtat({ sorts: etat.sorts.filter((s) => s.id !== sort.id) }),
+    }))));
+  $('aide-sorts').replaceChildren(sorts.length
+    ? el('button', { class: 'btn mini fantome', type: 'button',
+        style: 'padding-left:0', text: 'Changer mes sorts', onClick: gestesSorts.ouvrir })
+    : document.createTextNode('Aucun sort. L\'outil n\'en pose aucun d\'office : '
+      + 'un chiffre de degats faux vaut moins que pas de chiffre.'));
+}
+
+function renderAvoir(stats, degats) {
+  const ligne = (texte, valeur, actions = {}) => el(actions.onClick ? 'button' : 'div', {
+    class: 'avoir-ligne', ...(actions.onClick ? { type: 'button', onClick: actions.onClick } : {}),
+    ...(actions.title ? { title: actions.title } : {}),
+  },
+    el('span', { text: texte }), el('span', {}, el('b', { text: String(valeur) })));
+
+  const aUneReference = Boolean(etat.reference);
+  $('avoir').replaceChildren(
+    ligne('Mon stuff actuel', aUneReference ? etat.reference.itemIds.length : '—', {
+      onClick: () => (aUneReference
+        ? gestesReference.oublierReference()
+        : gestesReference.figerReference()),
+      title: aUneReference
+        ? 'Oublier ce stuff : le solveur cherchera sans compter les achats.'
+        : 'Figer le stuff porte comme celui que vous avez en jeu. Les pieces '
+          + 'que le solveur propose se comptent alors en achats.',
+    }),
+    ligne('Pieces en banque', etat.possedees.size,
+      { onClick: () => basculerPalette(liensPalette),
+        title: 'Marquer les pieces que vous avez deja.' }),
+    ligne('Pieces interdites', etat.bannis.size,
+      { onClick: () => basculerPalette(liensPalette),
+        title: 'Une piece interdite ne sera plus proposee.' }));
+
+  $('ouvrir-palette').replaceChildren('Toutes les pieces',
+    el('span', { class: 'raccourci', text: raccourciPalette() }));
+
+  // Un minimum se lit a cote de la valeur que le MOTEUR lui compare, pas de
+  // la statistique qui porte le meme nom. Une condition « Vitalite » porte sur
+  // les points de vie : montrer la caracteristique donnait un minimum tenu et
+  // pourtant rouge, et personne ne pouvait comprendre pourquoi.
+  $('compte-limites').textContent = String(etat.conditions.length);
+  $('limites').replaceChildren(...etat.conditions.map((c) => {
+    const valeur = conditionValue(c.stat, stats, degats ?? 0);
+    const tenu = valeur >= c.target;
+    return el('div', { class: `limite ${tenu ? '' : 'defaut'}`.trim() },
+      el('i', { class: `etat ${tenu ? 'tenue' : 'defaut'}` }),
+      el('span', { class: 'limite-nom', text: STAT_LABELS[c.stat] ?? c.stat }),
+      el('b', { class: 'n', text: `${nombre(valeur)} / ${nombre(c.target)}` }),
+      el('button', {
+        class: 'oter', type: 'button', text: '×',
+        title: `Ne plus exiger de ${(STAT_LABELS[c.stat] ?? c.stat).toLowerCase()}`,
+        onClick: () => enleverMinimum(c.stat),
+      }));
+  }));
+}
+
+/**
+ * Les autres builds que la recherche a retenus.
+ *
+ * Chaque ligne se lit comme une DIFFERENCE, pas comme une fiche de plus : les
+ * pieces a mettre, celles a enlever, et ce que l'echange rapporte.
+ */
+function renderTrouves(bilan) {
+  const candidats = etat.candidats ?? [];
+  $('compte-trouves').textContent = String(candidats.length);
+  renderCandidats($('trouves'), candidats, {
+    portes: new Set([...etat.equipped.values()].map((i) => i.id)),
+    itemById: catalogue?.itemById ?? new Map(),
+    porte: bilan,
+    onPorter: (candidat) => recherche.porterAlaMain(candidat),
+  });
+}
+
+function renderInspecteur(stats, degats) {
+  const minimums = etat.conditions.map((c) => c.stat);
+  const lignes = toutVoir
+    ? lignesCompletes(stats, new Set(minimums))
+    : lignesEssentielles(stats, minimums, { degats, pdvEffectifs: Number(stats.pdvEffectifs) || 0 });
+
+  $('tete-quoi').textContent = toutVoir ? 'Tout voir' : 'La fiche';
+  $('tete-note').textContent = 'stuff porte';
+
+  const noeud = (l) => (l.famille
+    ? el('p', { class: 'famille', text: l.famille })
+    : el('button', {
+        class: `ligne ${l.exigee ? 'exigee' : ''}`.trim(), type: 'button',
+        ...(l.muet ? { disabled: true } : {}),
+        title: l.exigee
+          ? `${l.libelle} est deja dans vos minimums.`
+          : `Garder au moins ${nombre(l.valeur)} de ${l.libelle.toLowerCase()}.`,
+        onClick: () => poserMinimum(l.cle, l.valeur),
+      },
+        el('img', { class: 'ligne-icone', src: iconeStat(l.cle) ?? '', alt: '', decoding: 'async' }),
+        el('span', { class: 'ligne-nom', text: l.libelle }),
+        el('b', { class: `ligne-val n ${l.muet ? 'vide-mesure' : ''}`.trim(),
+          text: l.muet ? '—' : nombre(l.valeur) })));
+
+  $('corps-inspecteur').replaceChildren(
+    ...lignes.map(noeud),
+    el('button', {
+      class: 'btn mini fantome', type: 'button', style: 'margin:14px 16px',
+      onClick: () => { toutVoir = !toutVoir; render(); },
+      text: toutVoir ? 'Voir l\'essentiel' : 'Tout voir',
+    }));
+}
+
+function renderScore(bilan) {
+  if (!bilan) return;
+  const valeur = Number(bilan.score);
+  $('score').textContent = Number.isFinite(valeur) ? nombre(valeur) : '—';
+
+  // Un score negatif ne se lit pas comme un petit score : il dit qu'un
+  // minimum n'est pas tenu. La couleur et la note le disent ensemble.
+  const tenus = bilan?.satisfied !== false;
+  $('score').classList.toggle('pos', tenus);
+  $('score').classList.toggle('neg', !tenus);
+  $('score-note').textContent = tenus
+    ? 'score'
+    : `${bilan.unmet.length} minimum(s) non tenu(s)`;
+  recherche.dessiner();
+}
+
+/**
+ * Dit si ce qui est a l'ecran repond encore aux reglages courants.
+ *
+ * Le bouton ne se contente pas de changer de mot : il porte une pastille, car
+ * un libelle seul se lit mal dans une barre ou rien d'autre ne bouge.
+ */
+function renderFraicheur() {
+  const perime = reglagesChanges(signatureLancement, etat);
+  const bouton = $('lancer');
+  bouton.classList.toggle('rappel', perime);
+  bouton.textContent = perime ? 'Relancer' : 'Chercher';
+  if (perime) bouton.prepend(el('span', { class: 'puce' }));
+  bouton.title = perime
+    ? 'Un reglage a bouge depuis la derniere recherche : ce qui est montre '
+      + 'repond a la question d\'avant.'
+    : '';
+}
+
+/**
+ * Le raccourci de la palette, ecrit comme la machine le dit.
+ *
+ * « ⌘K » sur un Mac, « Ctrl K » ailleurs : montrer le mauvais signe apprend un
+ * geste qui ne marche pas.
+ */
+function raccourciPalette() {
+  const surMac = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
+  return surMac ? '⌘K' : 'Ctrl K';
+}
+
+/* ---------------------------------------------------------- Les minimums --- */
+
+/**
+ * Pose un minimum a la valeur atteinte, ou le remonte s'il existe deja.
+ *
+ * Cliquer un chiffre deja sous minimum n'est pas une erreur : c'est un joueur
+ * qui vient de gagner de la valeur et veut la garder. Le minimum monte alors
+ * a ce qu'il a maintenant, jamais il ne redescend.
+ */
+function poserMinimum(stat, valeur) {
+  const cible = Math.round(Number(valeur) || 0);
+  const deja = etat.conditions.find((c) => c.stat === stat);
+
+  if (!deja) {
+    setEtat({ conditions: [...etat.conditions, POIDS_PAR_DEFAUT(stat, cible)] });
+    message(`Garde au moins ${nombre(cible)} de ${(STAT_LABELS[stat] ?? stat).toLowerCase()}.`);
+    return;
+  }
+
+  if (cible <= deja.target) {
+    message(`${STAT_LABELS[stat] ?? stat} est deja garde a ${nombre(deja.target)} au moins.`);
+    return;
+  }
+  setEtat({
+    conditions: etat.conditions.map((c) => (c.stat === stat ? { ...c, target: cible } : c)),
+  });
+  message(`${STAT_LABELS[stat] ?? stat} : le minimum monte a ${nombre(cible)}.`);
+}
+
+/**
+ * Forme d'un minimum pose a la main.
+ *
+ * Le poids dit combien une unite manquante coute au score. Un poids de 1 en
+ * fait une preference, pas un couperet : le solveur la tiendra s'il peut, et
+ * le joueur remonte le poids lui-meme si elle doit etre imperative.
+ */
+const POIDS_PAR_DEFAUT = (stat, target) => ({
+  stat, target, weight: 1, max: null, absolute: false,
+});
+
+/** Enleve un minimum. */
+function enleverMinimum(stat) {
+  setEtat({ conditions: etat.conditions.filter((c) => c.stat !== stat) });
+  message(`${STAT_LABELS[stat] ?? stat} n'est plus un minimum.`);
+}
+
+/* ------------------------------------------------------------- Ouvertures --- */
+
+const gestes = creerGestesCatalogue({
+  lireEtat, lireCatalogue: () => catalogue, setEtat, message,
+});
+
+const gestesSorts = creerGestesSorts({
+  lireEtat, setEtat, message, lireClassesSorts: () => classesSorts,
+});
+
+const gestesReference = creerGestesReference({
+  lireEtat, setEtat, message, nomDeClasse, lireRecherche: () => recherche,
+});
+
+/**
+ * Ouvre la fiche d'une piece portee, avec ce qu'on peut en faire.
+ *
+ * Une fiche qui ne sait que se fermer laisse le joueur devant un mur : il a
+ * clique pour agir autant que pour lire. Les quatre gestes sont ceux de v1,
+ * empruntes tels quels.
+ */
+function ouvrirFicheDe(cle, item) {
+  const build = buildCourant(etat, catalogue);
+  ouvrirFiche(item, {
+    stats: build?.stats ?? null,
+    onRemove: () => gestes.retirer(cle),
+    onLock: () => gestes.verrouiller(item),
+    verrouille: etat.verrous.has(item.id),
+    onBan: () => gestes.bannir(item),
+    banni: etat.bannis.has(item.id),
+    onPosseder: () => gestes.basculerPossedee(item),
+    possedee: etat.possedees.has(item.id),
+  });
+}
+
+/* ------------------------------------------------------------------- Boot --- */
+
+function choisirClasse(classe) {
+  vierge = false;
+  $('accueil').hidden = true;
+  $('travail').hidden = false;
+  $('identite').hidden = false;
+  $('barre-droite').style.display = 'flex';
+  $('barre-droite').hidden = false;
+  setEtat({ classe });
+  recherche.lancer();
+}
+
+async function main() {
+  // Les noeuds que la nouvelle coquille ne montre plus vivent quand meme dans
+  // le document : un champ hors de l'arbre ne garde pas sa valeur de facon
+  // fiable, et les modules de v1 les lisent au lancement.
+  document.body.append(...muets.values());
+
+  renderClasses($('classes'), choisirClasse);
+  message('Chargement du catalogue…');
+
+  try {
+    [catalogue, classesSorts] = await Promise.all([loadCatalog(), loadSpells()]);
+    etat = reprendreEtat(etat, catalogue);
+
+    const { sorts, changes } = enrichirSorts(etat.sorts, classesSorts, etat.niveau);
+    if (changes) etat = { ...etat, sorts };
+
+    // Un etat range dit que le joueur est deja venu : l'ecran vide n'a plus
+    // rien a demander, il ouvrirait une question deja repondue.
+    if (etat.equipped.size > 0 || etat.sorts.length > 0) {
+      vierge = false;
+      $('accueil').hidden = true;
+      $('travail').hidden = false;
+      $('identite').hidden = false;
+      $('barre-droite').hidden = false;
+      $('barre-droite').style.display = 'flex';
+    }
+
+    message('');
+    recherche.reprendre();
+    render();
+  } catch (erreur) {
+    message(`Catalogue indisponible : ${erreur.message}`, 'erreur');
+  }
+}
+
+$('lancer').addEventListener('click', () => {
+  signatureLancement = signatureRecherche(etat);
+  recherche.lancer();
+  render();
+});
+$('arreter').addEventListener('click', () => recherche.arreter());
+$('appel-sorts').addEventListener('click', gestesSorts.ouvrir);
+$('identite').addEventListener('click', () => ouvrirIdentite({ lireEtat, setEtat }));
+
+const liensPalette = {
+  lireEtat, lireCatalogue: () => catalogue, setEtat,
+  onPiece: (item) => { gestes.equiper(item); fermerPalette(); },
+};
+$('ouvrir-palette').addEventListener('click', () => basculerPalette(liensPalette));
+
+// La palette s'ouvre a la touche, partout — sauf quand le joueur ecrit
+// ailleurs, ou le raccourci lui volerait sa frappe.
+window.addEventListener('keydown', (ev) => {
+  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'k') {
+    ev.preventDefault();
+    basculerPalette(liensPalette);
+    return;
+  }
+  if (ev.key === 'Escape' && paletteOuverte()) fermerPalette();
+});
+
+main();

@@ -76,10 +76,43 @@ let signatureLancement = null;
 
 const lireEtat = () => etat;
 
+/** Nombre d'etats gardes pour l'annulation. */
+const ETATS_GARDES = 30;
+
+/**
+ * Etats precedents, du plus ancien au plus recent.
+ *
+ * L'etat est immuable : garder les versions precedentes suffit a tout
+ * annuler, sans une ligne de code par action. « Vider », « Interdire » et
+ * « Remettre a zero » deviennent ainsi reversibles, et aucun d'eux n'a besoin
+ * de demander confirmation.
+ */
+const passe = [];
+
 function setEtat(patch) {
+  passe.push(etat);
+  if (passe.length > ETATS_GARDES) passe.shift();
   etat = { ...etat, ...patch };
   sauverEtat(etat);
   render();
+}
+
+/** Revient a l'etat precedent, s'il y en a un. */
+function annuler() {
+  const precedent = passe.pop();
+  if (!precedent) {
+    message('Rien a annuler.');
+    return;
+  }
+  etat = precedent;
+  sauverEtat(etat);
+  render();
+}
+
+/** Enleve toutes les pieces portees. L'annulation les repose. */
+function vider() {
+  setEtat({ equipped: new Map(), posees: new Set() });
+  message('Toutes les pieces sont enlevees. Ctrl+Z les repose.');
 }
 
 function message(texte, type = 'info') {
@@ -137,6 +170,7 @@ function render() {
   renderInspecteur(stats, degats);
   renderScore(bilan);
   renderFraicheur();
+  $('annuler').disabled = passe.length === 0;
 }
 
 function renderIdentite() {
@@ -246,11 +280,19 @@ function renderSorts() {
       type: 'button', text: '×', title: `Enlever ${sort.name ?? sort.fr ?? 'ce sort'}`,
       onClick: () => setEtat({ sorts: etat.sorts.filter((s) => s.id !== sort.id) }),
     }))));
-  $('aide-sorts').replaceChildren(sorts.length
-    ? el('button', { class: 'btn mini fantome', type: 'button',
-        style: 'padding-left:0', text: 'Changer mes sorts', onClick: gestesSorts.ouvrir })
-    : document.createTextNode('Aucun sort. L\'outil n\'en pose aucun d\'office : '
-      + 'un chiffre de degats faux vaut moins que pas de chiffre.'));
+  $('aide-sorts').replaceChildren(
+    ...(sorts.length ? [] : [
+      'Aucun sort. L\'outil n\'en pose aucun d\'office : un chiffre de degats '
+        + 'faux vaut moins que pas de chiffre.',
+      el('br'),
+    ]),
+    el('button', { class: 'btn mini fantome', type: 'button', style: 'padding-left:0',
+      text: sorts.length ? 'Changer mes sorts' : 'Choisir des sorts…',
+      onClick: gestesSorts.ouvrir }),
+    ...(sorts.length
+      ? [el('button', { class: 'btn mini fantome', type: 'button',
+          text: 'Tout enlever', onClick: gestesSorts.toutEnlever })]
+      : []));
 }
 
 function renderAvoir(stats, degats) {
@@ -614,6 +656,15 @@ window.addEventListener('keydown', (ev) => {
     basculerPalette(liensPalette);
     return;
   }
+  // Ctrl+Z annule, sauf pendant une saisie ou il annule le texte tape.
+  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'z') {
+    const cible = ev.target;
+    const ecrit = cible instanceof HTMLElement
+      && (cible.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(cible.tagName));
+    if (!ecrit) { ev.preventDefault(); annuler(); }
+    return;
+  }
+
   if (ev.key !== 'Escape') return;
   if (comparaisonOuverte()) fermerComparaison();
   else if (reglagesOuverts()) fermerReglages();
@@ -622,6 +673,8 @@ window.addEventListener('keydown', (ev) => {
 });
 
 $('comparer').addEventListener('click', comparer);
+$('annuler').addEventListener('click', annuler);
+$('vider').addEventListener('click', vider);
 $('reglages').addEventListener('click',
   () => ouvrirReglages({ lireEtat, onOption: poserOption }));
 

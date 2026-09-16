@@ -32,11 +32,16 @@ export function installerRappelScore() {
   const rafraichir = () => {
     if (visible) {
       barre.textContent = texteOrigine;
+      barre.title = '';
       barre.classList.remove(CLASSE, 'tenu', 'defaut');
       return;
     }
     const tenu = score.classList.contains('pos');
-    barre.textContent = `${score.textContent} — ${note?.textContent?.trim() ?? ''}`;
+    const texte = `${score.textContent} — ${note?.textContent?.trim() ?? ''}`;
+    barre.textContent = texte;
+    // La pastille tient sur une ligne : une phrase longue s'y coupe. Le texte
+    // entier reste atteignable, sinon la coupe perdrait ce qu'elle annonce.
+    barre.title = texte;
     barre.classList.add(CLASSE);
     barre.classList.toggle('tenu', tenu);
     barre.classList.toggle('defaut', !tenu);

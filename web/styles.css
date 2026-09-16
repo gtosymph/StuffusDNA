@@ -101,6 +101,10 @@ body { margin: 0; background: var(--fond); color: var(--texte); font: var(--tail
 .barre-info {
   flex: 1; text-align: center; font-size: 11px; color: var(--faible);
   border: 1px solid var(--bord); border-radius: 999px; padding: 3px 14px; max-width: 460px; margin: 0 auto;
+  /* Le rappel du score porte une phrase entiere. Sur deux lignes, la pastille
+     grandissait plus haut que la barre et debordait sur la page. Elle tient
+     sur une ligne ; le texte entier reste lisible dans l'infobulle. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .barre-menus { display: flex; gap: 6px; }
 .barre-actions { display: flex; gap: 6px; }

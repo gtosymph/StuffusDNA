@@ -4,7 +4,19 @@
 import { buildCatalog } from '../src/data/catalog.mjs';
 
 /** Emplacement des fichiers de donnees, relatif a la page. */
-const DATA_BASE = '../data/';
+/**
+ * Un chemin se resout contre CE module, jamais contre la page.
+ *
+ * Un chemin relatif ecrit tel quel se resout contre l'adresse du document.
+ * Tant qu'une seule page existait, cela ne se voyait pas ; des qu'une seconde
+ * coquille vit dans un sous-dossier, la meme chaine designe un fichier qui
+ * n'existe pas, et le chargement echoue en 404. `import.meta.url` supprime la
+ * question : le chemin est ancre au module, donc il vaut depuis n'importe
+ * quelle page.
+ */
+const depuisIci = (chemin) => new URL(chemin, import.meta.url).href;
+
+const DATA_BASE = depuisIci('../data/');
 
 async function fetchJson(name) {
   const response = await fetch(`${DATA_BASE}${name}`);

@@ -3,6 +3,10 @@
  * Les codes courts proviennent du jeu de ressources repris de dofopti.
  */
 
+/** Un chemin ancre au module, pour qu'il vaille depuis n'importe quelle page. */
+const depuisIci = (chemin) => new URL(chemin, import.meta.url).href;
+
+
 /** Code d'icone pour chaque statistique du moteur. */
 const CODE_PAR_STAT = Object.freeze({
   pdv: 'vit', pdvEffectifs: 'vit', vitalite: 'vit', sagesse: 'sa', force: 'str', intelligence: 'int',
@@ -37,7 +41,7 @@ const CODE_PAR_STAT = Object.freeze({
  */
 export function iconeStat(stat) {
   const code = CODE_PAR_STAT[stat];
-  return code ? `assets/stats/${code}.png` : null;
+  return code ? depuisIci(`./assets/stats/${code}.png`) : null;
 }
 
 /** Couleur d'element, pour les pastilles de sort. */

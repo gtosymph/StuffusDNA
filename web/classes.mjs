@@ -6,6 +6,10 @@
  * et laissent un trou. Une condition d'equipement "PG=20" ne se lit qu'avec le
  * bon numero, sinon la piece reste refusee au Forgelance.
  */
+
+/** Un chemin ancre au module, pour qu'il vaille depuis n'importe quelle page. */
+const depuisIci = (chemin) => new URL(chemin, import.meta.url).href;
+
 export const CLASSES = Object.freeze([
   { id: 1, fr: 'Feca' }, { id: 2, fr: 'Osamodas' }, { id: 3, fr: 'Enutrof' },
   { id: 4, fr: 'Sram' }, { id: 5, fr: 'Xelor' }, { id: 6, fr: 'Ecaflip' },
@@ -45,10 +49,10 @@ export function nomDeClasse(id) {
  * @param {number} sexe 0 ou 1.
  */
 export function avatarDeClasse(id, sexe) {
-  return `assets/avatars/${classeConnue(id)}-${Number(sexe) === 1 ? 1 : 0}.png`;
+  return depuisIci(`./assets/avatars/${classeConnue(id)}-${Number(sexe) === 1 ? 1 : 0}.png`);
 }
 
 /** Chemin de l'embleme d'une classe, pour les listes compactes. */
 export function emblemeDeClasse(id) {
-  return `assets/breeds/${classeConnue(id)}.png`;
+  return depuisIci(`./assets/breeds/${classeConnue(id)}.png`);
 }

@@ -1,6 +1,20 @@
 /**
  * Chargement des sorts par classe.
  */
+
+/**
+ * Ancre un chemin d'icone au module, pas a la page.
+ *
+ * `data/spells.json` porte des chemins relatifs, ecrits du temps ou une seule
+ * page existait. Ils se resolvaient contre l'adresse du document : depuis une
+ * coquille rangee dans un sous-dossier, la meme chaine designe un fichier
+ * absent et l'icone ne se voit pas. La correction se fait ici, au chargement,
+ * pour que personne d'autre n'ait a y penser.
+ */
+const ancrer = (chemin) => (typeof chemin === 'string' && !/^(https?:|\/|data:)/.test(chemin)
+  ? new URL(`./${chemin}`, import.meta.url).href
+  : chemin);
+
 let cache = null;
 
 /**
@@ -10,11 +24,18 @@ let cache = null;
 export async function loadSpells() {
   if (cache) return cache;
 
-  const reponse = await fetch('../data/spells.json');
+  const reponse = await fetch(new URL('../data/spells.json', import.meta.url));
   if (!reponse.ok) {
     throw new Error(`Sorts indisponibles (HTTP ${reponse.status}).`);
   }
-  cache = await reponse.json();
+  // Les donnees ne sont pas modifiees sur place : la liste ancree est une
+  // copie, et l'originale reste ce que le fichier disait.
+  const brut = await reponse.json();
+  cache = brut.map((classe) => ({
+    ...classe,
+    icon: ancrer(classe.icon),
+    spells: classe.spells.map((sort) => ({ ...sort, icon: ancrer(sort.icon) })),
+  }));
   return cache;
 }
 

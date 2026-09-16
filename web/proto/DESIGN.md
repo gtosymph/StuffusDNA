@@ -3,7 +3,7 @@
 Ce dossier porte des maquettes, pas du code de production. Elles ne touchent
 ni `styles.css`, ni les themes, ni `layouts.mjs`.
 
-- `studio.html` — la proposition retenue, version 2.
+- `studio.html` — la proposition retenue, version 3.
 - `socle.css` — le systeme de design : couleur, typographie, rythme, controles.
 
 Ouvrir : `http://localhost:4173/web/proto/studio.html`
@@ -37,7 +37,7 @@ decision 7 pour pourquoi aucun sort n'est pose d'office.
 
 ---
 
-## Les six decisions de structure
+## Les neuf decisions de structure
 
 ### 1. Trois volets
 
@@ -158,7 +158,7 @@ C'est le gain le plus fort pour un debutant, et le moins couteux a livrer.
 | --- | --- |
 | Mode de recherche | Ce que je veux |
 | Degats / Endurance / Mixte | Frapper fort / Encaisser / Les deux |
-| Caracteristiques (mode) | *(disparait : s'applique seul quand il n'y a pas de sorts)* |
+| Caracteristiques (mode) | *(n'est plus un choix : l'etat ou l'outil se met sans sorts — voir decision 7)* |
 | Conditions | Au minimum |
 | Pdv effectifs | *(le nom reste ; la phrase manquait)* « Tu encaisses 9 245 degats bruts avant de tomber. » |
 | Figer le stuff de reference | Mon stuff actuel |

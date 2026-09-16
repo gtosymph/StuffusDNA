@@ -24,9 +24,16 @@ liste. Aucune disposition ne corrige cela.
 > **L'ecran doit produire un resultat utile avec zero reglage, puis enseigner
 > chaque concept au moment ou il devient utile.**
 
-Choisir sa classe suffit. L'outil pose le niveau 190, les sorts d'attaque de
-la classe, les planchers de PA et PM, et cherche. Un stuff apparait. Tout le
-reste devient du raffinage, propose apres coup.
+L'ecran vide tient donc en **deux gestes**, pas un :
+
+```
+classe  ->  un stuff apparait, caracteristiques maximisees
+            DEGATS —   « Choisis des sorts pour compter des degats »
+        ->  sorts  ->  les degats arrivent
+```
+
+Le premier geste donne deja un resultat ; le second lui donne un sens. Voir la
+decision 7 pour pourquoi aucun sort n'est pose d'office.
 
 ---
 
@@ -53,11 +60,32 @@ qui est selectionne :
 
 Six sections deviennent une, et elle dit toujours quelque chose d'utile.
 
-### 3. L'inspecteur ouvre huit lignes, pas trente-neuf
+### 3. L'inspecteur ouvre huit lignes, et ce sont VOS huit
 
 Un mur de chiffres ne se lit pas, il se subit. Huit mesures suffisent presque
-toujours ; « Tout voir » donne le reste. Chaque ligne est cliquable : elle
-pose une exigence a la valeur atteinte.
+toujours ; « Tout voir » donne le reste.
+
+Une liste fixe montrerait les memes chiffres a tout le monde. Celle-ci montre
+ce que le joueur a DIT qui comptait :
+
+```
+  Degats          775
+  Pdv effectifs 9 245
+  ── vos exigences ──
+  PA               12
+  PM               10
+  Vitalite      4 080
+  % Critique       80   <- en defaut, rouge
+  ── puis ──
+  Puissance       145
+  Initiative      530
+```
+
+Les deux mesures d'abord, elles decident toujours. Puis les exigences, puis de
+quoi completer jusqu'a huit. Une exigence en defaut se voit ainsi **sans la
+chercher** : elle est dans les huit premieres lignes par construction.
+
+Chaque ligne est cliquable : elle pose une exigence a la valeur atteinte.
 
 ### 4. Le catalogue devient une palette
 
@@ -83,6 +111,42 @@ visible pour qu'on puisse les rappeler.
 
 Les minimums s'y lisent en valeur absolue — ce qui compte est s'ils sont
 tenus — et le reste en ecart face au stuff porte.
+
+### 7. Aucun sort pose d'office
+
+L'outil pourrait deviner les sorts d'attaque d'une classe. Il ne le fait pas :
+**un chiffre de degats faux vaut moins que pas de chiffre.** Tant qu'aucun
+sort n'est pose, tout ce qui parle de degats se tait — la mesure affiche
+« — », la fiche aussi, et les stuffs trouves se comparent sur le score au lieu
+des degats.
+
+Consequence sur le mode « caracteristiques » : il ne disparait pas, il change
+de nature. Il n'est plus un choix dans une liste, c'est **l'etat dans lequel
+l'outil se met** quand il n'a aucun degat a compter. Le joueur ne le choisit
+jamais, il le constate — le selecteur « Ce que je veux » est grise, et une
+phrase dit pourquoi.
+
+« Choisir mes sorts » devient donc le premier pas suivant, et il ne s'efface
+qu'une fois des sorts poses.
+
+### 8. Les points de caracteristique sont une feuille
+
+Les points sont une ENTREE de la recherche, pas une consequence — mais ils se
+reglent rarement. Une feuille, ouverte depuis la section « Caracteristiques »
+de l'inspecteur, leur donne la place qu'il faut pour les curseurs, les
+parchemins et les limites, sans occuper un volet en permanence.
+
+### 9. Une option se lit a cote du nombre qu'elle definit
+
+Des vingt cases d'« Options », quatre restent a l'ecran, et le critere est
+simple : **une option qui change ce qu'un nombre VEUT DIRE se lit a cote de ce
+nombre.**
+
+| Option | Ou |
+| --- | --- |
+| Arme comprise, melee / distance | sous « Degats » |
+| Coup de reference, plafond de resistance | sous « Pdv effectifs » |
+| Les seize autres | dans les reglages |
 
 ---
 
@@ -155,12 +219,11 @@ plus du rose ; une piece neuve porte un lisere en plus de l'ambre.
 
 ---
 
-## Ce qui reste a decider avant de construire
+## Ce qui reste ouvert
 
-1. **Les points de caracteristique** n'ont pas encore de place. Ils sont
-   experts et lourds ; probablement une feuille depuis la section
-   « Caracteristiques » de l'inspecteur.
-2. **Les options** — une vingtaine de cases — vont dans les reglages, sauf les
-   deux ou trois qui changent vraiment le resultat. Lesquelles ?
-3. **La palette de pieces** n'est pas maquettee.
-4. **Le mobile** n'est pas traite au-dela de l'empilement des volets.
+1. **La palette de pieces** n'est pas maquettee. Elle remplace la colonne du
+   catalogue et les blocs « bannies » et « possedees », avec trois bascules
+   par piece : interdire, toujours garder, je l'ai deja.
+2. **Le mobile** : hypothese de travail, il est secondaire. Les trois volets
+   s'empilent, on peut consulter et porter un stuff, le reglage fin reste au
+   grand ecran. A confirmer.

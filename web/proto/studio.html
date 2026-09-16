@@ -2,11 +2,11 @@
 <html lang="fr"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Maquette v2 — Studio</title>
+<title>Maquette v3 — Studio</title>
 <link rel="stylesheet" href="socle.css">
 <style>
 /* ===========================================================================
-   Maquette v2 — « Studio »
+   Maquette v3 — « Studio »
 
    Trois volets : ce que je veux a gauche, le stuff au centre, le detail a
    droite. Ce que la v1 n'avait pas, et qui compte plus que la mise en page :
@@ -220,6 +220,8 @@
 .ligne-nom { font-size: 12px; color: var(--texte-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ligne-val { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte); }
 .ligne-val.zero { color: var(--texte-3); }
+.ligne-val.neg { color: var(--rose); }
+.ligne-val.pos { color: var(--jade); }
 .ligne-geste { opacity: 0; font-size: 10px; color: var(--iris); white-space: nowrap; }
 .groupe { padding: 14px 14px 2px; }
 .sans-icone .ligne { grid-template-columns: minmax(0, 1fr) auto; }
@@ -281,6 +283,62 @@ tr.titre th, tr.titre td {
 .masquees { padding: 10px 16px; font-size: 11.5px; color: var(--texte-3); border-top: 1px solid var(--filet); }
 .masquees button { border: 0; background: none; color: var(--iris); cursor: pointer; font: inherit; padding: 0; }
 
+/* Une option qui change ce qu'un nombre VEUT DIRE se lit a cote de ce
+   nombre. « Arme comprise » et « melee » definissent les degats ; le coup de
+   reference et le plafond definissent les pdv effectifs. Les seize autres
+   options partent dans les reglages : elles ne changent pas la lecture. */
+.options-mesure { display: grid; gap: 5px; margin-top: 9px; }
+.option {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--texte-2); cursor: pointer;
+}
+.option input { width: 13px; height: 13px; accent-color: var(--iris); margin: 0; cursor: pointer; }
+.option:hover { color: var(--texte); }
+.option-val {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 11px; color: var(--texte-3);
+}
+.option-val input {
+  width: 46px; height: 20px; padding: 0 5px;
+  font: 11px/1 var(--mono); text-align: right;
+}
+.radios { display: inline-flex; gap: 10px; }
+
+/* Le segmente grise ses trois choix tant qu'aucun sort n'est pose : sans
+   degats a compter, aucun des trois ne veut dire quoi que ce soit. */
+.segmente.inactif { opacity: .45; }
+.segmente.inactif button { cursor: not-allowed; }
+
+.vide-mesure { color: var(--texte-3); }
+.appel {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 11px/1.4 var(--ui); color: var(--iris);
+  border-bottom: 1px solid var(--iris-sourd);
+}
+.appel:hover { border-bottom-color: var(--iris); }
+
+.pas.premier-pas { border-color: var(--iris); background: var(--iris-fond); }
+
+/* La feuille des points : les curseurs, les parchemins et les limites ont
+   besoin de place. L'inspecteur ne la leur donnait pas. */
+.feuille { width: min(560px, 100%); }
+.points-ligne {
+  display: grid; grid-template-columns: 16px 88px minmax(0, 1fr) 54px 42px 58px;
+  align-items: center; gap: 10px;
+  height: 34px; padding: 0 8px; margin: 0 -8px; border-radius: var(--r);
+}
+.points-ligne:hover { background: var(--surface); }
+.points-ligne img { width: 14px; height: 14px; }
+.points-ligne > span:nth-child(2) { font-size: 12px; }
+.points-ligne input[type="range"] { height: 14px; }
+.points-ligne input[type="range"]::-webkit-slider-runnable-track { background: var(--surface-3); }
+.points-bilan {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 10px 14px; background: var(--surface); border-radius: var(--r); margin-bottom: 12px;
+}
+.points-bilan b { font: 600 18px/1 var(--mono); font-variant-numeric: tabular-nums; }
+
 @media (max-width: 1500px) { .appli { grid-template-columns: 276px minmax(0, 1fr) 312px; } }
 @media (max-width: 1240px) {
   .appli { grid-template-columns: minmax(0, 1fr); height: auto; }
@@ -314,8 +372,8 @@ tr.titre th, tr.titre td {
     <h1>Quelle classe joues-tu ?</h1>
     <p>C'est la seule chose dont j'ai besoin pour commencer.</p>
     <div class="classes" id="classes"></div>
-    <p class="apres">Je poserai le niveau 190, tes sorts d'attaque et les PA&nbsp;/&nbsp;PM de ta classe.
-      Tu changeras tout cela ensuite.</p>
+    <p class="apres">Je poserai le niveau 190 et les PA&nbsp;/&nbsp;PM de ta classe, et je chercherai
+      tout de suite. Tu choisiras tes sorts juste après, quand tu verras l'écran.</p>
   </div>
 </div>
 
@@ -326,11 +384,14 @@ tr.titre th, tr.titre td {
 
     <div class="section">
       <p class="chapeau">Ce que je veux</p>
-      <div class="segmente" style="width:100%" id="objectif">
-        <button type="button" style="flex:1" data-mode="degats" aria-pressed="true">Frapper fort</button>
-        <button type="button" style="flex:1" data-mode="survie" aria-pressed="false">Encaisser</button>
-        <button type="button" style="flex:1" data-mode="mixte" aria-pressed="false">Les deux</button>
+      <div class="segmente inactif" style="width:100%" id="objectif"
+           title="Il faut des sorts pour compter des dégâts.">
+        <button type="button" style="flex:1" data-mode="degats" aria-pressed="true" disabled>Frapper fort</button>
+        <button type="button" style="flex:1" data-mode="survie" aria-pressed="false" disabled>Encaisser</button>
+        <button type="button" style="flex:1" data-mode="mixte" aria-pressed="false" disabled>Les deux</button>
       </div>
+      <p class="aide" id="aide-objectif">Sans sort, la recherche maximise tes caractéristiques.
+        Choisis des sorts pour arbitrer entre frapper et encaisser.</p>
 
       <div id="melange" hidden>
         <!-- Le curseur ne montre pas son pourcentage : il montre ce qu'il
@@ -347,14 +408,10 @@ tr.titre th, tr.titre td {
         <p class="aide">Chaque point est le meilleur stuff à ce niveau d'encaisse. Cliquez pour régler.</p>
       </div>
 
-      <p class="chapeau" style="margin-top:18px">Sur ces sorts <span class="compte">3</span></p>
-      <div class="chips">
-        <span class="chip"><img src="../assets/spells/13244.png" alt="">Aiguille</span>
-        <span class="chip"><img src="../assets/spells/13298.png" alt="">Clepsydre</span>
-        <span class="chip"><img src="../assets/spells/13259.png" alt="">Compte-goutte</span>
-        <button class="chip ajout">Changer</button>
-      </div>
-      <p class="aide">Choisis automatiquement : les sorts d'attaque de ta classe.</p>
+      <p class="chapeau" style="margin-top:18px">Sur ces sorts <span class="compte" id="compte-sorts">0</span></p>
+      <div class="chips" id="chips-sorts"></div>
+      <p class="aide" id="aide-sorts">Aucun sort. L'outil n'en pose aucun d'office :
+        un chiffre de dégâts faux vaut moins que pas de chiffre.</p>
     </div>
 
     <div class="section">
@@ -383,16 +440,40 @@ tr.titre th, tr.titre td {
       <div class="plateau" id="plateau"></div>
 
       <dl class="verdict">
-        <div><dt>Dégâts</dt><dd class="n">775</dd>
-          <button class="pourquoi" id="pourquoi">Pourquoi ce chiffre ?</button></div>
-        <div><dt>Pdv effectifs</dt><dd class="n">9 245</dd>
-          <small>Tu encaisses 9 245 dégâts bruts avant de tomber.</small></div>
+        <div>
+          <dt>Dégâts</dt>
+          <dd class="n vide-mesure" id="v-degats">—</dd>
+          <div id="degats-sans-sorts">
+            <button class="appel" id="appel-sorts">Choisis des sorts pour compter des dégâts</button>
+          </div>
+          <div id="degats-avec-sorts" hidden>
+            <button class="pourquoi" id="pourquoi">Pourquoi ce chiffre ?</button>
+            <div class="options-mesure">
+              <label class="option"><input type="checkbox" checked> arme comprise</label>
+              <span class="radios">
+                <label class="option"><input type="radio" name="pos" checked> mêlée</label>
+                <label class="option"><input type="radio" name="pos"> distance</label>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <dt>Pdv effectifs</dt><dd class="n">9 245</dd>
+          <small>Tu encaisses 9 245 dégâts bruts avant de tomber.</small>
+          <div class="options-mesure">
+            <span class="option-val">coup de référence <input class="n" value="300"></span>
+            <span class="option-val">plafond de résistance <input class="n" value="50"> %</span>
+          </div>
+        </div>
+
         <div><dt>À acheter</dt><dd class="n">2</dd>
           <small>face à ton stuff actuel</small></div>
       </dl>
 
       <div class="pas-suivants" id="pas-suivants">
-        <button class="pas" data-pas="mixte">Je veux aussi tenir le coup <em>règle l'échange</em></button>
+        <button class="pas premier-pas" data-pas="sorts">Choisir mes sorts <em>pour compter des dégâts</em></button>
+        <button class="pas" data-pas="mixte" hidden>Je veux aussi tenir le coup <em>règle l'échange</em></button>
         <button class="pas" data-pas="stuff">J'ai déjà du stuff <em>compte les achats</em></button>
         <button class="pas" data-pas="banque">Je n'ai pas ces pièces <em>dis ce que tu as</em></button>
       </div>
@@ -417,6 +498,26 @@ tr.titre th, tr.titre td {
     </div>
     <div id="corps-inspecteur"></div>
   </aside>
+</div>
+
+<!-- ===================== La feuille des points ===================== -->
+<div class="voile" id="voile-points" hidden>
+  <div class="comparaison feuille" role="dialog" aria-modal="true" aria-label="Répartir mes points">
+    <div class="comparaison-tete">
+      <h2>Répartir mes points</h2>
+      <div class="pousse"></div>
+      <button class="btn fantome" id="fermer-points">Fermer</button>
+    </div>
+    <div style="padding:14px 16px 18px">
+      <div class="points-bilan">
+        <span><b id="points-utilises">945</b> <span style="font-size:11px;color:var(--texte-3)">sur 945 dépensés</span></span>
+        <span class="n" style="font-size:12px;color:var(--texte-3)">niveau 190</span>
+      </div>
+      <div id="points-lignes"></div>
+      <p class="aide" style="margin-top:14px">Un parchemin monte la caractéristique de 100 sans coûter de point.
+        Une limite empêche la recherche d'aller au-delà.</p>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== La comparaison ===================== -->
@@ -591,11 +692,14 @@ function chercher() {
 
   // Le score monte pendant la recherche : le progres se voit, il ne s'attend pas.
   const score = document.getElementById('score');
-  let v = 0;
+  const debut = performance.now();
+  const DUREE = 1200;
   const pas = setInterval(() => {
-    v = Math.min(PORTE.score, v + Math.ceil((PORTE.score - v) / 6) + 7);
-    score.textContent = nb(v);
-    if (v < PORTE.score) return;
+    // Le temps decide de la fin, pas le nombre d'iterations : un onglet en
+    // arriere-plan ralentit les minuteurs, et le compteur restait fige.
+    const part = Math.min(1, (performance.now() - debut) / DUREE);
+    score.textContent = nb(PORTE.score * (1 - (1 - part) ** 3));
+    if (part < 1) return;
     clearInterval(pas);
     enCours = false;
     btnChercher.disabled = false;
@@ -610,10 +714,10 @@ btnChercher.addEventListener('click', chercher);
 /* ------------------------------------------------------- Volet gauche --- */
 
 const LIMITES = [
-  { nom: 'PA', cible: 12, reel: 12 },
-  { nom: 'PM', cible: 6, reel: 10 },
-  { nom: 'Vitalité', cible: 4000, reel: 4080 },
-  { nom: '% Critique', cible: 90, reel: 80 },
+  { k: 'pa', nom: 'PA', cible: 12, reel: 12 },
+  { k: 'pm', nom: 'PM', cible: 6, reel: 10 },
+  { k: 'vita', nom: 'Vitalité', cible: 4000, reel: 4080 },
+  { k: 'crit', nom: '% Critique', cible: 90, reel: 80 },
 ];
 
 document.getElementById('limites').replaceChildren(...LIMITES.map((l) => {
@@ -625,6 +729,62 @@ document.getElementById('limites').replaceChildren(...LIMITES.map((l) => {
     el('span', { class: `limite-reel ${tenue ? 'pos' : 'neg'}`, text: nb(l.reel) }),
     el('button', { class: 'oter', title: 'Enlever', text: '×', onClick: aChange }));
 }));
+
+/* ---------------------------------------------------------- Les sorts --- */
+
+const SORTS_XELOR = [
+  { nom: 'Aiguille', ic: '13244' },
+  { nom: 'Clepsydre', ic: '13298' },
+  { nom: 'Compte-goutte', ic: '13259' },
+];
+let sorts = [];
+
+/**
+ * Pose des sorts, ou les enleve.
+ *
+ * Sans sort, la recherche n'a aucun degat a compter : elle maximise les
+ * caracteristiques. Ce n'est pas un mode que le joueur choisit, c'est l'etat
+ * dans lequel l'outil se met — il le constate, il ne le decide pas. Tout ce
+ * qui parle de degats se tait donc jusqu'a ce qu'un sort arrive.
+ */
+function poserSorts(liste) {
+  sorts = liste;
+  const aDesSorts = sorts.length > 0;
+
+  document.getElementById('compte-sorts').textContent = String(sorts.length);
+  document.getElementById('chips-sorts').replaceChildren(
+    ...sorts.map((s) => el('span', { class: 'chip' },
+      el('img', { src: `../assets/spells/${s.ic}.png`, alt: '' }), s.nom)),
+    el('button', { class: 'chip ajout', text: aDesSorts ? 'Changer' : 'Choisir des sorts…',
+      onClick: () => poserSorts(aDesSorts ? [] : SORTS_XELOR) }));
+
+  document.getElementById('aide-sorts').textContent = aDesSorts
+    ? 'Les dégâts se comptent sur ces sorts, arme comprise.'
+    : "Aucun sort. L'outil n'en pose aucun d'office : un chiffre de dégâts faux "
+      + 'vaut moins que pas de chiffre.';
+
+  const seg = document.getElementById('objectif');
+  seg.classList.toggle('inactif', !aDesSorts);
+  for (const b of seg.querySelectorAll('button')) b.disabled = !aDesSorts;
+  document.getElementById('aide-objectif').hidden = aDesSorts;
+
+  const deg = document.getElementById('v-degats');
+  deg.textContent = aDesSorts ? '775' : '—';
+  deg.classList.toggle('vide-mesure', !aDesSorts);
+  document.getElementById('degats-sans-sorts').hidden = aDesSorts;
+  document.getElementById('degats-avec-sorts').hidden = !aDesSorts;
+
+  // Le premier pas s'efface une fois fait, et les autres arrivent derriere.
+  const pasSorts = document.querySelector('.pas[data-pas="sorts"]');
+  if (pasSorts) pasSorts.hidden = aDesSorts;
+  for (const p of document.querySelectorAll('.pas:not([data-pas="sorts"])')) p.hidden = !aDesSorts;
+
+  dessinerTrouves();
+  montrerFiche();
+  if (aDesSorts) aChange();
+}
+
+document.getElementById('appel-sorts').addEventListener('click', () => poserSorts(SORTS_XELOR));
 
 const melange = document.getElementById('melange');
 for (const b of document.querySelectorAll('#objectif button')) {
@@ -672,11 +832,18 @@ document.getElementById('plateau').replaceChildren(
 const choisis = new Set();
 const btnComparer = document.getElementById('comparer');
 
-document.getElementById('trouves').replaceChildren(...TROUVES.map((t, rang) => {
-  const dDeg = t.s.degats - PORTE.s.degats;
+function dessinerTrouves() {
+ const avecDegats = sorts.length > 0;
+ document.getElementById('trouves').replaceChildren(...TROUVES.map((t, rang) => {
+  // Sans sort, aucun degat n'est compte : annoncer « +37 degats » serait
+  // faux. La premiere mesure devient le score, qui lui existe toujours.
+  const gauche = avecDegats
+    ? { v: t.s.degats - PORTE.s.degats, nom: 'dégâts' }
+    : { v: t.score - PORTE.score, nom: 'score' };
   const dPdv = t.s.pdve - PORTE.s.pdve;
 
   const coche = el('input', { type: 'checkbox', 'aria-label': `Comparer ${t.nom}` });
+  coche.checked = choisis.has(rang);
   coche.addEventListener('click', (e) => e.stopPropagation());
   coche.addEventListener('change', () => {
     if (coche.checked) choisis.add(rang); else choisis.delete(rang);
@@ -686,7 +853,8 @@ document.getElementById('trouves').replaceChildren(...TROUVES.map((t, rang) => {
 
   const ligne = el('div', { class: 'trouve' },
     coche,
-    el('span', { class: `trouve-mesure ${tonEcart(dDeg)}`, html: `${ecart(dDeg)}<span>dégâts</span>` }),
+    el('span', { class: `trouve-mesure ${tonEcart(gauche.v)}`,
+      html: `${ecart(gauche.v)}<span>${gauche.nom}</span>` }),
     el('span', { class: `trouve-mesure ${tonEcart(dPdv)}`, html: `${ecart(dPdv)}<span>pdv eff.</span>` }),
     el('span', { class: 'echange' }, t.echanges.flatMap(([a, b]) => [
       el('img', { src: P[a].img, alt: '', title: P[a].nom }),
@@ -702,7 +870,8 @@ document.getElementById('trouves').replaceChildren(...TROUVES.map((t, rang) => {
     montrerTrouve(t);
   });
   return ligne;
-}));
+ }));
+}
 
 /* --------------------------------------------------------- Inspecteur --- */
 
@@ -711,8 +880,31 @@ const teteNote = document.getElementById('tete-note');
 const retour = document.getElementById('retour');
 const corps = document.getElementById('corps-inspecteur');
 
-/** Les huit lignes qui suffisent presque toujours. */
-const ESSENTIEL = ['degats', 'pdve', 'pa', 'pm', 'vita', 'crit', 'pui', 'ini'];
+/** Ce qui complete la fiche quand les exigences ne suffisent pas a huit. */
+const APPOINT = ['pui', 'ini', 'sagesse', 'agi', 'tdo', 'doa'];
+
+/**
+ * Les huit lignes de « L'essentiel ».
+ *
+ * Une liste fixe montre les memes chiffres a tout le monde ; celle-ci montre
+ * ce que le joueur a DIT qui comptait. Les deux mesures d'abord — elles
+ * decident toujours — puis ses exigences, puis de quoi completer.
+ *
+ * Bonus : une exigence en defaut se voit sans la chercher, puisqu'elle est
+ * dans les huit premieres lignes par construction.
+ */
+function essentiel() {
+  const exigences = LIMITES.map((l) => l.k);
+  const vus = new Set(['degats', 'pdve', ...exigences]);
+  const appoint = APPOINT.filter((k) => !vus.has(k));
+  return [
+    { k: 'degats' }, { k: 'pdve' },
+    { separateur: 'vos exigences' },
+    ...exigences.map((k) => ({ k })),
+    ...(appoint.length ? [{ separateur: 'puis' }] : []),
+    ...appoint.slice(0, Math.max(0, 8 - 2 - exigences.length)).map((k) => ({ k })),
+  ];
+}
 
 const bloc = (titre, lignes) => [
   el('div', { class: 'groupe' }, el('p', { class: 'chapeau', text: titre })),
@@ -724,15 +916,27 @@ function montrerFiche(tout = false) {
   teteNote.textContent = 'stuff porté';
   retour.hidden = true;
 
-  const cles = tout ? MESURES.filter((m) => !m.brut).map((m) => m.k) : ESSENTIEL;
-  const lignes = cles.map((k) => {
-    const m = MESURES.find((x) => x.k === k);
-    const v = PORTE.s[k];
-    return el('div', { class: 'ligne', title: 'Cliquez pour en garder au moins autant', onClick: aChange },
-      m.ic ? el('img', { src: `../assets/stats/${m.ic}.png`, alt: '' }) : el('span'),
-      el('span', { class: 'ligne-nom', text: m.nom }),
-      el('span', { class: 'ligne-geste', text: 'garder ≥' }),
-      el('span', { class: `ligne-val n ${v ? '' : 'zero'}`, text: nb(v) }));
+  const entrees = tout
+    ? MESURES.filter((m) => !m.brut).map((m) => ({ k: m.k }))
+    : essentiel();
+
+  const lignes = entrees.map((e) => {
+    if (e.separateur) {
+      return el('p', { class: 'chapeau', style: 'padding:10px 6px 4px;margin:0', text: e.separateur });
+    }
+    const m = MESURES.find((x) => x.k === e.k);
+    const muet = e.k === 'degats' && sorts.length === 0;
+    const v = PORTE.s[e.k];
+    const limite = LIMITES.find((l) => l.k === e.k);
+    const defaut = limite && v < limite.cible;
+    return el('div', { class: 'ligne', title: limite
+      ? `Ton exigence : au moins ${nb(limite.cible)}`
+      : 'Cliquez pour en garder au moins autant', onClick: aChange },
+    m.ic ? el('img', { src: `../assets/stats/${m.ic}.png`, alt: '' }) : el('span'),
+    el('span', { class: 'ligne-nom', text: m.nom }),
+    el('span', { class: 'ligne-geste', text: limite ? `≥ ${nb(limite.cible)}` : 'garder ≥' }),
+    el('span', { class: `ligne-val n ${muet ? 'zero' : (defaut ? 'neg' : (v ? '' : 'zero'))}`,
+      text: muet ? '—' : nb(v) }));
   });
 
   corps.replaceChildren(
@@ -744,6 +948,16 @@ function montrerFiche(tout = false) {
         text: tout ? "Revenir à l'essentiel" : `Tout voir (${MESURES.length - 1} lignes)`,
         onClick: () => montrerFiche(!tout),
       })),
+    ...(tout ? [
+      el('div', { class: 'groupe' },
+        el('p', { class: 'chapeau' }, 'Caractéristiques',
+          el('button', { class: 'btn mini', style: 'margin-left:auto', text: 'Répartir',
+            onClick: ouvrirPoints }))),
+      el('div', { class: 'lignes sans-icone' },
+        el('div', { class: 'ligne' },
+          el('span', { class: 'ligne-nom', text: 'Points dépensés' }),
+          el('span', { class: 'ligne-val n', text: '945 / 945' }))),
+    ] : []),
     ...bloc('Panoplies', el('div', { class: 'ligne' },
       el('span', { class: 'ligne-nom', text: 'Panoplie de Frigostine' }),
       el('span', { class: 'ligne-val n', text: '3 / 8' }))),
@@ -851,9 +1065,12 @@ montrerFiche();
 document.getElementById('pas-suivants').addEventListener('click', (ev) => {
   const pas = ev.target.closest('.pas');
   if (!pas) return;
+  if (pas.dataset.pas === 'sorts') { poserSorts(SORTS_XELOR); return; }
   if (pas.dataset.pas === 'mixte') document.querySelector('#objectif button[data-mode="mixte"]').click();
   pas.remove();
 });
+
+poserSorts([]);
 
 /* ------------------------------------------------------- Comparaison --- */
 
@@ -863,7 +1080,11 @@ let masquerIdentiques = true;
 btnComparer.addEventListener('click', () => { voile.hidden = false; dessinerComparaison(); });
 document.getElementById('fermer-compare').addEventListener('click', () => { voile.hidden = true; });
 voile.addEventListener('click', (e) => { if (e.target === voile) voile.hidden = true; });
-window.addEventListener('keydown', (e) => { if (e.key === 'Escape') voile.hidden = true; });
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  voile.hidden = true;
+  document.getElementById('voile-points').hidden = true;
+});
 
 function dessinerComparaison() {
   const colonnes = [PORTE, ...[...choisis].sort((a, b) => a - b).map((i) => TROUVES[i])];
@@ -925,6 +1146,44 @@ function dessinerComparaison() {
     : el('span', {}, 'Toutes les lignes sont montrées. ',
         el('button', { text: 'Masquer les identiques', onClick: () => { masquerIdentiques = true; dessinerComparaison(); } })));
 }
+
+/* ---------------------------------------------------- Feuille des points --- */
+
+/* Les points sont une ENTREE de la recherche, mais ils se reglent rarement :
+   une feuille leur donne la place que l'inspecteur ne peut pas leur laisser,
+   sans occuper un volet en permanence. */
+const CARACS = [
+  { k: 'vita', nom: 'Vitalité', ic: 'vit', points: 945, cout: 945 },
+  { k: 'sagesse', nom: 'Sagesse', ic: 'sa', points: 0, cout: 0 },
+  { k: 'force', nom: 'Force', ic: 'str', points: 0, cout: 0 },
+  { k: 'int', nom: 'Intelligence', ic: 'int', points: 0, cout: 0 },
+  { k: 'cha', nom: 'Chance', ic: 'cha', points: 0, cout: 0 },
+  { k: 'agi', nom: 'Agilité', ic: 'agi', points: 0, cout: 0 },
+];
+
+const voilePoints = document.getElementById('voile-points');
+
+function ouvrirPoints() {
+  document.getElementById('points-lignes').replaceChildren(...CARACS.map((c) => {
+    const val = el('span', { class: 'n', style: 'font-size:12px;text-align:right', text: nb(c.points) });
+    const barre = el('input', { type: 'range', min: '0', max: '945', value: String(c.points),
+      'aria-label': `Points en ${c.nom}` });
+    barre.addEventListener('input', () => { val.textContent = nb(Number(barre.value)); aChange(); });
+    return el('div', { class: 'points-ligne' },
+      el('img', { src: `../assets/stats/${c.ic}.png`, alt: '' }),
+      el('span', { text: c.nom }),
+      barre,
+      val,
+      el('span', { class: 'n', style: 'font-size:11px;color:var(--texte-3);text-align:right',
+        text: nb(c.cout) }),
+      el('label', { class: 'option', title: 'Parchemins' },
+        el('input', { type: 'checkbox' }), 'P+100'));
+  }));
+  voilePoints.hidden = false;
+}
+
+document.getElementById('fermer-points').addEventListener('click', () => { voilePoints.hidden = true; });
+voilePoints.addEventListener('click', (e) => { if (e.target === voilePoints) voilePoints.hidden = true; });
 
 /* -------------------------------------------------------- Mini courbe --- */
 

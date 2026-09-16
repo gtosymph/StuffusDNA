@@ -96,7 +96,7 @@
 .mini-courbe { width: 100%; height: 86px; display: block; margin-top: 10px; cursor: crosshair; }
 
 .limite {
-  display: grid; grid-template-columns: 6px minmax(0, 1fr) auto auto 16px;
+  display: grid; grid-template-columns: 6px 15px minmax(0, 1fr) auto 18px;
   align-items: center; gap: 8px;
   height: 30px; padding: 0 6px; margin: 0 -6px; border-radius: var(--r);
 }
@@ -1545,3 +1545,96 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 .rangee-moteur .fils { margin: 0; }
 .rangee-moteur .btn.mini { flex: none; }
 .marque { white-space: nowrap; }
+
+/* ==================================== Le verdict encadre le personnage ===
+
+   Il s'empilait sous le plateau, alors que la place a gauche et a droite
+   restait vide : la page demandait de defiler avant de montrer un seul
+   resultat. Les trois mesures flanquent maintenant le personnage. */
+
+.verdict {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 20px; align-items: start; margin: 12px 0 0;
+}
+.verdict > div { padding: 0; border: 0; }
+.verdict-cote { display: grid; gap: 18px; align-content: start; }
+.mesure-cle { min-width: 0; }
+.verdict dt {
+  margin-bottom: 3px;
+  font-size: 9.5px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+/* Le chiffre reste le plus gros de l'ecran, mais il tenait sur trente
+   pixels de haut pour rien : vingt-quatre se lisent aussi bien. */
+.verdict dd {
+  margin: 0; font: 600 24px/1.05 var(--mono);
+  font-variant-numeric: tabular-nums; letter-spacing: -.8px;
+}
+.verdict small { display: block; margin-top: 5px; font-size: 10.5px; line-height: 1.4; color: var(--texte-3); }
+.verdict .options-mesure { margin-top: 7px; gap: 4px; }
+.verdict .options-mesure .option { font-size: 10.5px; }
+.verdict .options-mesure .option.nombre input { width: 60px; height: 20px; font-size: 10.5px; }
+
+/* Le plateau garde sa taille ; c'est lui qui fixe la largeur des deux cotes. */
+.plateau { gap: 8px; }
+.avatar-v2 { width: 168px; height: 226px; }
+
+/* Sous 1100 px, les deux cotes ne tiennent plus : le verdict repasse en
+   trois colonnes sous le personnage. */
+@media (max-width: 1180px) {
+  .verdict { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .verdict-cote { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 16px; }
+  .plateau { order: -1; }
+}
+
+/* ===================== Le combo et l'arme : un detail, pas un verdict ===
+
+   Ils disent d'ou viennent les degats. Dans la colonne du verdict ils
+   l'ecrasaient — trois cents pixels de haut pour un chiffre de quarante. */
+
+/* Les cartes se bornent en largeur : cinq lignes courtes etalees sur sept
+   cents pixels laissent un nom a gauche et son chiffre a l'autre bout, et
+   l'oeil doit traverser le vide pour les relier. */
+.detail-degats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
+  justify-content: start; gap: 10px; margin-top: 16px;
+}
+.detail-degats:empty, .detail-degats > div:empty { display: none; }
+.carte-combo, .sort.arme { margin-top: 0; padding: 8px 10px; }
+.ligne-combo { gap: 6px; font-size: 10.5px; margin-top: 3px; }
+.ligne-combo img { width: 16px; height: 16px; }
+/* Les elements du combo sortaient a leur taille d'origine : cinquante-cinq
+   pixels de large chacun, pour une information qui tient en seize. */
+.elements-combo { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
+.elements-combo img { width: 16px; height: 16px; object-fit: contain; }
+.note-elements { font-size: 10px; color: var(--texte-3); }
+.actions-combo { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.total-combo, .sort-moyennes { margin-top: 6px; padding-top: 5px; }
+.sort .sort-lignes, .lignes-arme { gap: 4px; margin-top: 5px; }
+.ligne-arme { font-size: 9.5px; padding: 1px 7px; }
+.ligne-arme img { width: 12px; height: 12px; }
+.sort-tete img { width: 22px; height: 22px; object-fit: contain; }
+
+/* Une icone devant chaque nom : un sort et une caracteristique se
+   reconnaissent a leur image avant de se lire. */
+.chip img, .limite-icone { width: 15px; height: 15px; object-fit: contain; flex: none; }
+
+/* La consequence suit le point survole, pas seulement le point retenu : le
+   trait dit que le chiffre montre n'est pas encore celui du reglage. */
+.consequence.survolee { outline: 1px dashed var(--filet-clair); outline-offset: 2px; }
+
+/* Les plages de degats d'une arme : normal d'un cote, critique de l'autre.
+   Sans grille, les quatre morceaux se collaient en une seule phrase illisible
+   — « Normal534 – 622Critique 55 %811 – 897 ». */
+.sort-detail { display: grid; gap: 6px; margin-top: 8px; }
+.sort-plages {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline;
+}
+.sort-plages .cle { font-size: 10px; color: var(--texte-3); white-space: nowrap; }
+.sort-plages .val {
+  font: 11.5px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+}
+/* Le critique se distingue du coup normal : l'ambre le dit sans un mot. */
+.sort-plages .cle.crit, .sort-plages .val.crit { color: var(--ambre); }
+.icone-sort { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.sort-tete { gap: 8px; }

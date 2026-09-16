@@ -89,35 +89,82 @@ function construire(racine, lignes, signature, onPart) {
 
   let traces = [];
 
-  toile.addEventListener('click', (ev) => {
+  /** Point sous la souris, ou null. Il n'existe que le temps du survol. */
+  let survole = null;
+
+  /** Rang du point le plus proche du curseur, dans le repere de la toile. */
+  const sous = (ev) => {
     const cadre = toile.getBoundingClientRect();
-    const point = pointLePlusProche(traces, ev.clientX - cadre.left, ev.clientY - cadre.top);
+    return pointLePlusProche(traces, ev.clientX - cadre.left, ev.clientY - cadre.top);
+  };
+
+  /*
+   * Le survol n'est pas une decoration.
+   *
+   * La courbe se cliquait deja, mais rien ne le disait : la souris passait
+   * sur un point sans qu'il bouge, et le trace passait pour une image. Le
+   * point grossit sous le curseur et la consequence suit — c'est la seule
+   * chose qui apprend qu'on peut le prendre.
+   */
+  toile.addEventListener('mousemove', (ev) => {
+    const point = sous(ev);
+    const rang = point ? point.rang : null;
+    if (rang === survole) return;
+    survole = rang;
+    toile.style.cursor = rang === null ? 'default' : 'pointer';
+    redessiner();
+  });
+
+  toile.addEventListener('mouseleave', () => {
+    if (survole === null) return;
+    survole = null;
+    redessiner();
+  });
+
+  toile.addEventListener('click', (ev) => {
+    const point = sous(ev);
     if (!point) return;
     const nouvelle = partPourPalier(lignes, point.rang);
     if (nouvelle !== null) onPart(nouvelle);
   });
 
-  /** Met a jour ce qui depend du curseur, sans toucher au curseur lui-meme. */
-  function majPart(part, courantes = lignes) {
-    curseur.value = String(Math.round((part ?? 0.5) * CRANS));
+  /** Dernier etat montre, pour pouvoir redessiner au seul survol. */
+  let vue = { courantes: lignes, retenu: null };
 
-    const retenu = palierRetenu(courantes, part);
-    const quoi = consequenceDe(courantes, retenu);
+  /** Ce que montre la consequence : le point survole prime sur le retenu. */
+  function majConsequence() {
+    const rang = survole ?? vue.retenu;
+    const quoi = consequenceDe(vue.courantes, rang);
+    consequence.classList.toggle('survolee', survole !== null);
     consequence.replaceChildren(...(quoi ? [
       el('span', {}, el('b', { class: 'n', text: nombre(quoi.degats) }),
         el('em', { text: 'degats' })),
       el('span', {}, el('b', { class: 'n', text: nombre(quoi.endurance) }),
         el('em', { text: 'pdv effectifs' })),
     ] : []));
+  }
 
-    // Le canvas n'a sa taille qu'une fois pose dans la page : dessiner avant
-    // donnerait un trace de zero pixel de large.
+  /**
+   * Redessine le trace.
+   *
+   * Le canvas n'a sa taille qu'une fois pose dans la page : dessiner avant
+   * donnerait un trace de zero pixel de large.
+   */
+  function redessiner() {
+    majConsequence();
     requestAnimationFrame(() => {
       traces = dessinerCourbe(toile, {
-        lignes: courantes, axe: AXE_ENDURANCE, retenu,
+        lignes: vue.courantes, axe: AXE_ENDURANCE, retenu: vue.retenu, survole,
         libelles: { x: 'pdv effectifs', y: 'degats' },
       });
     });
+  }
+
+  /** Met a jour ce qui depend du curseur, sans toucher au curseur lui-meme. */
+  function majPart(part, courantes = lignes) {
+    curseur.value = String(Math.round((part ?? 0.5) * CRANS));
+    vue = { courantes, retenu: palierRetenu(courantes, part) };
+    redessiner();
   }
 
   return { racine, signature, majPart };

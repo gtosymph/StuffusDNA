@@ -324,6 +324,7 @@ function renderSorts() {
   const sorts = sortsCalcules(etat);
   $('compte-sorts').textContent = String(sorts.length);
   $('chips-sorts').replaceChildren(...etat.sorts.map((sort) => el('span', { class: 'chip' },
+    sort.icon ? el('img', { src: sort.icon, alt: '', decoding: 'async' }) : null,
     sort.name ?? sort.fr ?? String(sort.id),
     el('button', {
       type: 'button', text: '×', title: `Enlever ${sort.name ?? sort.fr ?? 'ce sort'}`,
@@ -388,8 +389,12 @@ function renderAvoir(stats, degats) {
   $('limites').replaceChildren(...etat.conditions.map((c) => {
     const valeur = conditionValue(c.stat, stats, degats ?? 0);
     const tenu = valeur >= c.target;
+    const icone = iconeStat(c.stat);
     return el('div', { class: `limite ${tenu ? '' : 'defaut'}`.trim() },
       el('i', { class: `etat ${tenu ? 'tenue' : 'defaut'}` }),
+      icone
+        ? el('img', { class: 'limite-icone', src: icone, alt: '', decoding: 'async' })
+        : el('span', { class: 'limite-icone' }),
       el('span', { class: 'limite-nom', text: STAT_LABELS[c.stat] ?? c.stat }),
       el('b', { class: 'n', text: `${nombre(valeur)} / ${nombre(c.target)}` }),
       el('button', {

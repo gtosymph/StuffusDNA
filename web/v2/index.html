@@ -71,8 +71,8 @@
       <p class="chapeau pliable">Au minimum <span class="compte" id="compte-limites">0</span></p>
       <div id="limites"></div>
       <p class="aide">Cliquez n'importe quel chiffre de la fiche pour en garder au moins autant.</p>
-      <button class="btn mini fantome" id="regler-minimums" type="button"
-        style="padding-left:0">Regler mes minimums…</button>
+      <button class="btn" id="regler-minimums" type="button"
+        style="width:100%;justify-content:center;margin-top:10px">Regler mes minimums…</button>
       <div class="rangee-jeux">
         <select id="sets-conditions" aria-label="Jeux de minimums enregistres"></select>
         <button class="btn mini" id="charger-conditions" type="button" title="Reprendre ce jeu">Reprendre</button>
@@ -92,32 +92,45 @@
 
   <main class="volet">
     <div class="scene">
-      <div class="plateau" id="plateau"></div>
-
+      <!-- Le verdict encadre le personnage au lieu de s'empiler sous lui :
+           la place a gauche et a droite du plateau etait perdue, et la page
+           demandait de defiler avant de montrer un seul resultat. -->
       <dl class="verdict">
-        <div>
-          <dt>Degats</dt>
-          <dd class="n vide-mesure" id="v-degats">—</dd>
-          <div id="degats-sans-sorts">
-            <button class="appel" id="appel-sorts" type="button">Choisissez des sorts pour compter des degats</button>
+        <div class="verdict-cote">
+          <div class="mesure-cle">
+            <dt>Degats</dt>
+            <dd class="n vide-mesure" id="v-degats">—</dd>
+            <div id="degats-sans-sorts">
+              <button class="appel" id="appel-sorts" type="button">Choisissez des sorts pour compter des degats</button>
+            </div>
+            <div id="degats-avec-sorts" hidden>
+              <small id="degats-phrase"></small>
+            </div>
+            <div class="options-mesure" id="options-degats"></div>
           </div>
-          <div id="degats-avec-sorts" hidden>
-            <small id="degats-phrase"></small>
-          </div>
-          <div class="options-mesure" id="options-degats"></div>
-          <div id="carte-combo"></div>
-          <div id="carte-arme"></div>
         </div>
 
-        <div>
-          <dt>Pdv effectifs</dt><dd class="n" id="v-pdv">—</dd>
-          <small id="pdv-phrase"></small>
-          <div class="options-mesure" id="options-pdv"></div>
-        </div>
+        <div class="plateau" id="plateau"></div>
 
-        <div><dt>A acheter</dt><dd class="n" id="v-achats">—</dd>
-          <small id="achats-phrase">face a votre stuff actuel</small></div>
+        <div class="verdict-cote">
+          <div class="mesure-cle">
+            <dt>Pdv effectifs</dt><dd class="n" id="v-pdv">—</dd>
+            <small id="pdv-phrase"></small>
+            <div class="options-mesure" id="options-pdv"></div>
+          </div>
+          <div class="mesure-cle">
+            <dt>A acheter</dt><dd class="n" id="v-achats">—</dd>
+            <small id="achats-phrase">face a votre stuff actuel</small>
+          </div>
+        </div>
       </dl>
+
+      <!-- D'ou viennent CES degats-la : le detail se lit sous le verdict, pas
+           dedans. Dans le verdict, il l'ecrasait. -->
+      <div class="detail-degats">
+        <div id="carte-combo"></div>
+        <div id="carte-arme"></div>
+      </div>
 
       <div class="regle"></div>
 

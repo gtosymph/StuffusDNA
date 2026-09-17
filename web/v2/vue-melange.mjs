@@ -5,9 +5,18 @@
  * reglage. On tire le curseur, le marqueur glisse sur la courbe ; on clique la
  * courbe, le curseur suit. Separes, ni l'un ni l'autre ne se comprend.
  *
- * Le curseur ne montre pas son pourcentage. « 62 % de degats » ne se decide
- * pas : ce qui se decide, c'est « 1 200 degats contre 4 200 pdv effectifs ».
- * Le pourcentage est le moyen, pas la question.
+ * Le curseur montre son pourcentage sous les deux bornes. Il ne se decide
+ * pas — ce qui se decide, c'est « 1 200 degats contre 4 200 pdv effectifs » —
+ * mais sans lui le point retenu tombe du ciel : deux reglages voisins peuvent
+ * retenir le meme stuff, et rien ne disait ou on se trouvait entre les deux.
+ * Le chiffre explique la place du marqueur, pas l'inverse.
+ *
+ * LE CURSEUR VA DANS LE MEME SENS QUE LA COURBE. L'axe horizontal du trace
+ * porte les pdv effectifs, qui montent vers la droite. Un curseur dont la
+ * droite voulait dire « frapper » faisait donc glisser le marqueur vers la
+ * GAUCHE quand on le poussait a droite : les deux vues du meme reglage se
+ * contredisaient a chaque geste. Ici la droite veut dire « encaisser », comme
+ * sur la courbe, et le marqueur suit le pouce.
  *
  * Le bloc ne se reconstruit QUE si la courbe a change. Tirer le curseur pose
  * un nouvel etat, donc redessine l'application entiere : reconstruire le
@@ -17,7 +26,9 @@ import { el } from '../render.mjs';
 import { lignesSurvie, palierRetenu } from '../survie-panel.mjs';
 import { dessinerCourbe, pointLePlusProche } from '../courbe-survie.mjs';
 import { AXE_ENDURANCE } from '../../src/solver/survie.mjs';
-import { consequenceDe, partPourPalier } from './melange.mjs';
+import {
+  bornesEnPourcent, choixAuClic, consequenceDe, signatureCourbe,
+} from './melange.mjs';
 
 const nombre = (n) => Math.round(n).toLocaleString('fr-FR');
 
@@ -26,10 +37,6 @@ const CRANS = 100;
 
 /** Ce qui est monte dans la page, pour ne pas le refaire sans raison. */
 let monte = null;
-
-/** Deux courbes sont la meme si elles portent les memes paliers. */
-const signatureDe = (lignes) => lignes
-  .map((l) => `${l.palier.damage}/${l.palier.endurance}`).join('|');
 
 /**
  * Dessine le reglage du melange.
@@ -40,52 +47,67 @@ const signatureDe = (lignes) => lignes
  * @param {{damage: number, endurance: number, pdv: number}|null} liens.porte
  * @param {number} liens.part Part des degats courante.
  * @param {(part: number) => void} liens.onPart
+ * @param {(palier: any, part: number) => void} liens.onChoisir Pose le stuff
+ *   d'un point de la courbe, et le reglage qui le designe.
  */
-export function renderMelange(racine, { paliers, porte, part, onPart }) {
+export function renderMelange(racine, { paliers, porte, part, onPart, onChoisir }) {
   const lignes = lignesSurvie(paliers ?? [], porte, AXE_ENDURANCE);
-  const signature = signatureDe(lignes);
+  const signature = signatureCourbe(lignes);
 
   if (!monte || monte.racine !== racine || monte.signature !== signature) {
-    monte = construire(racine, lignes, signature, onPart);
+    monte = construire(racine, lignes, signature, onPart, onChoisir);
   }
   monte.majPart(part, lignes);
 }
 
 /** Monte le bloc une fois, et rend de quoi le mettre a jour. */
-function construire(racine, lignes, signature, onPart) {
+function construire(racine, lignes, signature, onPart, onChoisir) {
+  // Le cran lu est une part d'ENCAISSE : la part des degats est son
+  // complement. Tout le reste de l'application raisonne en part de degats,
+  // la conversion tient donc en un seul endroit, ici.
   const curseur = el('input', {
     type: 'range', class: 'melange-curseur',
     min: '0', max: String(CRANS), value: '50',
-    'aria-label': 'Part des degats',
-    onInput: (ev) => onPart(Number(ev.target.value) / CRANS),
+    'aria-label': 'Equilibre entre frapper et encaisser',
+    onInput: (ev) => onPart(1 - (Number(ev.target.value) / CRANS)),
   });
 
   // Sans recherche, il n'y a pas de courbe : le curseur reste utile, mais il
   // ne peut rien promettre. Mieux vaut le dire que montrer un cadre vide.
+  const bornes = el('div', { class: 'melange-bornes' },
+    el('span', {}, el('b', { class: 'n' }), ' frapper'),
+    el('span', {}, 'encaisser ', el('b', { class: 'n' })));
+
+  /** Ecrit les deux pourcentages sous le curseur, dans le sens du trace. */
+  const majBornes = (part) => {
+    const { frapper, encaisser } = bornesEnPourcent(part);
+    const [gauche, droite] = bornes.querySelectorAll('b');
+    gauche.textContent = `${frapper} %`;
+    droite.textContent = `${encaisser} %`;
+  };
+
   if (lignes.length === 0) {
-    racine.replaceChildren(curseur,
-      el('div', { class: 'melange-bornes' },
-        el('span', { text: 'encaisser' }), el('span', { text: 'frapper' })),
+    racine.replaceChildren(curseur, bornes,
       el('p', { class: 'aide',
         text: 'Lancez une recherche : la courbe montrera ce que chaque reglage '
           + 'vous coute et vous rapporte.' }));
 
     return {
       racine, signature,
-      majPart: (part) => { curseur.value = String(Math.round((part ?? 0.5) * CRANS)); },
+      majPart: (part) => {
+        curseur.value = String(CRANS - Math.round((part ?? 0.5) * CRANS));
+        majBornes(part);
+      },
     };
   }
 
   const consequence = el('div', { class: 'consequence' });
   const toile = el('canvas', { class: 'melange-courbe', height: '120' });
 
-  racine.replaceChildren(consequence, curseur,
-    el('div', { class: 'melange-bornes' },
-      el('span', { text: 'encaisser' }), el('span', { text: 'frapper' })),
-    toile,
+  racine.replaceChildren(consequence, curseur, bornes, toile,
     el('p', { class: 'aide',
       text: 'Chaque point est le meilleur stuff a ce niveau d\'encaisse. '
-        + 'Cliquez-en un pour y regler le curseur.' }));
+        + 'Cliquez-en un pour le porter.' }));
 
   let traces = [];
 
@@ -121,11 +143,28 @@ function construire(racine, lignes, signature, onPart) {
     redessiner();
   });
 
+  /*
+   * Un clic pose le stuff, il ne bouge pas seulement le curseur.
+   *
+   * La courbe montre des stuffs : chaque point EST un stuff entier, avec ses
+   * pieces et sa repartition de points. Deplacer le seul curseur laissait le
+   * joueur devant le meme personnage qu'avant son clic, sans rien qui dise ou
+   * etait passe le stuff qu'il venait de designer.
+   *
+   * Le reglage suit dans le meme geste : sans lui, la prochaine recherche
+   * viserait encore l'ancien compromis et reprendrait le stuff choisi.
+   */
   toile.addEventListener('click', (ev) => {
     const point = sous(ev);
     if (!point) return;
-    const nouvelle = partPourPalier(lignes, point.rang);
-    if (nouvelle !== null) onPart(nouvelle);
+    const choix = choixAuClic(lignes, point.rang);
+    if (!choix) return;
+
+    if (onChoisir && choix.palier) {
+      onChoisir(choix.palier, choix.part ?? 0.5);
+      return;
+    }
+    if (choix.part !== null) onPart(choix.part);
   });
 
   /** Dernier etat montre, pour pouvoir redessiner au seul survol. */
@@ -162,7 +201,8 @@ function construire(racine, lignes, signature, onPart) {
 
   /** Met a jour ce qui depend du curseur, sans toucher au curseur lui-meme. */
   function majPart(part, courantes = lignes) {
-    curseur.value = String(Math.round((part ?? 0.5) * CRANS));
+    curseur.value = String(CRANS - Math.round((part ?? 0.5) * CRANS));
+    majBornes(part);
     vue = { courantes, retenu: palierRetenu(courantes, part) };
     redessiner();
   }

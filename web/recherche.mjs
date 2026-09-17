@@ -32,7 +32,8 @@ const nombre = (n) => n.toLocaleString('fr-FR');
  * @param {(id: string) => HTMLElement} deps.$
  * @param {() => any} deps.lireEtat Etat courant de l'application.
  * @param {(patch: object) => void} deps.setEtat
- * @param {(resultat: any) => void} deps.appliquer Pose un build sur le personnage.
+ * @param {(resultat: any, aussi?: object) => void} deps.appliquer Pose un build
+ *   sur le personnage, avec au besoin des reglages poses dans le meme etat.
  * @param {(texte: string, type?: string) => void} deps.message
  * @param {() => void} deps.garderSimulation Range le build porte, s'il est nouveau.
  */
@@ -96,12 +97,18 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
 
   /**
    * Pose un build choisi a la main, et arrete le suivi de la recherche.
+   *
    * @param {any} resultat
+   * @param {object} [aussi] Reglages a poser dans le MEME etat que le build.
+   *   Choisir un point sur la courbe pose a la fois le stuff et la part des
+   *   degats qui le designe : deux etats separes rendraient l'annulation
+   *   fausse, puisqu'un seul Ctrl+Z laisserait le curseur ailleurs que le
+   *   stuff qu'il a fait porter.
    */
-  function porterAlaMain(resultat) {
+  function porterAlaMain(resultat, aussi = null) {
     const suivait = suiviAuto && recherche !== null;
     suiviAuto = false;
-    appliquer(resultat);
+    appliquer(resultat, aussi);
     if (suivait) {
       message('Le personnage ne suit plus la recherche : votre choix reste en place. '
         + 'Le prochain lancement rend la main au solveur.', 'info');
@@ -114,6 +121,29 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     message('Mise en pause…', 'info');
     recherche?.stop();
   }
+
+  /**
+   * Coupe la recherche net.
+   *
+   * La difference avec la pause n'est pas une nuance : la pause DEMANDE aux
+   * fils de conclure et attend leur meilleur build, ce qui prend plusieurs
+   * secondes ; l'arret les coupe au milieu de leur vague et ne garde rien de
+   * ce qu'ils avaient en main.
+   *
+   * @returns {boolean} Vrai si une recherche a ete coupee.
+   */
+  function abandonner() {
+    if (!recherche) return false;
+    // L'etat passe a « arretee » tout de suite : la boucle met encore un
+    // instant a rendre la main, et pendant ce temps le bouton continuait
+    // d'annoncer une recherche qui n'existait plus.
+    enCours = false;
+    recherche.abandon();
+    return true;
+  }
+
+  /** Vrai tant qu'une recherche tourne. */
+  const tourne = () => enCours;
 
   /**
    * Lance une recherche continue.
@@ -137,12 +167,17 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     let finBoucle;
     boucle = new Promise((resolve) => { finBoucle = resolve; });
 
-    // Une recherche neuve rend la main au solveur et efface ses propositions :
-    // celles d'avant repondaient a d'autres reglages, les garder a l'ecran
-    // ferait porter un build qui ne correspond plus a ce qui est demande.
+    // Une recherche neuve rend la main au solveur.
+    //
+    // Elle n'efface ses propositions QUE si elle repart de zero. Les effacer a
+    // chaque lancement faisait disparaitre la courbe du compromis pendant
+    // toute la recherche — plusieurs minutes d'ecran vide, alors que les
+    // points d'avant restaient la meilleure reponse connue jusqu'a ce que les
+    // nouveaux arrivent. Un depart de zero, lui, jette vraiment le passe.
     suiviAuto = true;
     const depart = lireEtat();
-    if ([depart.candidats, depart.paliers, depart.survie].some((liste) => (liste ?? []).length > 0)) {
+    if (deZero && [depart.candidats, depart.paliers, depart.survie]
+      .some((liste) => (liste ?? []).length > 0)) {
       setEtat({ candidats: [], paliers: [], survie: [] });
     }
 
@@ -219,6 +254,14 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
           if (maintenant - dernierGraphe >= INTERVALLE_GRAPHE_MS) {
             dernierGraphe = maintenant;
             dessiner();
+
+            // Les paliers de la vague passent dans l'etat au meme rythme : la
+            // courbe du compromis se construit sous les yeux du joueur au lieu
+            // de rester celle de la recherche precedente jusqu'a la pause.
+            const frontieres = {};
+            if (Array.isArray(vague.paliersFondus)) frontieres.paliers = vague.paliersFondus;
+            if (Array.isArray(vague.survieFondue)) frontieres.survie = vague.survieFondue;
+            if (Object.keys(frontieres).length > 0) setEtat(frontieres);
           }
           if (maintenant - dernierEnregistrement >= INTERVALLE_ENREGISTREMENT_MS) {
             dernierEnregistrement = maintenant;
@@ -262,5 +305,5 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     }
   }
 
-  return { lancer, arreter, porterAlaMain, reprendre, dessiner };
+  return { lancer, arreter, abandonner, tourne, porterAlaMain, reprendre, dessiner };
 }

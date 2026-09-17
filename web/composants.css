@@ -1,0 +1,561 @@
+/* ===========================================================================
+   Les composants communs aux deux coquilles.
+   ===========================================================================
+
+   Une fiche de piece, une infobulle, un stuff trouve, un palier d'achat, un
+   essai garde : ces objets sont dessines par les MEMES modules de `web/`,
+   quel que soit l'ecran qui les accueille. Leurs regles vivaient pourtant en
+   deux exemplaires, et chaque correction demandait d'etre faite deux fois —
+   ou n'etait faite qu'une, ce qui est pire.
+
+   Ce fichier les tient une seule fois. Il ne connait que des JETONS, jamais
+   une couleur en dur : `--surface-2`, `--filet`, `--jade`, `--mono`. Chaque
+   coquille les definit depuis sa propre palette, et les themes de v1
+   continuent de les faire bouger sans rien savoir de ce fichier.
+
+   Il se charge AVANT la feuille de la coquille : ce qui suit peut donc le
+   corriger sans lutte de specificite. Une regle qui n'a de sens que dans un
+   seul des deux ecrans n'a rien a faire ici. */
+
+/* ============================================ Fiche d'une piece et bulle ===
+
+   `item-panel.mjs` et `hover-card.mjs` se reutilisent tels quels, mais ils
+   posent leur balisage en comptant sur `styles.css`, que v2 ne charge pas :
+   sans ces regles, la fiche tombe en bas de page, sans cadre ni couleur.
+
+   Les valeurs ne sont pas copiees de v1 : elles sont reecrites avec les
+   jetons de v2. Les deux ecrans gardent ainsi chacun leur habillage, et une
+   retouche de l'un ne deteint pas sur l'autre. */
+
+.fiche-fond {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--voile);
+  backdrop-filter: blur(2px);
+}
+
+.fiche {
+  width: min(430px, 100%); max-height: 86vh; overflow-y: auto;
+  padding: 16px;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px var(--ombre);
+}
+
+.fiche-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.fiche-tete img { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
+.fiche-tete > div { flex: 1; min-width: 0; }
+.fiche-nom { font-size: 14px; font-weight: 640; color: var(--texte); }
+.fiche-sous { font-size: 11px; color: var(--texte-3); }
+
+.fiche-condition, .fiche-note, .fiche-arme, .fiche-passif {
+  margin: 0 0 10px; padding: 8px 10px;
+  background: var(--surface-2); border-radius: var(--r);
+  font-size: 11.5px; color: var(--texte-2);
+}
+.fiche-condition .cle { color: var(--ambre); margin-right: 6px; }
+.fiche-condition code { font-family: var(--mono); color: var(--texte); word-break: break-all; }
+.titre-arme, .titre-arme-calc, .titre-passif {
+  font-size: 10px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase;
+  color: var(--texte-3); margin-bottom: 5px;
+}
+
+.fiche-stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0 0 14px; }
+.fiche-stats dt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texte-2); }
+.fiche-stats dt img { width: 15px; height: 15px; object-fit: contain; }
+.fiche-stats dd {
+  margin: 0; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px;
+}
+.fiche-stats dd.pos { color: var(--jade); }
+.fiche-stats dd.neg { color: var(--rose); }
+
+.fiche-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.fiche-actions button {
+  flex: 1 1 auto; min-height: 28px; padding: 0 12px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
+}
+.fiche-actions button:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.fiche-actions button.primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.fiche-actions button.danger { color: var(--rose); border-color: var(--iris-sourd); }
+.fiche-actions button.possede { color: var(--jade); border-color: var(--jade); }
+/* Le bouton « × » de la tete n'est pas une action : il ne prend pas de place. */
+.fiche-tete .mini {
+  flex: none; width: 24px; height: 24px; padding: 0; cursor: pointer;
+  background: transparent; border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-3); font: 13px/1 var(--ui);
+}
+.fiche .note { font-size: 11.5px; color: var(--texte-3); margin: 0 0 12px; }
+
+/* L'infobulle suit la souris : elle ne doit jamais attraper le clic, sans
+   quoi elle se placerait entre le curseur et la piece qu'elle decrit. */
+/* L'infobulle suit le pointeur : elle doit tenir dans un coup d'oeil.
+
+   Elle faisait SIX CENT QUATRE-VINGTS pixels de haut. L'image de la piece y
+   sortait a sa taille d'origine — deux cent soixante pixels de cote — et
+   chaque statistique prenait deux lignes, parce que son icone, posee en
+   element en ligne, repoussait le libelle sous elle.
+
+   La forme est maintenant celle d'une etiquette : un bandeau qui nomme, une
+   grille d'une ligne par mesure, un pied qui dit ou cliquer. Elle tient en
+   trois cents pixels, et la piece qu'elle decrit reste visible derriere. */
+
+.bulle {
+  position: fixed; z-index: 90; pointer-events: none;
+  width: 246px;
+  background: var(--surface-2); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 12px 34px var(--ombre);
+  overflow: hidden;
+  font-size: 11px; color: var(--texte-2);
+}
+
+/* --- Le bandeau : la vignette, le nom, le type --- */
+
+.bulle-tete {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  background: var(--surface-3); border-bottom: 1px solid var(--filet);
+}
+/* Une vignette, pas une illustration : elle identifie la piece, elle ne la
+   montre pas. La fiche complete, elle, a la place de la montrer. */
+.bulle-tete img {
+  width: 34px; height: 34px; flex: none;
+  object-fit: contain;
+}
+.bulle-tete > div { min-width: 0; }
+.bulle-nom {
+  font-size: 12px; font-weight: 620; color: var(--texte); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bulle-sous { font-size: 10px; color: var(--texte-3); }
+
+/* --- Les mesures : une ligne chacune, l'icone dans sa propre colonne --- */
+
+.bulle-stats {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center; gap: 0 7px;
+  margin: 0; padding: 7px 10px;
+}
+/* `dt` porte l'icone ET le libelle : il occupe donc deux colonnes, et sa
+   propre grille les separe. Sans cela l'icone tombait sur sa ligne. */
+.bulle-stats dt {
+  grid-column: 1 / 3;
+  display: grid; grid-template-columns: subgrid; align-items: center;
+  min-width: 0; font-size: 11px; line-height: 17px;
+}
+.bulle-stats dt img { width: 14px; height: 14px; object-fit: contain; }
+.bulle-stats dt span {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bulle-stats dd {
+  margin: 0; text-align: right; line-height: 17px;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
+}
+.bulle-stats dd.pos { color: var(--jade); }
+.bulle-stats dd.neg { color: var(--rose); }
+
+/* --- Ce qui s'intercale : condition, arme, passif --- */
+
+.bulle-condition {
+  padding: 5px 10px; color: var(--ambre);
+  background: color-mix(in srgb, var(--ambre) 8%, transparent);
+  border-bottom: 1px solid var(--filet);
+}
+.bulle-arme, .bulle-arme-calc, .bulle-passif {
+  padding: 6px 10px; border-top: 1px solid var(--filet);
+}
+.bulle-arme-lignes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.bulle-arme-moyenne, .bulle-arme-cout {
+  color: var(--texte); font-family: var(--mono); font-size: 10.5px;
+}
+.bulle-passif .titre-passif { color: var(--ambre); font-size: 10px; margin-bottom: 3px; }
+
+.bulle-reste, .bulle-vide {
+  padding: 0 10px 7px; color: var(--texte-3); font-size: 10px;
+}
+/* Le pied dit le seul geste possible : il ferme la carte, il ne flotte pas. */
+.bulle-aide {
+  padding: 5px 10px; color: var(--texte-3); font-size: 10px;
+  background: var(--surface-3); border-top: 1px solid var(--filet);
+}
+
+/* ===================================== Overlay du choix des sorts ===
+
+   Meme situation que la fiche : `spell-picker.mjs` se reutilise tel quel,
+   mais son habillage vit dans `styles.css`. Les regles sont reecrites avec
+   les jetons de v2. Voir ETAT.md, « la dette d'habillage ». */
+
+.picker-fond {
+  position: fixed; inset: 0; z-index: 85;
+  display: grid; place-items: center; padding: 16px;
+  background: var(--voile);
+}
+.picker {
+  width: min(880px, 100%); max-height: 86vh;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  border-radius: var(--r-lg); box-shadow: 0 20px 56px var(--ombre);
+}
+.picker-tete {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 16px 10px; border-bottom: 1px solid var(--filet);
+}
+.picker-tete > div:first-child { flex: 1; }
+.picker-titre { font-size: 15px; font-weight: 640; color: var(--texte); }
+.picker-sous { font-size: 11px; color: var(--texte-3); }
+.picker-tete .mini, .picker-filtres .mini {
+  height: 24px; padding: 0 9px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.picker-tete .mini:hover, .picker-filtres .mini:hover { color: var(--texte); }
+.picker-filtres {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 16px; border-bottom: 1px solid var(--filet);
+}
+.picker-filtres input[type="search"] { flex: 1; min-width: 0; }
+.picker-elements { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.picker-elements .espace { flex: 1; }
+.picker-liste {
+  overflow-y: auto; padding: 10px 16px 14px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+
+.couple-sorts {
+  display: grid; gap: 4px; padding: 5px; border-radius: var(--r); align-items: stretch;
+  background: var(--fond); border: 1px solid var(--filet);
+}
+.couple-sorts.duo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.couple-sorts .carte-sort { min-width: 0; }
+.lien-couple {
+  display: grid; place-items: center; padding: 0 2px;
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--texte-3);
+}
+@media (max-width: 700px) {
+  .couple-sorts.duo { grid-template-columns: minmax(0, 1fr); }
+  .couple-sorts.duo .lien-couple { padding: 2px 0; }
+}
+
+.carte-sort {
+  padding: 8px 10px; border-radius: 7px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+/* Un sort deja pris porte le lisere de l'accent en plus de son fond : la
+   couleur seule ne dit pas assez qu'il est retenu. */
+.carte-sort.prise { border-color: var(--iris); background: var(--iris-fond); }
+.tete-sort { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.tete-sort img { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; flex: 0 0 26px; }
+.tete-sort .ident { flex: 1; min-width: 0; }
+.tete-sort .nom { font-size: 13px; font-weight: 620; color: var(--texte); }
+.tete-sort .meta { font-size: 10px; color: var(--texte-3); font-family: var(--mono); }
+
+.variantes { display: flex; flex-wrap: wrap; gap: 4px; }
+.variante {
+  display: flex; align-items: baseline; gap: 6px; cursor: pointer;
+  padding: 4px 9px; font-size: 11px; border-radius: 5px;
+  background: var(--surface-3); border: 1px solid var(--filet);
+  border-left: 3px solid var(--teinte, var(--iris));
+  color: var(--texte-2);
+}
+.variante:hover { border-color: var(--filet-clair); color: var(--texte); }
+.variante .niv { color: var(--texte-3); font: 400 10px var(--mono); }
+.variante .plage { font: 620 11px var(--mono); color: var(--texte); }
+.variante .cc { font: 400 10px var(--mono); color: var(--ambre); }
+.picker .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* Les sorts retenus, dans le volet de gauche. */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 5px 3px 9px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--filet);
+  font-size: 11.5px; color: var(--texte-2);
+}
+.chip button {
+  width: 17px; height: 17px; padding: 0; cursor: pointer;
+  background: transparent; border: 0; border-radius: 999px;
+  color: var(--texte-3); font: 12px/1 var(--ui);
+}
+.chip button:hover { background: var(--surface-3); color: var(--rose); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* =========================================== Les stuffs trouves ===
+
+   Une ligne se lit comme une DIFFERENCE face au stuff porte : ce qui entre,
+   ce qui sort, ce que l'echange rapporte. */
+
+.candidats { display: grid; gap: 6px; }
+.candidat {
+  padding: 7px 9px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.candidat.porte { border-color: var(--iris); }
+.candidat-tete { display: flex; align-items: center; gap: 8px; }
+.candidat-score {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: 620; color: var(--jade);
+}
+.candidat-ecart { font-family: var(--mono); font-size: 11px; }
+.candidat-ecart.pos { color: var(--jade); }
+.candidat-ecart.neg { color: var(--ambre); }
+.candidat-changements { flex: 1; font-size: 10px; color: var(--texte-3); }
+.candidat-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
+.candidat-legende {
+  font-size: 8px; text-transform: uppercase; letter-spacing: .4px; color: var(--texte-3);
+}
+/* Le lisere dit le sens de l'echange ; l'opacite le double sur les sortantes,
+   pour qui ne separe pas le vert du gris. */
+.piece-candidat { width: 26px; height: 26px; border-radius: 4px; border: 1px solid transparent; }
+.piece-candidat.entrante { border-color: var(--jade); }
+.piece-candidat.sortante { border-color: var(--filet); opacity: .55; }
+.candidat-marque {
+  padding: 0 5px; border-radius: 999px; white-space: nowrap;
+  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--jade); border: 1px solid var(--jade);
+}
+.candidat-marque.defaut { color: var(--rose); border-color: var(--rose); }
+.candidat .mini {
+  height: 22px; padding: 0 8px; cursor: pointer;
+  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.candidat .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+#trouves .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* Le mode « caracteristiques » n'est pas un des trois segments : c'est l'etat
+   ou l'outil se met faute de degats a compter. Tant qu'il dure, aucun segment
+   n'est enfonce, et le groupe s'efface au lieu de paraitre casse. */
+.segmente.sans-choix button { opacity: .5; }
+
+/* Des reglages ont bouge depuis la derniere recherche : le bouton le dit.
+   La pastille double le changement de mot, qui passe seul inapercu dans une
+   barre ou rien d'autre ne bouge. */
+.btn.rappel { background: var(--ambre); border-color: var(--ambre); color: var(--sur-ambre); }
+.btn.rappel:hover { background: color-mix(in srgb, var(--ambre) 84%, white); border-color: color-mix(in srgb, var(--ambre) 84%, white); }
+.btn .puce {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: currentColor; flex: none;
+}
+
+/* ============================================== Proche de mon stuff ===
+
+   Le meilleur stuff du solveur demande souvent seize pieces neuves. Un
+   joueur deja equipe veut savoir ce qu'UNE piece changee lui rapporte. */
+
+.proximite-barre {
+  display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-bottom: 9px;
+}
+.proximite-barre .note { margin: 0; flex: 1 1 100%; min-width: 0; font-size: 11.5px; color: var(--texte-3); }
+.proximite-barre .jeton { white-space: nowrap; }
+.proximite-barre .jeton.banque { color: var(--jade); border-color: var(--jade); background: none; }
+.proximite-barre .primaire, .proximite-barre .mini {
+  height: 26px; padding: 0 11px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
+}
+.proximite-barre .primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
+.proximite-barre .primaire:disabled { background: var(--surface-2); border-color: var(--filet); color: var(--texte-3); cursor: default; }
+.proximite-barre .mini:hover { border-color: var(--filet-clair); }
+
+.proximite-max { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--texte-3); }
+.proximite-max input {
+  width: 56px; height: 24px; padding: 0 5px; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+
+.paliers { display: flex; flex-direction: column; gap: 5px; }
+.palier {
+  display: grid; grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 10px; align-items: center;
+  padding: 6px 8px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.palier:hover { border-color: var(--filet-clair); }
+
+/* Le cout se lit avant le gain : c'est lui que le joueur arbitre. */
+.palier-cout {
+  display: grid; place-items: center;
+  padding: 4px 0; border-radius: 5px; background: var(--fond);
+}
+.palier-cout strong {
+  font: 620 15px/1.1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ambre);
+}
+.palier-cout span { font-size: 9px; color: var(--texte-3); }
+/* Un palier sans achat se distingue : le gain y est entierement gratuit. */
+.palier-cout.gratuit strong { color: var(--jade); }
+
+.palier-corps { min-width: 0; }
+.palier-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.palier-degats, .palier-score {
+  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+}
+.palier-ecart, .palier-gain {
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-3);
+}
+.palier-score.pos, .palier-gain.pos { color: var(--jade); }
+.palier-score.neg, .palier-gain.neg { color: var(--rose); }
+
+.palier-pieces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.palier-pieces img { width: 24px; height: 24px; object-fit: contain; }
+
+/* La ligne de depart n'est pas une proposition : elle rappelle d'ou l'on part. */
+.palier.depart { background: none; border-style: dashed; }
+.palier.depart .palier-degats, .palier.depart .palier-score { color: var(--texte-3); }
+
+/* Ce qu'un chiffre ne dit pas : un minimum redresse, un minimum perdu. */
+.palier-marque {
+  padding: 0 5px; border-radius: 999px; white-space: nowrap;
+  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--jade); border: 1px solid var(--jade);
+}
+.palier-marque.defaut { color: var(--rose); border-color: var(--rose); }
+.palier .mini.large {
+  height: 24px; padding: 0 10px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-3); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.palier .mini.large:hover { color: var(--texte); border-color: var(--filet-clair); }
+#paliers .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* ============================================= Bonus de panoplie ===
+
+   Chaque panoplie apporte (pieces − 1) bonus : c'est ce compte que les
+   trophees verifient, pas le nombre de panoplies. */
+
+.panoplies { display: grid; gap: 7px; }
+.panoplie {
+  padding: 7px 9px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.panoplie-tete {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-bottom: 5px; font-size: 11.5px; color: var(--texte);
+}
+.panoplie-tete .pieces {
+  color: var(--iris); font-family: var(--mono); font-variant-numeric: tabular-nums;
+}
+.panoplie dl {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 0; font-size: 10.5px;
+}
+.panoplie dt { display: flex; align-items: center; gap: 5px; color: var(--texte-3); }
+.panoplie dt img { width: 14px; height: 14px; object-fit: contain; }
+.panoplie dd {
+  margin: 0; text-align: right;
+  font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+.panoplie dd.pos { color: var(--jade); }
+.panoplie dd.neg { color: var(--rose); }
+.panoplie img.piece, .panoplie .piece-panoplie { width: 22px; height: 22px; object-fit: contain; }
+
+/* ================================================ Analyse du stuff ===
+
+   La jauge occupe le FOND de la ligne : le nom garde toute la largeur, au
+   lieu d'etre coupe par une barre qui prendrait sa place. */
+
+.apports, .sensibilite, .remplacements { display: grid; gap: 3px; }
+.apport, .mesure, .remplacement {
+  position: relative; display: flex; align-items: center; gap: 7px;
+  padding: 4px 6px; border-radius: 4px; overflow: hidden; font-size: 11px;
+}
+.apport > *, .mesure > *, .remplacement > * { position: relative; z-index: 1; }
+.apport:hover, .mesure:hover, .remplacement:hover { background: var(--surface-2); }
+.apport-icone { width: 18px; height: 18px; flex: none; object-fit: contain; }
+.mesure-icone { width: 14px; height: 14px; flex: none; object-fit: contain; }
+.apport-nom, .mesure-nom {
+  flex: 1; min-width: 0; color: var(--texte-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.apport-jauge { position: absolute; inset: 0; z-index: 0; border-radius: 4px; }
+.apport-jauge i {
+  display: block; height: 100%; border-radius: 4px;
+  background: color-mix(in srgb, var(--iris) 26%, transparent);
+}
+.apport-valeur, .mesure-gain {
+  flex: none; text-align: right;
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+.apport-valeur.neg { color: var(--rose); }
+.apport-valeur.nul { color: var(--texte-3); }
+/* Une piece decisive porte l'ambre sur son nom EN PLUS de sa marque. */
+.apport.decisive .apport-nom { color: var(--ambre); }
+.apport-marque {
+  flex: none; width: 10px; text-align: center;
+  font: 700 11px var(--mono); color: var(--ambre);
+}
+.remplacement-fleche { flex: none; color: var(--texte-3); }
+.remplacement .apport-icone.vide {
+  display: inline-block; box-sizing: border-box;
+  border: 1px dashed var(--filet-clair); border-radius: 3px;
+}
+.remplacement .mini {
+  flex: none; height: 22px; padding: 0 8px; cursor: pointer;
+  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.remplacement .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+#bloc-analyse .note, #panoplies .note { font-size: 11.5px; color: var(--texte-3); }
+
+/* ================================================ Mes essais gardes ===
+
+   Quarante essais feraient une colonne interminable : la liste defile. */
+
+.simulations { display: flex; flex-direction: column; gap: 5px; max-height: 320px; overflow-y: auto; }
+.simulation {
+  display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+  align-items: center; gap: 9px;
+  padding: 6px 8px; border-radius: var(--r);
+  background: var(--surface-2); border: 1px solid var(--filet);
+}
+.simulation:hover { border-color: var(--filet-clair); }
+.simulation.cochee { border-color: var(--iris); background: var(--iris-fond); }
+/* Un favori se repere avant d'etre lu : le lisere le signale dans la pile. */
+.simulation.favori { border-left: 3px solid var(--ambre); }
+.simulation-favori {
+  padding: 0 3px; border: 0; background: none; cursor: pointer;
+  font-size: 14px; line-height: 1; color: var(--texte-3);
+}
+.simulation-favori:hover, .simulation-favori.actif { color: var(--ambre); }
+.simulation-coche { display: flex; align-items: center; }
+.simulation-coche input { accent-color: var(--iris); margin: 0; cursor: pointer; }
+.simulation-embleme { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.simulation-corps { min-width: 0; }
+.simulation-tete { display: flex; align-items: baseline; gap: 8px; }
+.simulation-nom {
+  flex: 1; min-width: 0; cursor: text;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; font-weight: 620; color: var(--texte);
+}
+.simulation-nom:hover {
+  text-decoration: underline dotted var(--filet-clair); text-underline-offset: 3px;
+}
+.simulation-score {
+  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+}
+.simulation-score.pos { color: var(--jade); }
+.simulation-score.neg { color: var(--rose); }
+.simulation-sous { font-size: 10px; color: var(--texte-3); }
+.simulation-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.simulation-actions .mini, .simulations .mini, .rangee-ajout .mini {
+  height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--r);
+  background: var(--surface-3); border: 1px solid var(--filet);
+  color: var(--texte-2); font: 11px/1 var(--ui);
+}
+.simulation-actions .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
+/* Le crayon reste discret tant que la ligne n'est pas survolee : la liste se
+   lit d'un coup d'oeil, elle ne montre pas un outil par ligne. */
+.simulation-renommer { opacity: .35; padding: 0 5px; }
+.simulation:hover .simulation-renommer, .simulation-renommer:focus-visible { opacity: 1; }
+@media (hover: none) { .simulation-renommer { opacity: 1; min-height: 28px; min-width: 28px; } }
+/* Le stuff de chaque essai, en une bande : deux essais au meme score se
+   distinguent alors sans les ouvrir. */
+.simulation-stuff { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.simulation-stuff img {
+  width: 19px; height: 19px; object-fit: contain;
+  border-radius: 3px; background: var(--fond);
+}
+.rangee-ajout .filtre-case {
+  flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--texte-2); cursor: pointer;
+}
+#simulations .note { font-size: 11.5px; color: var(--texte-3); }

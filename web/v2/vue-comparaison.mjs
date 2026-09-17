@@ -11,7 +11,8 @@
  */
 import { el } from '../render.mjs';
 import { piegerFocus } from '../focus-piege.mjs';
-import { lignesComparaison, nomDeColonne } from './comparaison.mjs';
+import { iconeStat } from '../icons.mjs';
+import { grouperParFamille, lignesComparaison, nomDeColonne } from './comparaison.mjs';
 
 let racine = null;
 let libererFocus = null;
@@ -67,6 +68,33 @@ export function ouvrirComparaison({ mesures, colonnes, minimums }) {
       el('small', { text: nombre(c.valeur) }));
   };
 
+  /* Une ligne de mesure : son icone, son nom, puis une cellule par stuff.
+
+     L'icone n'est pas un ornement. Le tableau melange quarante mesures dont
+     beaucoup portent des noms voisins — « Res. Feu », « % Res. Feu »,
+     « Dommages Feu » — et l'image les separe avant que le nom soit lu. */
+  const rangee = (ligne) => {
+    const icone = iconeStat(ligne.cle);
+    return el('tr', {},
+      el('th', { scope: 'row' },
+        el('span', { class: 'compare-nom' },
+          icone
+            ? el('img', { class: 'compare-icone', src: icone, alt: '', decoding: 'async' })
+            : el('span', { class: 'compare-icone' }),
+          el('span', { class: 'compare-libelle', text: ligne.libelle }),
+          ligne.absolue
+            ? el('span', { class: 'marque-min', title: 'Vous en exigez un minimum',
+                text: 'min' })
+            : null)),
+      ...ligne.cellules.map((c) => cellule(c, ligne)));
+  };
+
+  /* L'intitule d'une famille tient sur toute la largeur : c'est une
+     separation, pas une donnee. Une famille dont toutes les lignes ont ete
+     masquees n'apparait pas — `grouperParFamille` ne la cree pas. */
+  const intitule = (famille) => el('tr', { class: 'compare-famille' },
+    el('th', { scope: 'colgroup', colspan: String(colonnes.length + 1), text: famille }));
+
   const corps = lignes.length === 0
     ? el('p', { class: 'aide', style: 'padding:18px 16px',
         text: 'Ces stuffs ont exactement les memes valeurs sur toutes les mesures.' })
@@ -74,14 +102,10 @@ export function ouvrirComparaison({ mesures, colonnes, minimums }) {
         el('thead', {}, el('tr', {},
           el('th', { text: '' }),
           ...colonnes.map((c, i) => el('th', { text: c.nom ?? nomDeColonne(i) })))),
-        el('tbody', {}, ...lignes.map((ligne) => el('tr', {},
-          el('th', { scope: 'row' },
-            ligne.libelle,
-            ligne.absolue
-              ? el('span', { class: 'marque-min', title: 'Vous en exigez un minimum',
-                  text: 'min' })
-              : null),
-          ...ligne.cellules.map((c) => cellule(c, ligne))))));
+        el('tbody', {}, ...grouperParFamille(lignes).flatMap((groupe) => [
+          ...(groupe.famille ? [intitule(groupe.famille)] : []),
+          ...groupe.lignes.map(rangee),
+        ])));
 
   racine.replaceChildren(el('div', {
     class: 'compare-boite', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Comparer',

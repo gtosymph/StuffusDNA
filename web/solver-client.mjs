@@ -93,6 +93,10 @@ export function runSearch(request, { threads, onProgress, onWave }) {
     // Meilleur build vu en cours de route, par fil : si un fil tarde a rendre
     // son resultat final, son travail n'est pas perdu pour autant.
     const derniersResumes = new Map();
+    // Derniers paliers connus de chaque fil. Ils servent a montrer la courbe
+    // du compromis PENDANT la recherche : sans eux, elle reste celle de la
+    // recherche precedente jusqu'a la mise en pause.
+    const dernieresFrontieres = new Map();
     let vivants = threads;
     let minuteur = null;
 
@@ -148,7 +152,17 @@ export function runSearch(request, { threads, onProgress, onWave }) {
         }
 
         if (message.type === 'vague') {
-          onWave?.(message);
+          // La vague porte la lecture de SON fil ; le joueur n'en veut qu'une.
+          // Les frontieres de tous les fils se fondent a chaque vague, comme
+          // elles le font a la conclusion.
+          dernieresFrontieres.set(message.seed, message);
+          const fondues = [...dernieresFrontieres.values()];
+          onWave?.({
+            ...message,
+            paliersFondus: fusionnerPaliers(fondues),
+            survieFondue: fusionnerSurvie(fondues, axeDe(request.objective?.mode)),
+          });
+
           const connu = derniersResumes.get(message.seed);
           if (message.resume && (!connu || message.resume.score > connu.score)) {
             derniersResumes.set(message.seed, message.resume);

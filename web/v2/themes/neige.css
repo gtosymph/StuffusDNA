@@ -1,0 +1,46 @@
+/* Neige — le contraste maximal.
+
+   Pas un gout : une reponse a un besoin. Sur un ecran mal regle, en plein
+   jour, ou pour qui distingue mal les nuances proches, tous les autres
+   habillages posent du gris moyen sur du gris sombre. Celui-ci ne fait pas
+   dans la nuance : fond blanc, texte presque noir, filets francs.
+
+   Les couleurs de sens y sont sombres et saturees, choisies pour tenir
+   quatre et demi contre un sur le blanc. La subtilite est sacrifiee a la
+   lisibilite, volontairement. */
+
+:root {
+  --fond: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --surface-3: #e2e6ec;
+  --filet: #c3cad4;
+  --filet-clair: #8c96a4;
+
+  --texte: #0b0e14;
+  --texte-2: #333b47;
+  --texte-3: #5a6472;
+
+  --iris: #2f3ccc;
+  --iris-vif: #2430ad;
+  --iris-sourd: #9aa2ec;
+  --iris-fond: #e8eaff;
+  --sur-iris: #ffffff;
+
+  --jade: #0c6b45;
+  --rose: #ab1f3b;
+  --ambre: #7d5600;
+  --sur-ambre: #ffffff;
+
+  --voile: rgb(20 24 32 / .38);
+  --ombre: rgb(20 28 44 / .2);
+}
+
+.case-slot.vide, .case-item { background: var(--surface-2); }
+body { -webkit-font-smoothing: auto; }
+.sort.arme > .lignes-arme { opacity: .85; }
+
+/* Le contraste passe aussi par le trait : un filet plus franc separe mieux
+   deux blocs blancs que ne le ferait une ombre. */
+.btn, .pastille, .carte-theme, .ligne-arme { border-width: 1px; }
+.chapeau { color: var(--texte-2); }

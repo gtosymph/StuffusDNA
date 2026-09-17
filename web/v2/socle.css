@@ -24,9 +24,17 @@
   --iris-fond: #1c1b3a;
   --sur-iris: #f2f1ff;
 
+  --iris-vif: #8d84ff;
+
   --jade: #3fcf8e;
   --rose: #ff6b81;
   --ambre: #f0b429;
+  --sur-ambre: #241a02;
+
+  /* Le voile des feuilles et l'ombre portee. Un theme clair les eclaircit :
+     un noir a 66 % sur du papier ecrase la page au lieu de la reculer. */
+  --voile: rgb(6 8 13 / .66);
+  --ombre: rgb(0 0 0 / .55);
 
   --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
   --mono: "SF Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -60,10 +68,16 @@ body {
 
 /* ---------------------------------------------------------- Barre haute --- */
 
+/* La barre passe a la ligne des qu'elle deborde, a n'importe quelle largeur.
+
+   Attendre le telephone pour l'y autoriser laissait la fenetre de huit cents
+   pixels avec une barre de mille quarante : toute la page glissait de cote,
+   et les commandes de droite sortaient de l'ecran. Une hauteur automatique et
+   un retour a la ligne reglent le cas sans avoir a deviner les largeurs. */
 .barre {
-  height: var(--barre-h);
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 12px;
+  min-height: var(--barre-h);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  padding: 6px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--filet);
   position: sticky; top: 0; z-index: 30;
@@ -103,7 +117,7 @@ body {
 .segmente button:hover { color: var(--texte); }
 .segmente button[aria-pressed="true"] {
   background: var(--surface-3); color: var(--texte);
-  box-shadow: 0 1px 2px rgb(0 0 0 / .35);
+  box-shadow: 0 1px 2px var(--ombre);
 }
 
 /* ------------------------------------------------------------ Boutons --- */
@@ -117,7 +131,7 @@ body {
 }
 .btn:hover { background: var(--surface-3); border-color: var(--filet-clair); }
 .btn.premier { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
-.btn.premier:hover { background: #8d84ff; border-color: #8d84ff; }
+.btn.premier:hover { background: var(--iris-vif); border-color: var(--iris-vif); }
 .btn.fantome { background: transparent; border-color: transparent; color: var(--texte-2); }
 .btn.fantome:hover { background: var(--surface-2); color: var(--texte); }
 .btn.mini { height: 22px; padding: 0 8px; font-size: 11px; }
@@ -145,7 +159,7 @@ body {
    forme du point la double. */
 .etat { width: 6px; height: 6px; border-radius: 999px; background: var(--texte-3); flex: none; }
 .etat.tenue { background: var(--jade); }
-.etat.defaut { background: var(--rose); box-shadow: 0 0 0 3px rgb(255 107 129 / .15); }
+.etat.defaut { background: var(--rose); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose) 18%, transparent); }
 
 .pos { color: var(--jade); }
 .neg { color: var(--rose); }
@@ -172,5 +186,5 @@ input[type="range"]::-webkit-slider-runnable-track {
 input[type="range"]::-webkit-slider-thumb {
   appearance: none; width: 14px; height: 14px; margin-top: -5px;
   background: var(--texte); border-radius: 999px; border: 0;
-  box-shadow: 0 1px 3px rgb(0 0 0 / .5);
+  box-shadow: 0 1px 3px var(--ombre);
 }

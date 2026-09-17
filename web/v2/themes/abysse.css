@@ -1,0 +1,39 @@
+/* Abysse — le bleu profond, sous la surface.
+
+   Un bleu-vert sombre qui ne vire jamais au noir, et un cyan qui eclaire
+   comme une lampe sous l'eau. Il tient le milieu entre Studio, qui est froid
+   et neutre, et Ardoise, qui n'a pas de couleur du tout : ici le fond LUI
+   MEME est colore, et les surfaces se detachent par la clarte, pas par une
+   teinte differente.
+
+   Le vert d'un minimum tenu se rapproche dangereusement du cyan de l'accent :
+   il tire donc vers le jaune pour rester distinct. */
+
+:root {
+  --fond: #061014;
+  --surface: #0c1a20;
+  --surface-2: #11242c;
+  --surface-3: #18323c;
+  --filet: #162d36;
+  --filet-clair: #224653;
+
+  --texte: #dff0f4;
+  --texte-2: #8aa8b2;
+  --texte-3: #5b757f;
+
+  --iris: #2bb9d4;
+  --iris-vif: #3fcbe6;
+  --iris-sourd: #175a68;
+  --iris-fond: #08222a;
+  --sur-iris: #04161b;
+
+  --jade: #63d194;
+  --rose: #ef6b73;
+  --ambre: #e8b14a;
+  --sur-ambre: #1a1200;
+
+  --voile: rgb(2 10 13 / .74);
+  --ombre: rgb(0 8 11 / .62);
+}
+
+.btn.premier { font-weight: 600; }

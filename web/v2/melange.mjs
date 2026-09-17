@@ -99,3 +99,73 @@ export function consequenceDe(lignes, rang) {
     endurance: Number(palier.endurance) || 0,
   };
 }
+
+/**
+ * Signature d'une courbe : deux courbes sont la meme si elles portent les
+ * memes paliers, dans le meme ordre.
+ *
+ * Elle decide si le bloc du curseur se reconstruit. La question compte : tirer
+ * le curseur pose un nouvel etat, donc redessine l'application entiere, et
+ * reconstruire le curseur a ce moment-la l'arracherait des doigts du joueur au
+ * premier pixel.
+ *
+ * @param {{palier: {damage: number, endurance: number}}[]} lignes
+ * @returns {string}
+ */
+export const signatureCourbe = (lignes) => (lignes ?? [])
+  .map((l) => `${l?.palier?.damage}/${l?.palier?.endurance}`).join('|');
+
+/**
+ * Les deux pourcentages ecrits sous le curseur.
+ *
+ * Ils expliquent la place du marqueur, ils ne la decident pas : ce qui se
+ * decide reste « 1 200 degats contre 4 200 pdv effectifs ». Sans eux, deux
+ * reglages voisins retiennent le meme stuff et rien ne dit ou l'on se trouve
+ * entre les deux.
+ *
+ * @param {number|null|undefined} part Part des degats, dans [0, 1].
+ * @returns {{frapper: number, encaisser: number}} Deux entiers dont la somme
+ *   fait toujours cent : deux arrondis separes donneraient 55 et 46.
+ */
+export function bornesEnPourcent(part) {
+  // `Number(null)` vaut zero, et zero est un reglage legitime : sans ce
+  // premier tri, une part absente s'afficherait « 0 % frapper », ce qui se
+  // lit comme un choix que personne n'a fait.
+  const brut = part === null || part === undefined ? Number.NaN : Number(part);
+  const sure = Number.isFinite(brut) ? Math.min(MAX, Math.max(MIN, brut)) : 0.5;
+  const frapper = Math.round(sure * 100);
+  return { frapper, encaisser: 100 - frapper };
+}
+
+/**
+ * Ce qu'un clic sur un point de la courbe doit poser.
+ *
+ * La courbe montre des stuffs : chaque point EST un stuff entier, avec ses
+ * pieces et sa repartition de points. Deplacer le seul curseur laissait le
+ * joueur devant le meme personnage qu'avant son clic, sans rien qui dise ou
+ * etait passe le stuff qu'il venait de designer.
+ *
+ * Deux cas echappent a la regle :
+ *
+ *   - le stuff PORTE figure dans la courbe. Le reposer ne ferait rien, et il
+ *     ne porte pas toujours la liste de ses pieces ;
+ *   - un palier sans `itemIds` ne peut pas se poser. Il reste cliquable, mais
+ *     seul le curseur bouge.
+ *
+ * Le reglage suit le stuff dans les deux cas ou il existe : sans lui, la
+ * prochaine recherche viserait encore l'ancien compromis et reprendrait le
+ * stuff choisi.
+ *
+ * @param {{palier: any, porte: boolean}[]} lignes
+ * @param {number} rang
+ * @returns {{part: number|null, palier: any|null}|null} Null quand le rang ne
+ *   designe aucune ligne.
+ */
+export function choixAuClic(lignes, rang) {
+  const ligne = (lignes ?? [])[rang];
+  if (!ligne) return null;
+
+  const part = partPourPalier(lignes, rang);
+  const posable = !ligne.porte && Array.isArray(ligne.palier?.itemIds);
+  return { part, palier: posable ? ligne.palier : null };
+}

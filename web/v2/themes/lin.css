@@ -1,0 +1,48 @@
+/* Lin — le second habillage clair, plus froid que Parchemin.
+
+   Parchemin est ivoire et brun, comme du papier ancien. Lin est gris-bleu et
+   encre noire, comme une feuille de bureau : moins chaleureux, plus net, pour
+   qui trouve le parchemin trop jaune.
+
+   Comme lui, il rabat les couleurs de sens au lieu de les eclaircir : sur
+   fond clair, un vert vif disparait. Et il eclaircit le voile et les ombres,
+   qu'un noir a soixante-dix pour cent ecraserait. */
+
+:root {
+  --fond: #eceef2;
+  --surface: #f9fafc;
+  --surface-2: #e9ecf1;
+  --surface-3: #dde1e9;
+  --filet: #d4d9e2;
+  --filet-clair: #b4bdcb;
+
+  --texte: #1c2029;
+  --texte-2: #4e5764;
+  --texte-3: #7b8595;
+
+  --iris: #4b4ecf;
+  --iris-vif: #3d40b8;
+  --iris-sourd: #b4b6e8;
+  --iris-fond: #e6e7fa;
+  --sur-iris: #f7f7ff;
+
+  --jade: #16795a;
+  --rose: #bb3550;
+  --ambre: #9a6b0c;
+  --sur-ambre: #fdf7e8;
+
+  --voile: rgb(40 46 58 / .32);
+  --ombre: rgb(48 56 72 / .16);
+}
+
+/* Sur fond clair, les images du jeu sont posees sur du noir : une case vide
+   doit rester une case, pas un trou. */
+.case-slot.vide, .case-item { background: var(--surface-2); }
+
+/* Le lissage clair sur fond sombre epaissit le texte ; sur fond clair il
+   l'amincit au point de le rendre gris. */
+body { -webkit-font-smoothing: auto; }
+
+/* La fiche de base de l'arme s'estompe pour ne pas se confondre avec ce que
+   vos caracteristiques en font. Sur papier, la meme opacite l'efface. */
+.sort.arme > .lignes-arme { opacity: .8; }

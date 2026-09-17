@@ -20,6 +20,7 @@ import {
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
 import { etatInitial, optionsAffichees } from '../reglages.mjs';
 import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
+import { adopter, reglageDuFragment, resume } from '../partage-lien.mjs';
 import {
   buildCourant, cibleAffichee, passifsActifs, profilDe, scoreAffiche, sortsCalcules,
   valeurDeReference,
@@ -47,6 +48,7 @@ import { computeSpellDetail } from '../../src/engine/damage.mjs';
 import { creerGestesReference } from '../gestes-reference.mjs';
 
 import { creerPont } from './pont.mjs';
+import { icone } from './icones.mjs';
 import { renderClasses } from './accueil.mjs';
 import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
 import { garderSignature, reglagesChanges, reprendreSignature } from './peremption.mjs';
@@ -57,6 +59,9 @@ import { FAMILLES } from './fiche.mjs';
 import { fermerPoints, ouvrirPoints, pointsOuverts } from './vue-points.mjs';
 import { renderMelange } from './vue-melange.mjs';
 import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.mjs';
+import {
+  fermerPartage, ouvrirPartage, partageOuvert, proposerReglage,
+} from './vue-partage.mjs';
 import { rangerOptions } from './options.mjs';
 import { fermerMinimums, minimumsOuverts, MINIMUM_NEUF, ouvrirMinimums } from './vue-minimums.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
@@ -106,6 +111,18 @@ function basculerChoisi(objet, nom) {
  * Oublier de relancer apres un reglage etait la vraie gene, pas le clic.
  */
 let signatureLancement = null;
+
+/**
+ * Vrai quand la prochaine recherche doit repartir d'une population neuve.
+ *
+ * Couper une recherche tue les fils : ce qu'ils avaient en main n'existe plus.
+ * Le prochain depart repart donc de zero quoi qu'il arrive, et le bouton n'a
+ * plus de raison d'annoncer « Relancer » — il n'y a plus rien a relancer.
+ * Sans cet indicateur, la seule facon de faire repartir de zero etait de
+ * laisser la peremption allumee, ce qui gardait le mot « Relancer » a l'ecran
+ * apres un arret.
+ */
+let repartDeZero = false;
 
 /** Panneau des essais gardes, installe une fois le catalogue charge. */
 let panneauSimulations = null;
@@ -161,7 +178,8 @@ function message(texte, type = 'info') {
 
 const recherche = creerRecherche({
   $, lireEtat, setEtat, message,
-  appliquer: (resultat) => setEtat(appliquerBuild(etat, resultat, catalogue.itemById)),
+  appliquer: (resultat, aussi = null) => setEtat(
+    { ...appliquerBuild(etat, resultat, catalogue.itemById), ...(aussi ?? {}) }),
   garderSimulation: () => garderSimulation({ siNouvelle: true, silencieux: true }),
 });
 
@@ -219,7 +237,32 @@ function render() {
   const arme = attaqueArme(etat);
   renderArme($('carte-arme'), arme, arme && stats ? computeSpellDetail(arme, stats) : null);
   renderFraicheur();
-  $('annuler').disabled = passe.length === 0;
+  renderArret();
+}
+
+/**
+ * Le bouton de droite : arreter la recherche, ou revenir en arriere.
+ *
+ * Les deux gestes ne cohabitent pas. Pendant une recherche, revenir en
+ * arriere n'a aucun sens : le solveur repose son build a chaque amelioration,
+ * et l'etat d'avant serait efface dans la seconde. Le bouton porte donc le
+ * geste qui a un sens a ce moment-la, et le DIT — son dessin et son libelle
+ * changent ensemble, rien ne se decide en silence.
+ *
+ * Ctrl+Z reste l'annulation en toutes circonstances.
+ */
+function renderArret() {
+  const bouton = $('annuler');
+  const cherche = recherche.tourne();
+
+  bouton.disabled = cherche ? false : passe.length === 0;
+  bouton.title = cherche
+    ? 'Coupe la recherche net. Contrairement a la pause, elle ne rend rien : '
+      + 'ce que les fils avaient en main est perdu.'
+    : 'Annule la derniere action (Ctrl+Z)';
+  bouton.replaceChildren(
+    icone(cherche ? 'stop' : 'annuler'),
+    el('span', { text: cherche ? 'Arreter' : 'Annuler' }));
 }
 
 function renderIdentite() {
@@ -317,6 +360,11 @@ function renderMelangeOuPas(bilan, stats) {
       : null,
     part: etat.partDegats,
     onPart: (part) => setEtat({ partDegats: part }),
+    onChoisir: (palier, part) => {
+      recherche.porterAlaMain(palier, { partDegats: part });
+      message(`Stuff porte : ${nombre(Math.floor(palier.damage))} de degats, `
+        + `${nombre(Math.floor(palier.endurance))} pdv effectifs.`);
+    },
   });
 }
 
@@ -554,17 +602,28 @@ function renderInspecteur(stats, degats) {
             })
           : null)
     : el('button', {
-        class: `ligne ${l.exigee ? 'exigee' : ''}`.trim(), type: 'button',
+        // `exigee` et `sousMinimum` disent la meme chose vue de deux listes :
+        // cette mesure est une des votres. Elle se reconnait sans lire, a son
+        // fond et a son filet, parce que c'est elle qu'on vient verifier.
+        class: `ligne ${l.exigee || l.sousMinimum ? 'exigee' : ''}`.trim(), type: 'button',
         ...(l.muet ? { disabled: true } : {}),
-        title: l.exigee
+        title: l.exigee || l.sousMinimum
           ? `${l.libelle} est deja dans vos minimums.`
           : `Garder au moins ${nombre(l.valeur)} de ${l.libelle.toLowerCase()}.`,
         onClick: () => poserMinimum(l.cle, l.valeur),
       },
         el('img', { class: 'ligne-icone', src: iconeStat(l.cle) ?? '', alt: '', decoding: 'async' }),
         el('span', { class: 'ligne-nom', text: l.libelle }),
-        el('b', { class: `ligne-val n ${l.muet ? 'vide-mesure' : ''}`.trim(),
-          text: l.muet ? '—' : nombre(l.valeur) })));
+        // Une resistance porte deux chiffres : le brut et le pourcentage. Ils
+        // ne se lisent jamais l'un sans l'autre.
+        l.pourcent === null || l.pourcent === undefined
+          ? el('b', { class: `ligne-val n ${l.muet ? 'vide-mesure' : ''}`.trim(),
+              text: l.muet ? '—' : nombre(l.valeur) })
+          : el('span', { class: 'ligne-paire' },
+              el('b', { class: `n ${l.sansBrut ? 'vide-mesure' : ''}`.trim(),
+                title: 'Retire au coup', text: l.sansBrut ? '—' : nombre(l.valeur) }),
+              el('b', { class: 'n pct', title: 'Retranche en pourcentage',
+                text: `${nombre(l.pourcent)} %` }))));
 
   $('corps-inspecteur').replaceChildren(
     ...lignes.map(noeud),
@@ -596,13 +655,26 @@ function renderScore(bilan) {
  *
  * Le bouton ne se contente pas de changer de mot : il porte une pastille, car
  * un libelle seul se lit mal dans une barre ou rien d'autre ne bouge.
+ *
+ * Il faut cependant qu'il y ait quelque chose a perimer. La signature du
+ * dernier lancement survit au rechargement, mais pas les propositions qu'il
+ * a rendues : `candidats`, `paliers` et `survie` ne sont pas ranges avec
+ * l'etat. Une session neuve ouvrait donc sur « Relancer » et une pastille
+ * d'alerte devant un ecran vide, ce qui promettait un ecart la ou il n'y
+ * avait rien du tout.
  */
 function renderFraicheur() {
-  const perime = reglagesChanges(signatureLancement, etat);
+  const montre = [etat.candidats, etat.paliers, etat.survie]
+    .some((liste) => (liste ?? []).length > 0);
+  const perime = montre && reglagesChanges(signatureLancement, etat);
   const bouton = $('lancer');
   bouton.classList.toggle('rappel', perime);
-  bouton.textContent = perime ? 'Relancer' : 'Chercher';
-  if (perime) bouton.prepend(el('span', { class: 'puce' }));
+  // Le bouton se reconstruit en entier : ecrire son texte seul effaçait le
+  // pictogramme pose au demarrage, et « Chercher » restait le seul des cinq
+  // a n'avoir aucune image.
+  bouton.replaceChildren(
+    ...(perime ? [el('span', { class: 'puce' })] : [icone('play')]),
+    el('span', { text: perime ? 'Relancer' : 'Chercher' }));
   bouton.title = perime
     ? 'Un reglage a bouge depuis la derniere recherche : ce qui est montre '
       + 'repond a la question d\'avant.'
@@ -615,8 +687,8 @@ function renderFraicheur() {
  * La comparaison les parcourt toutes : c'est elle qui masque ce qui ne varie
  * pas, pas la liste qui choisit d'avance ce qui merite d'etre compare.
  */
-const MESURES_COMPARABLES = FAMILLES.flatMap(([, paires]) =>
-  paires.map(([cle, libelle]) => ({ cle, libelle })));
+const MESURES_COMPARABLES = FAMILLES.flatMap(([famille, paires]) =>
+  paires.map(([cle, libelle]) => ({ cle, libelle, famille })));
 
 /**
  * Les statistiques d'un stuff coche.
@@ -667,8 +739,13 @@ function raccourciPalette() {
  * Le choix courant se garde s'il existe encore : recharger la liste apres un
  * enregistrement ne doit pas faire sauter la selection du joueur.
  */
+/** Natures de jeux enregistres, et la liste qui les montre. */
+const NATURES_JEUX = Object.freeze([
+  'sorts', 'conditions', 'stuff', 'banque', 'bannis',
+]);
+
 function remplirListesSets() {
-  for (const [nature, id] of [['sorts', 'sets-sorts'], ['conditions', 'sets-conditions']]) {
+  for (const [nature, id] of NATURES_JEUX.map((n) => [n, `sets-${n}`])) {
     const noeud = $(id);
     const choisi = noeud.value;
     const jeux = lireSets(nature);
@@ -841,11 +918,71 @@ function choisirClasse(classe) {
   recherche.lancer();
 }
 
+/**
+ * Accueille un reglage arrive par un lien.
+ *
+ * Il ne se pose pas tout seul. Quelqu'un qui travaille depuis une heure ne
+ * doit pas perdre sa seance parce qu'il a ouvert le lien d'un ami : l'ecran
+ * dit ce que le lien porte, et attend.
+ *
+ * Le fragment s'efface des qu'il est lu, avant meme la reponse. Sans cela un
+ * rechargement reposerait la meme question, et le lien collerait a la page
+ * longtemps apres avoir ete repondu.
+ */
+async function accueillirLien() {
+  const forme = await reglageDuFragment(location.hash);
+  if (!forme) return;
+  history.replaceState(null, '', location.pathname + location.search);
+
+  proposerReglage({
+    compte: resume(forme, catalogue),
+    nomDeClasse,
+    onAdopter: () => {
+      const recu = adopter(etat, forme, catalogue);
+
+      // Le lien ne porte que les identifiants des sorts : le catalogue les
+      // refabrique. Un sort qu'il ne connait pas — classe changee, sort
+      // retire du jeu — repartirait sans aucune ligne de degats et compterait
+      // pour zero sans le dire. Mieux vaut ne pas le poser et l'annoncer.
+      const { sorts } = enrichirSorts(recu.sorts, classesSorts, recu.niveau);
+      const tenus = sorts.filter((sort) => (sort.lines ?? []).length > 0);
+      setEtat({ ...recu, sorts: tenus });
+
+      // Le reglage recu pose une question neuve : rien a l'ecran n'y repond
+      // encore, et le bouton ne doit pas annoncer une peremption.
+      signatureLancement = garderSignature(etat);
+      repartDeZero = true;
+
+      if (vierge) {
+        vierge = false;
+        $('accueil').hidden = true;
+        $('travail').hidden = false;
+        $('identite').hidden = false;
+        $('barre-droite').hidden = false;
+        $('barre-droite').style.display = 'flex';
+      }
+      const perdus = sorts.length - tenus.length;
+      message(perdus > 0
+        ? `Reglage adopte, sans ${perdus} sort(s) que le catalogue ne connait pas. `
+          + 'Ctrl+Z rend le votre.'
+        : 'Reglage adopte. Ctrl+Z rend le votre.');
+      render();
+    },
+  });
+}
+
 async function main() {
   // Les noeuds que la nouvelle coquille ne montre plus vivent quand meme dans
   // le document : un champ hors de l'arbre ne garde pas sa valeur de facon
   // fiable, et les modules de v1 les lisent au lancement.
   document.body.append(...muets.values());
+
+  // Chaque commande recoit son dessin avant son libelle. Ceux de « Chercher »
+  // et d'« Annuler » changent avec ce qu'ils font : ils se posent au rendu.
+  for (const [id, nom] of [['arreter', 'pause'], ['vider', 'poubelle'],
+    ['partager', 'partage'], ['reglages', 'engrenage']]) {
+    $(id).prepend(icone(nom));
+  }
 
   renderClasses($('classes'), choisirClasse);
   message('Chargement du catalogue…');
@@ -895,17 +1032,51 @@ async function main() {
     message('');
     recherche.reprendre();
     render();
+    await accueillirLien();
   } catch (erreur) {
     message(`Catalogue indisponible : ${erreur.message}`, 'erreur');
   }
 }
 
+/*
+ * « Chercher » repart de zero quand la question a change.
+ *
+ * Une population porte les reponses a la question qu'on lui a posee. Reprendre
+ * cette population apres avoir change de sorts, de minimums ou d'objectif
+ * revient a chercher la nouvelle reponse en partant des anciennes — le
+ * solveur y met longtemps a oublier, et le compteur de generations continue
+ * comme si de rien n'etait. v1 laissait le joueur trancher avec un bouton
+ * « Recommencer » ; ici l'outil sait deja que la question a bouge, puisqu'il
+ * l'annonce sur le bouton.
+ */
 $('lancer').addEventListener('click', () => {
+  const montre = [etat.candidats, etat.paliers, etat.survie]
+    .some((liste) => (liste ?? []).length > 0);
+  const deZero = repartDeZero || (montre && reglagesChanges(signatureLancement, etat));
   signatureLancement = garderSignature(etat);
-  recherche.lancer();
+  repartDeZero = false;
+  recherche.lancer({ deZero });
+  render();
+});
+$('recommencer').addEventListener('click', () => {
+  signatureLancement = garderSignature(etat);
+  repartDeZero = false;
+  recherche.lancer({ deZero: true });
   render();
 });
 $('arreter').addEventListener('click', () => recherche.arreter());
+$('annuler').addEventListener('click', () => {
+  if (recherche.abandonner()) {
+    message('Recherche coupee. Rien n\'en a ete garde.');
+    // L'arret solde la question posee : le bouton redevient « Chercher ».
+    // Le depart de zero, lui, ne se perd pas — il passe par l'indicateur.
+    signatureLancement = garderSignature(etat);
+    repartDeZero = true;
+    render();
+    return;
+  }
+  annuler();
+});
 $('appel-sorts').addEventListener('click', gestesSorts.ouvrir);
 $('identite').addEventListener('click', () => ouvrirIdentite({ lireEtat, setEtat }));
 
@@ -936,17 +1107,58 @@ window.addEventListener('keydown', (ev) => {
   if (comparaisonOuverte()) fermerComparaison();
   else if (minimumsOuverts()) fermerMinimums();
   else if (reglagesOuverts()) fermerReglages();
+  else if (partageOuvert()) fermerPartage();
   else if (pointsOuverts()) fermerPoints();
   else if (paletteOuverte()) fermerPalette();
 });
 
 $('comparer').addEventListener('click', comparer);
-for (const nature of ['sorts', 'conditions']) {
+
+/*
+ * Ce qu'un jeu garde, et comment il se repose.
+ *
+ * Les sorts et les minimums sont deja des listes : ils se rangent tels quels.
+ * Les trois autres ne le sont pas — deux ensembles d'identifiants et une
+ * table de cases — et ne survivraient pas a un aller-retour en JSON sans
+ * etre traduits ici. Le stuff se repose par identifiant : une piece disparue
+ * du catalogue est ecartee plutot que de laisser une case vide muette.
+ */
+const JEUX = Object.freeze({
+  sorts: {
+    lire: () => etat.sorts,
+    poser: (contenu) => setEtat({ sorts: contenu }),
+  },
+  conditions: {
+    lire: () => etat.conditions,
+    poser: (contenu) => setEtat({ conditions: contenu }),
+  },
+  bannis: {
+    lire: () => [...etat.bannis],
+    poser: (contenu) => setEtat({ bannis: new Set(contenu) }),
+  },
+  banque: {
+    lire: () => [...etat.possedees],
+    poser: (contenu) => setEtat({ possedees: new Set(contenu) }),
+  },
+  stuff: {
+    lire: () => [...etat.equipped.entries()].map(([cle, piece]) => [cle, piece.id]),
+    poser: (contenu) => {
+      const equipped = new Map();
+      for (const [cle, id] of contenu ?? []) {
+        const piece = catalogue?.itemById.get(id);
+        if (piece) equipped.set(cle, piece);
+      }
+      setEtat({ equipped, posees: new Set(equipped.keys()) });
+    },
+  },
+});
+
+for (const nature of NATURES_JEUX) {
   brancherSets({
     $, message, remplirListesSets, nature,
     idListe: `sets-${nature}`,
-    lire: () => lireEtat()[nature],
-    poser: (contenu) => setEtat({ [nature]: contenu }),
+    lire: JEUX[nature].lire,
+    poser: JEUX[nature].poser,
   });
 }
 
@@ -954,14 +1166,11 @@ for (const nature of ['sorts', 'conditions']) {
 // section change sa largeur, donc il faut le redessiner.
 window.addEventListener('copyroxx:theme', () => render());
 
-$('recommencer').addEventListener('click', () => {
-  signatureLancement = garderSignature(etat);
-  recherche.lancer({ deZero: true });
-  render();
-});
-$('annuler').addEventListener('click', annuler);
+// « Recommencer » est branche plus haut, avec « Chercher » : un deuxieme
+// ecouteur ici lancait la recherche deux fois par clic.
 $('vider').addEventListener('click', vider);
 $('reglages').addEventListener('click',
   () => ouvrirReglages({ lireEtat, onOption: poserOption }));
+$('partager').addEventListener('click', () => ouvrirPartage({ lireEtat, message }));
 
 main();

@@ -1,0 +1,35 @@
+/* Ardoise — le graphite, sans couleur inutile.
+
+   Le theme de depart teinte ses gris vers l'iris. Celui-ci ne teinte rien :
+   il pose un graphite froid et neutre, et ne garde de couleur que la ou elle
+   porte un sens — l'acier de l'accent, le vert d'un minimum tenu, le rouge
+   d'un minimum manque. Rien d'autre ne parle.
+
+   Pour une longue seance : moins l'ecran vibre, plus les chiffres ressortent. */
+
+:root {
+  --fond: #0e0f11;
+  --surface: #17181b;
+  --surface-2: #1e2024;
+  --surface-3: #282b31;
+  --filet: #26282d;
+  --filet-clair: #363a42;
+
+  --texte: #e8e9ec;
+  --texte-2: #9b9ea6;
+  --texte-3: #686c75;
+
+  --iris: #5b9dd9;
+  --iris-vif: #6eabe4;
+  --iris-sourd: #2f4f6b;
+  --iris-fond: #15202a;
+  --sur-iris: #f2f7fc;
+
+  --jade: #63bd8a;
+  --rose: #e0706f;
+  --ambre: #d9a441;
+  --sur-ambre: #201704;
+
+  --voile: rgb(6 6 8 / .7);
+  --ombre: rgb(0 0 0 / .6);
+}

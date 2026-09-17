@@ -1,11 +1,3 @@
-/* Coquille de v2 : la mise en page des trois volets.
-
-   Elle sort de la maquette `proto/studio.html` sans retouche de valeurs : ce
-   qui a ete juge a l'ecran doit arriver ici tel quel. Le socle porte les
-   jetons, la couleur et les controles ; ce fichier porte la structure.
-
-   Trois volets : ce que je veux, ce que j'ai, ce que cela donne. */
-
 /* ===========================================================================
    Maquette v3 — « Studio »
 
@@ -55,7 +47,13 @@
 
 /* ------------------------------------------------------------- Volets --- */
 
-.appli { display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; height: calc(100vh - var(--barre-h)); }
+/* La barre peut passer a la ligne : sa hauteur n'est plus connue d'avance.
+   L'atelier prend donc ce qui reste sous elle, mesure par le navigateur. */
+.appli {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px;
+  height: calc(100dvh - var(--barre-h));
+  min-height: 0;
+}
 .volet { overflow-y: auto; min-width: 0; }
 .volet-gauche { border-right: 1px solid var(--filet); background: var(--surface); }
 .volet-droit { border-left: 1px solid var(--filet); background: var(--surface); }
@@ -67,9 +65,14 @@
 .score-vif b { font: 620 19px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .score-vif span { font-size: 11px; color: var(--texte-3); }
 
+/* Les commandes passent a la ligne comme la barre qui les porte. Sans cela,
+   elles sortaient de l'ecran des que la fenetre retrecissait : le bandeau se
+   repliait autour d'un bloc qui, lui, restait sur une seule ligne. */
+#barre-droite { flex-wrap: wrap; }
+
 /* Le bouton dit s'il y a quelque chose a relancer : oublier de relancer
    apres un reglage est la gene la plus frequente, et elle est muette. */
-.btn.premier.rappel { box-shadow: 0 0 0 3px rgb(240 180 41 / .22); }
+.btn.premier.rappel { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ambre) 24%, transparent); }
 .btn .puce { width: 6px; height: 6px; border-radius: 999px; background: var(--ambre); }
 
 .pulse { display: inline-flex; gap: 3px; align-items: center; }
@@ -137,7 +140,7 @@
   display: grid; place-items: center; cursor: pointer; position: relative;
 }
 .slot:hover { border-color: var(--filet-clair); background: var(--surface-3); }
-.slot.choisi { border-color: var(--iris); box-shadow: 0 0 0 3px rgb(127 116 255 / .18); }
+.slot.choisi { border-color: var(--iris); box-shadow: 0 0 0 3px color-mix(in srgb, var(--iris) 20%, transparent); }
 .slot img { width: 34px; height: 34px; object-fit: contain; }
 .slot.vide::after { content: ""; width: 14px; height: 14px; border: 1px dashed var(--filet-clair); border-radius: 4px; }
 
@@ -147,7 +150,7 @@
   border: 1px solid var(--filet);
   display: grid; place-items: end center; overflow: hidden;
 }
-.avatar img { max-height: 188px; filter: drop-shadow(0 8px 16px rgb(0 0 0 / .45)); }
+.avatar img { max-height: 188px; filter: drop-shadow(0 8px 16px var(--ombre)); }
 .artefacts { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
 
 .verdict { display: grid; grid-template-columns: repeat(3, 1fr); margin: 22px 0 0; }
@@ -246,7 +249,7 @@
 
 .voile {
   position: fixed; inset: 0; z-index: 40;
-  background: rgb(6 8 13 / .66); backdrop-filter: blur(3px);
+  background: var(--voile); backdrop-filter: blur(3px);
   display: grid; place-items: center; padding: 30px;
 }
 .voile[hidden] { display: none; }
@@ -254,7 +257,7 @@
   width: min(1240px, 100%); max-height: 100%;
   display: flex; flex-direction: column;
   background: var(--fond); border: 1px solid var(--filet-clair); border-radius: var(--r-lg);
-  box-shadow: 0 24px 64px rgb(0 0 0 / .6); overflow: hidden;
+  box-shadow: 0 24px 64px var(--ombre); overflow: hidden;
 }
 .comparaison-tete { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--filet); }
 .comparaison-tete h2 { margin: 0; font-size: 14px; font-weight: 600; }
@@ -349,9 +352,71 @@ tr.titre th, tr.titre td {
 .points-bilan b { font: 600 18px/1 var(--mono); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 1500px) { .appli { grid-template-columns: 276px minmax(0, 1fr) 312px; } }
+/* Un trace de sept cents pixels sur cent trente est un fil : la courbe s'y
+   aplatit, et deux generations voisines ne se distinguent plus. La hauteur
+   suit donc la largeur, entre deux bornes — assez haut pour lire une pente,
+   jamais au point de pousser les stuffs trouves hors de l'ecran. */
+.graphe-v2 {
+  width: 100%; display: block; margin: 0;
+  aspect-ratio: 16 / 5; min-height: 150px; max-height: 250px;
+}
+
+/* Tant que les trois colonnes tiennent cote a cote, les poignees n'ont rien
+   a montrer. La regle precede la requete de media pour que celle-ci puisse la
+   defaire.
+
+   La case, elle, n'est jamais « display: none » : elle porte l'etat du
+   tiroir, et un element retire de l'affichage ne se met plus au foyer. Elle
+   sort du flux et devient invisible, ce qui la laisse atteignable au
+   clavier. */
+.tiroir {
+  position: absolute; width: 1px; height: 1px;
+  opacity: 0; margin: 0; pointer-events: none;
+}
+.poignee { display: none; }
+
+/* ==================================== Quand les volets s'empilent ===
+
+   Sous cette largeur, les trois colonnes n'en font plus qu'une. Empiles, les
+   deux volets poussaient le personnage a huit cents pixels du haut : on
+   ouvrait l'application sur une liste de reglages, et le stuff — la seule
+   chose qu'on vient voir — n'arrivait qu'apres un long defilement.
+
+   Chacun se replie donc derriere son propre intitule, ferme au depart. Le
+   repli se fait en CSS pur, par la case a cocher qui precede : aucun script
+   ne s'en mele, et le volet reste atteignable au clavier. */
+
 @media (max-width: 1240px) {
   .appli { grid-template-columns: minmax(0, 1fr); height: auto; }
-  .volet-gauche, .volet-droit { border: 0; border-top: 1px solid var(--filet); }
+
+  .volet-gauche, .volet-droit {
+    border: 0; border-top: 1px solid var(--filet);
+    max-height: 0; overflow: hidden; padding: 0;
+  }
+  .tiroir:checked + .poignee + .volet { max-height: none; overflow-y: visible; }
+  .poignee {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; cursor: pointer;
+    background: var(--surface); border-top: 1px solid var(--filet);
+    font-size: 11px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--texte-2);
+  }
+  .poignee:hover { color: var(--texte); }
+  .poignee::after {
+    content: ''; margin-left: auto;
+    width: 7px; height: 7px; border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform .15s ease;
+  }
+  .tiroir:checked + .poignee::after { transform: rotate(-135deg) translate(-2px, -2px); }
+  .tiroir:focus-visible + .poignee { outline: 2px solid var(--iris); outline-offset: -2px; }
+
+  /* Le personnage passe devant : c'est ce que l'on vient voir. */
+  main.volet { order: -1; }
+
+  /* Le trace de la recherche a toute la largeur de la page : il peut donc
+     monter un peu plus haut sans repousser quoi que ce soit. */
+  .graphe-v2 { aspect-ratio: 5 / 2; }
 }
 
 /* ------------------------------------------------------- Propre a v2 --- */
@@ -393,17 +458,24 @@ tr.titre th, tr.titre td {
 }
 .limite b { color: var(--texte); }
 
-.graphe-v2 { width: 100%; margin-top: 18px; display: block; }
 .fils { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .fil { font: 11px/1 var(--mono); color: var(--texte-3); }
 
 /* Le message se pose au-dessus de tout : une erreur de chargement doit se
    lire meme quand l'ecran vide occupe la page entiere. */
+/* Le message est un passager, pas un obstacle.
+
+   Colle au centre du bas, il recouvrait la liste des stuffs trouves pendant
+   toute sa duree de vie — et un clic dessus ne tombait pas sur la ligne
+   visee. Il se range donc dans le coin, hors de la colonne centrale, et
+   laisse passer la souris. */
 .message-v2 {
-  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  position: fixed; right: 18px; bottom: 18px;
   z-index: 60; padding: 8px 14px; border-radius: 999px;
   background: var(--surface-3); border: 1px solid var(--filet-clair);
-  font-size: 12px; color: var(--texte-2); max-width: 70vw;
+  box-shadow: 0 6px 20px var(--ombre);
+  font-size: 12px; color: var(--texte-2); max-width: min(40vw, 380px);
+  pointer-events: none;
 }
 .message-v2:empty { display: none; }
 .message-v2.erreur { border-color: var(--rose); color: var(--rose); }
@@ -414,269 +486,12 @@ tr.titre th, tr.titre td {
 .ligne-icone { width: 16px; height: 16px; object-fit: contain; }
 .ligne-icone[src=""] { visibility: hidden; }
 
-/* La courbe prend la place qu'on lui donne : sans hauteur bornee, elle
-   repousse les stuffs trouves hors de l'ecran. */
-.graphe-v2 { max-height: 130px; }
 
 /* Un minimum montre sa valeur observee et sa cible. Le point double la
    couleur : un minimum en defaut ne doit pas dependre du seul rouge. */
 .limite { gap: 8px; }
 .limite-nom { flex: 1; min-width: 0; }
 .limite.defaut b { color: var(--rose); }
-
-/* ============================================ Fiche d'une piece et bulle ===
-
-   `item-panel.mjs` et `hover-card.mjs` se reutilisent tels quels, mais ils
-   posent leur balisage en comptant sur `styles.css`, que v2 ne charge pas :
-   sans ces regles, la fiche tombe en bas de page, sans cadre ni couleur.
-
-   Les valeurs ne sont pas copiees de v1 : elles sont reecrites avec les
-   jetons de v2. Les deux ecrans gardent ainsi chacun leur habillage, et une
-   retouche de l'un ne deteint pas sur l'autre. */
-
-.fiche-fond {
-  position: fixed; inset: 0; z-index: 80;
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-  background: rgb(6 8 13 / .66);
-  backdrop-filter: blur(2px);
-}
-
-.fiche {
-  width: min(430px, 100%); max-height: 86vh; overflow-y: auto;
-  padding: 16px;
-  background: var(--surface); border: 1px solid var(--filet-clair);
-  border-radius: var(--r-lg);
-  box-shadow: 0 20px 60px rgb(0 0 0 / .6);
-}
-
-.fiche-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.fiche-tete img { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
-.fiche-tete > div { flex: 1; min-width: 0; }
-.fiche-nom { font-size: 14px; font-weight: 640; color: var(--texte); }
-.fiche-sous { font-size: 11px; color: var(--texte-3); }
-
-.fiche-condition, .fiche-note, .fiche-arme, .fiche-passif {
-  margin: 0 0 10px; padding: 8px 10px;
-  background: var(--surface-2); border-radius: var(--r);
-  font-size: 11.5px; color: var(--texte-2);
-}
-.fiche-condition .cle { color: var(--ambre); margin-right: 6px; }
-.fiche-condition code { font-family: var(--mono); color: var(--texte); word-break: break-all; }
-.titre-arme, .titre-arme-calc, .titre-passif {
-  font-size: 10px; font-weight: 640; letter-spacing: .7px; text-transform: uppercase;
-  color: var(--texte-3); margin-bottom: 5px;
-}
-
-.fiche-stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; margin: 0 0 14px; }
-.fiche-stats dt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texte-2); }
-.fiche-stats dt img { width: 15px; height: 15px; object-fit: contain; }
-.fiche-stats dd {
-  margin: 0; text-align: right;
-  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px;
-}
-.fiche-stats dd.pos { color: var(--jade); }
-.fiche-stats dd.neg { color: var(--rose); }
-
-.fiche-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.fiche-actions button {
-  flex: 1 1 auto; min-height: 28px; padding: 0 12px; cursor: pointer;
-  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
-  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
-}
-.fiche-actions button:hover { background: var(--surface-3); border-color: var(--filet-clair); }
-.fiche-actions button.primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
-.fiche-actions button.danger { color: var(--rose); border-color: var(--iris-sourd); }
-.fiche-actions button.possede { color: var(--jade); border-color: var(--jade); }
-/* Le bouton « × » de la tete n'est pas une action : il ne prend pas de place. */
-.fiche-tete .mini {
-  flex: none; width: 24px; height: 24px; padding: 0; cursor: pointer;
-  background: transparent; border: 1px solid var(--filet); border-radius: var(--r);
-  color: var(--texte-3); font: 13px/1 var(--ui);
-}
-.fiche .note { font-size: 11.5px; color: var(--texte-3); margin: 0 0 12px; }
-
-/* L'infobulle suit la souris : elle ne doit jamais attraper le clic, sans
-   quoi elle se placerait entre le curseur et la piece qu'elle decrit. */
-.bulle {
-  position: fixed; z-index: 90; pointer-events: none;
-  width: 260px; padding: 10px 12px;
-  background: var(--surface-2); border: 1px solid var(--filet-clair);
-  border-radius: var(--r); box-shadow: 0 12px 34px rgb(0 0 0 / .55);
-  font-size: 11.5px; color: var(--texte-2);
-}
-.bulle-tete { display: flex; flex-direction: column; margin-bottom: 7px; }
-.bulle-nom { font-size: 12.5px; font-weight: 620; color: var(--texte); }
-.bulle-sous { font-size: 10.5px; color: var(--texte-3); }
-.bulle-stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin: 0; }
-.bulle-stats dt { font-size: 11px; }
-.bulle-stats dd {
-  margin: 0; text-align: right;
-  font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
-}
-.bulle-stats dd.pos { color: var(--jade); }
-.bulle-stats dd.neg { color: var(--rose); }
-.bulle-condition { color: var(--ambre); margin-bottom: 6px; }
-.bulle-reste, .bulle-vide, .bulle-aide { color: var(--texte-3); font-size: 10.5px; margin-top: 6px; }
-.bulle-arme, .bulle-arme-calc, .bulle-passif { margin-top: 7px; }
-.bulle-arme-moyenne, .bulle-arme-cout { color: var(--texte); }
-
-/* ===================================== Overlay du choix des sorts ===
-
-   Meme situation que la fiche : `spell-picker.mjs` se reutilise tel quel,
-   mais son habillage vit dans `styles.css`. Les regles sont reecrites avec
-   les jetons de v2. Voir ETAT.md, « la dette d'habillage ». */
-
-.picker-fond {
-  position: fixed; inset: 0; z-index: 85;
-  display: grid; place-items: center; padding: 16px;
-  background: rgb(6 8 13 / .66);
-}
-.picker {
-  width: min(880px, 100%); max-height: 86vh;
-  display: flex; flex-direction: column;
-  background: var(--surface); border: 1px solid var(--filet-clair);
-  border-radius: var(--r-lg); box-shadow: 0 20px 56px rgb(0 0 0 / .6);
-}
-.picker-tete {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 16px 10px; border-bottom: 1px solid var(--filet);
-}
-.picker-tete > div:first-child { flex: 1; }
-.picker-titre { font-size: 15px; font-weight: 640; color: var(--texte); }
-.picker-sous { font-size: 11px; color: var(--texte-3); }
-.picker-tete .mini, .picker-filtres .mini {
-  height: 24px; padding: 0 9px; cursor: pointer;
-  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
-  color: var(--texte-2); font: 11px/1 var(--ui);
-}
-.picker-tete .mini:hover, .picker-filtres .mini:hover { color: var(--texte); }
-.picker-filtres {
-  display: flex; gap: 10px; align-items: center;
-  padding: 10px 16px; border-bottom: 1px solid var(--filet);
-}
-.picker-filtres input[type="search"] { flex: 1; min-width: 0; }
-.picker-elements { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.picker-elements .espace { flex: 1; }
-.picker-liste {
-  overflow-y: auto; padding: 10px 16px 14px;
-  display: flex; flex-direction: column; gap: 7px;
-}
-
-.couple-sorts {
-  display: grid; gap: 4px; padding: 5px; border-radius: var(--r); align-items: stretch;
-  background: var(--fond); border: 1px solid var(--filet);
-}
-.couple-sorts.duo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-.couple-sorts .carte-sort { min-width: 0; }
-.lien-couple {
-  display: grid; place-items: center; padding: 0 2px;
-  font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--texte-3);
-}
-@media (max-width: 700px) {
-  .couple-sorts.duo { grid-template-columns: minmax(0, 1fr); }
-  .couple-sorts.duo .lien-couple { padding: 2px 0; }
-}
-
-.carte-sort {
-  padding: 8px 10px; border-radius: 7px;
-  background: var(--surface-2); border: 1px solid var(--filet);
-}
-/* Un sort deja pris porte le lisere de l'accent en plus de son fond : la
-   couleur seule ne dit pas assez qu'il est retenu. */
-.carte-sort.prise { border-color: var(--iris); background: var(--iris-fond); }
-.tete-sort { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.tete-sort img { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; flex: 0 0 26px; }
-.tete-sort .ident { flex: 1; min-width: 0; }
-.tete-sort .nom { font-size: 13px; font-weight: 620; color: var(--texte); }
-.tete-sort .meta { font-size: 10px; color: var(--texte-3); font-family: var(--mono); }
-
-.variantes { display: flex; flex-wrap: wrap; gap: 4px; }
-.variante {
-  display: flex; align-items: baseline; gap: 6px; cursor: pointer;
-  padding: 4px 9px; font-size: 11px; border-radius: 5px;
-  background: var(--surface-3); border: 1px solid var(--filet);
-  border-left: 3px solid var(--teinte, var(--iris));
-  color: var(--texte-2);
-}
-.variante:hover { border-color: var(--filet-clair); color: var(--texte); }
-.variante .niv { color: var(--texte-3); font: 400 10px var(--mono); }
-.variante .plage { font: 620 11px var(--mono); color: var(--texte); }
-.variante .cc { font: 400 10px var(--mono); color: var(--ambre); }
-.picker .note { font-size: 11.5px; color: var(--texte-3); }
-
-/* Les sorts retenus, dans le volet de gauche. */
-.chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 5px 3px 9px; border-radius: 999px;
-  background: var(--surface-2); border: 1px solid var(--filet);
-  font-size: 11.5px; color: var(--texte-2);
-}
-.chip button {
-  width: 17px; height: 17px; padding: 0; cursor: pointer;
-  background: transparent; border: 0; border-radius: 999px;
-  color: var(--texte-3); font: 12px/1 var(--ui);
-}
-.chip button:hover { background: var(--surface-3); color: var(--rose); }
-.chips { display: flex; flex-wrap: wrap; gap: 5px; }
-
-/* =========================================== Les stuffs trouves ===
-
-   Une ligne se lit comme une DIFFERENCE face au stuff porte : ce qui entre,
-   ce qui sort, ce que l'echange rapporte. */
-
-.candidats { display: grid; gap: 6px; }
-.candidat {
-  padding: 7px 9px; border-radius: var(--r);
-  background: var(--surface-2); border: 1px solid var(--filet);
-}
-.candidat.porte { border-color: var(--iris); }
-.candidat-tete { display: flex; align-items: center; gap: 8px; }
-.candidat-score {
-  font-family: var(--mono); font-variant-numeric: tabular-nums;
-  font-size: 14px; font-weight: 620; color: var(--jade);
-}
-.candidat-ecart { font-family: var(--mono); font-size: 11px; }
-.candidat-ecart.pos { color: var(--jade); }
-.candidat-ecart.neg { color: var(--ambre); }
-.candidat-changements { flex: 1; font-size: 10px; color: var(--texte-3); }
-.candidat-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
-.candidat-legende {
-  font-size: 8px; text-transform: uppercase; letter-spacing: .4px; color: var(--texte-3);
-}
-/* Le lisere dit le sens de l'echange ; l'opacite le double sur les sortantes,
-   pour qui ne separe pas le vert du gris. */
-.piece-candidat { width: 26px; height: 26px; border-radius: 4px; border: 1px solid transparent; }
-.piece-candidat.entrante { border-color: var(--jade); }
-.piece-candidat.sortante { border-color: var(--filet); opacity: .55; }
-.candidat-marque {
-  padding: 0 5px; border-radius: 999px; white-space: nowrap;
-  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--jade); border: 1px solid var(--jade);
-}
-.candidat-marque.defaut { color: var(--rose); border-color: var(--rose); }
-.candidat .mini {
-  height: 22px; padding: 0 8px; cursor: pointer;
-  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
-  color: var(--texte-2); font: 11px/1 var(--ui);
-}
-.candidat .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
-#trouves .note { font-size: 11.5px; color: var(--texte-3); }
-
-/* Le mode « caracteristiques » n'est pas un des trois segments : c'est l'etat
-   ou l'outil se met faute de degats a compter. Tant qu'il dure, aucun segment
-   n'est enfonce, et le groupe s'efface au lieu de paraitre casse. */
-.segmente.sans-choix button { opacity: .5; }
-
-/* Des reglages ont bouge depuis la derniere recherche : le bouton le dit.
-   La pastille double le changement de mot, qui passe seul inapercu dans une
-   barre ou rien d'autre ne bouge. */
-.btn.rappel { background: var(--ambre); border-color: var(--ambre); color: #241a02; }
-.btn.rappel:hover { background: #f5c04a; border-color: #f5c04a; }
-.btn .puce {
-  width: 6px; height: 6px; border-radius: 999px;
-  background: currentColor; flex: none;
-}
 
 /* ============================================ Feuille du personnage ===
 
@@ -687,19 +502,27 @@ tr.titre th, tr.titre td {
 .feuille-fond {
   position: fixed; inset: 0; z-index: 84;
   display: grid; place-items: center; padding: 20px;
-  background: rgb(6 8 13 / .66);
+  background: var(--voile);
 }
+/* La feuille ne defile pas : son CORPS defile.
+
+   Elle portait le defilement elle-meme, et son bandeau partait vers le haut
+   avec le reste. Arrive au bas des reglages, le bouton « Fermer » n'etait
+   plus nulle part, et il fallait remonter pour sortir. Le bandeau reste donc
+   en place, et c'est la zone sous lui qui glisse. */
 .feuille {
-  width: min(400px, 100%); max-height: 86vh; overflow-y: auto;
+  display: flex; flex-direction: column;
+  width: min(400px, 100%); max-height: 86vh; overflow: hidden;
   background: var(--surface); border: 1px solid var(--filet-clair);
-  border-radius: var(--r-lg); box-shadow: 0 20px 56px rgb(0 0 0 / .6);
+  border-radius: var(--r-lg); box-shadow: 0 20px 56px var(--ombre);
 }
 .feuille-tete {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex: none;
   padding: 13px 16px; border-bottom: 1px solid var(--filet);
+  background: var(--surface);
 }
 .feuille-tete h2 { margin: 0; font-size: 14px; font-weight: 640; color: var(--texte); }
-.feuille-corps { padding: 16px; }
+.feuille-corps { padding: 16px; overflow-y: auto; flex: 1; min-height: 0; }
 /* Le portrait est un apercu, pas une illustration : il se borne en hauteur.
    Sans `overflow`, l'avatar sort du cadre a sa taille d'origine et recouvre
    les reglages qui le suivent. */
@@ -746,13 +569,13 @@ tr.titre th, tr.titre td {
 .palette-fond {
   position: fixed; inset: 0; z-index: 86;
   display: grid; place-items: start center; padding: 56px 20px 20px;
-  background: rgb(6 8 13 / .66);
+  background: var(--voile);
 }
 .palette {
   width: min(880px, 100%); max-height: calc(100vh - 92px);
   display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--filet-clair);
-  border-radius: var(--r-lg); box-shadow: 0 24px 64px rgb(0 0 0 / .62);
+  border-radius: var(--r-lg); box-shadow: 0 24px 64px var(--ombre);
 }
 .palette-tete {
   display: flex; align-items: center; gap: 10px;
@@ -831,13 +654,13 @@ tr.titre th, tr.titre td {
 .compare-fond {
   position: fixed; inset: 0; z-index: 88;
   display: grid; place-items: center; padding: 24px;
-  background: rgb(6 8 13 / .7);
+  background: var(--voile);
 }
 .compare-boite {
   width: min(860px, 100%); max-height: 86vh;
   display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--filet-clair);
-  border-radius: var(--r-lg); box-shadow: 0 24px 64px rgb(0 0 0 / .62);
+  border-radius: var(--r-lg); box-shadow: 0 24px 64px var(--ombre);
 }
 .compare-tete {
   display: flex; align-items: baseline; gap: 12px;
@@ -996,10 +819,23 @@ input[type="range"].curseur::-moz-range-thumb {
    Ils se touchent parce qu'ils sont deux vues du meme reglage. */
 
 #melange { margin-top: 10px; }
+/* La piste va dans le sens du trace : l'iris des degats a gauche, le jade de
+   l'encaisse a droite, comme les deux bouts de la courbe. La regle porte le
+   selecteur d'element ET la classe, sans quoi la piste generale du socle,
+   plus specifique qu'une simple classe, gagnerait. */
 .melange-curseur { margin-top: 10px; }
+input[type="range"].melange-curseur::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--iris), var(--surface-3) 50%, var(--jade));
+}
 .melange-bornes {
   display: flex; justify-content: space-between;
   font-size: 10.5px; color: var(--texte-3);
+  margin-top: 3px;
+}
+/* Le pourcentage explique la place du marqueur : il se lit avant le mot. */
+.melange-bornes b {
+  font: 600 11px/1 var(--mono); color: var(--texte-2);
+  font-variant-numeric: tabular-nums;
 }
 .melange-courbe { width: 100%; height: 120px; display: block; margin-top: 8px; cursor: pointer; }
 
@@ -1014,6 +850,11 @@ input[type="range"].curseur::-moz-range-thumb {
   --faible: var(--texte-3);
   --titre: var(--texte);
   --graphe-grille: var(--filet);
+  /* Le fond de l'etiquette du dernier point et le trait du zero. Sans eux, le
+     graphe tombait sur ses couleurs de secours — un pave presque noir, qui
+     se voit surtout sur un habillage clair. */
+  --graphe-etiquette: color-mix(in srgb, var(--surface) 88%, transparent);
+  --graphe-zero: var(--texte-3);
   --accent: var(--iris);
   --accent-doux: var(--iris-sourd);
   --cyan: var(--jade);
@@ -1065,164 +906,6 @@ input[type="range"].curseur::-moz-range-thumb {
    combo n'est pas actif, et un champ grise se lit plus vite qu'une aide. */
 .option.off { opacity: .45; }
 
-/* ============================================== Proche de mon stuff ===
-
-   Le meilleur stuff du solveur demande souvent seize pieces neuves. Un
-   joueur deja equipe veut savoir ce qu'UNE piece changee lui rapporte. */
-
-.proximite-barre {
-  display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-bottom: 9px;
-}
-.proximite-barre .note { margin: 0; flex: 1 1 100%; min-width: 0; font-size: 11.5px; color: var(--texte-3); }
-.proximite-barre .jeton { white-space: nowrap; }
-.proximite-barre .jeton.banque { color: var(--jade); border-color: var(--jade); background: none; }
-.proximite-barre .primaire, .proximite-barre .mini {
-  height: 26px; padding: 0 11px; cursor: pointer; border-radius: var(--r);
-  background: var(--surface-2); border: 1px solid var(--filet);
-  color: var(--texte); font: 12px/1 var(--ui); font-weight: 540;
-}
-.proximite-barre .primaire { background: var(--iris); border-color: var(--iris); color: var(--sur-iris); }
-.proximite-barre .primaire:disabled { background: var(--surface-2); border-color: var(--filet); color: var(--texte-3); cursor: default; }
-.proximite-barre .mini:hover { border-color: var(--filet-clair); }
-
-.proximite-max { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--texte-3); }
-.proximite-max input {
-  width: 56px; height: 24px; padding: 0 5px; text-align: right;
-  font-family: var(--mono); font-variant-numeric: tabular-nums;
-}
-
-.paliers { display: flex; flex-direction: column; gap: 5px; }
-.palier {
-  display: grid; grid-template-columns: 58px minmax(0, 1fr) auto;
-  gap: 10px; align-items: center;
-  padding: 6px 8px; border-radius: var(--r);
-  background: var(--surface-2); border: 1px solid var(--filet);
-}
-.palier:hover { border-color: var(--filet-clair); }
-
-/* Le cout se lit avant le gain : c'est lui que le joueur arbitre. */
-.palier-cout {
-  display: grid; place-items: center;
-  padding: 4px 0; border-radius: 5px; background: var(--fond);
-}
-.palier-cout strong {
-  font: 620 15px/1.1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ambre);
-}
-.palier-cout span { font-size: 9px; color: var(--texte-3); }
-/* Un palier sans achat se distingue : le gain y est entierement gratuit. */
-.palier-cout.gratuit strong { color: var(--jade); }
-
-.palier-corps { min-width: 0; }
-.palier-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.palier-degats, .palier-score {
-  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
-}
-.palier-ecart, .palier-gain {
-  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-3);
-}
-.palier-score.pos, .palier-gain.pos { color: var(--jade); }
-.palier-score.neg, .palier-gain.neg { color: var(--rose); }
-
-.palier-pieces { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.palier-pieces img { width: 24px; height: 24px; object-fit: contain; }
-
-/* La ligne de depart n'est pas une proposition : elle rappelle d'ou l'on part. */
-.palier.depart { background: none; border-style: dashed; }
-.palier.depart .palier-degats, .palier.depart .palier-score { color: var(--texte-3); }
-
-/* Ce qu'un chiffre ne dit pas : un minimum redresse, un minimum perdu. */
-.palier-marque {
-  padding: 0 5px; border-radius: 999px; white-space: nowrap;
-  font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--jade); border: 1px solid var(--jade);
-}
-.palier-marque.defaut { color: var(--rose); border-color: var(--rose); }
-.palier .mini.large {
-  height: 24px; padding: 0 10px; cursor: pointer; border-radius: var(--r);
-  background: var(--surface-3); border: 1px solid var(--filet);
-  color: var(--texte-2); font: 11px/1 var(--ui);
-}
-.palier .mini.large:hover { color: var(--texte); border-color: var(--filet-clair); }
-#paliers .note { font-size: 11.5px; color: var(--texte-3); }
-
-/* ============================================= Bonus de panoplie ===
-
-   Chaque panoplie apporte (pieces − 1) bonus : c'est ce compte que les
-   trophees verifient, pas le nombre de panoplies. */
-
-.panoplies { display: grid; gap: 7px; }
-.panoplie {
-  padding: 7px 9px; border-radius: var(--r);
-  background: var(--surface-2); border: 1px solid var(--filet);
-}
-.panoplie-tete {
-  display: flex; justify-content: space-between; gap: 8px;
-  margin-bottom: 5px; font-size: 11.5px; color: var(--texte);
-}
-.panoplie-tete .pieces {
-  color: var(--iris); font-family: var(--mono); font-variant-numeric: tabular-nums;
-}
-.panoplie dl {
-  display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 0; font-size: 10.5px;
-}
-.panoplie dt { display: flex; align-items: center; gap: 5px; color: var(--texte-3); }
-.panoplie dt img { width: 14px; height: 14px; object-fit: contain; }
-.panoplie dd {
-  margin: 0; text-align: right;
-  font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
-}
-.panoplie dd.pos { color: var(--jade); }
-.panoplie dd.neg { color: var(--rose); }
-.panoplie img.piece, .panoplie .piece-panoplie { width: 22px; height: 22px; object-fit: contain; }
-
-/* ================================================ Analyse du stuff ===
-
-   La jauge occupe le FOND de la ligne : le nom garde toute la largeur, au
-   lieu d'etre coupe par une barre qui prendrait sa place. */
-
-.apports, .sensibilite, .remplacements { display: grid; gap: 3px; }
-.apport, .mesure, .remplacement {
-  position: relative; display: flex; align-items: center; gap: 7px;
-  padding: 4px 6px; border-radius: 4px; overflow: hidden; font-size: 11px;
-}
-.apport > *, .mesure > *, .remplacement > * { position: relative; z-index: 1; }
-.apport:hover, .mesure:hover, .remplacement:hover { background: var(--surface-2); }
-.apport-icone { width: 18px; height: 18px; flex: none; object-fit: contain; }
-.mesure-icone { width: 14px; height: 14px; flex: none; object-fit: contain; }
-.apport-nom, .mesure-nom {
-  flex: 1; min-width: 0; color: var(--texte-2);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.apport-jauge { position: absolute; inset: 0; z-index: 0; border-radius: 4px; }
-.apport-jauge i {
-  display: block; height: 100%; border-radius: 4px;
-  background: color-mix(in srgb, var(--iris) 26%, transparent);
-}
-.apport-valeur, .mesure-gain {
-  flex: none; text-align: right;
-  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
-}
-.apport-valeur.neg { color: var(--rose); }
-.apport-valeur.nul { color: var(--texte-3); }
-/* Une piece decisive porte l'ambre sur son nom EN PLUS de sa marque. */
-.apport.decisive .apport-nom { color: var(--ambre); }
-.apport-marque {
-  flex: none; width: 10px; text-align: center;
-  font: 700 11px var(--mono); color: var(--ambre);
-}
-.remplacement-fleche { flex: none; color: var(--texte-3); }
-.remplacement .apport-icone.vide {
-  display: inline-block; box-sizing: border-box;
-  border: 1px dashed var(--filet-clair); border-radius: 3px;
-}
-.remplacement .mini {
-  flex: none; height: 22px; padding: 0 8px; cursor: pointer;
-  background: var(--surface-3); border: 1px solid var(--filet); border-radius: var(--r);
-  color: var(--texte-2); font: 11px/1 var(--ui);
-}
-.remplacement .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
-#bloc-analyse .note, #panoplies .note { font-size: 11.5px; color: var(--texte-3); }
-
 /* ================================== Jeux enregistres, profil, repli ===
 
    Trois conforts de v1 qui rejoignent v2. */
@@ -1253,7 +936,7 @@ input[type="range"].curseur::-moz-range-thumb {
   width: 320px; max-width: calc(100vw - 24px);
   display: grid; gap: 9px; padding: 13px;
   background: var(--surface); border: 1px solid var(--filet-clair); border-radius: var(--r-lg);
-  box-shadow: 0 14px 36px rgb(0 0 0 / .55);
+  box-shadow: 0 14px 36px var(--ombre);
 }
 /* « display: grid » l'emporterait sur le « display: none » de [hidden]. */
 .panneau-profil[hidden] { display: none; }
@@ -1404,117 +1087,145 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 .rangee-ajout { display: flex; gap: 7px; margin-top: 14px; }
 .rangee-ajout select { flex: 1; min-width: 0; height: 28px; }
 
-/* ================================================ Mes essais gardes ===
+/* ================= Le combo et l'arme : d'ou viennent les degats ===
 
-   Quarante essais feraient une colonne interminable : la liste defile. */
+   Les deux cartes repondent a la meme question — « ce 3 948, il sort d'ou ? »
+   — et se lisent donc cote a cote, dans la meme langue :
 
-.simulations { display: flex; flex-direction: column; gap: 5px; max-height: 320px; overflow-y: auto; }
-.simulation {
-  display: grid; grid-template-columns: auto auto auto minmax(0, 1fr) auto;
-  align-items: center; gap: 9px;
-  padding: 6px 8px; border-radius: var(--r);
-  background: var(--surface-2); border: 1px solid var(--filet);
-}
-.simulation:hover { border-color: var(--filet-clair); }
-.simulation.cochee { border-color: var(--iris); background: var(--iris-fond); }
-/* Un favori se repere avant d'etre lu : le lisere le signale dans la pile. */
-.simulation.favori { border-left: 3px solid var(--ambre); }
-.simulation-favori {
-  padding: 0 3px; border: 0; background: none; cursor: pointer;
-  font-size: 14px; line-height: 1; color: var(--texte-3);
-}
-.simulation-favori:hover, .simulation-favori.actif { color: var(--ambre); }
-.simulation-coche { display: flex; align-items: center; }
-.simulation-coche input { accent-color: var(--iris); margin: 0; cursor: pointer; }
-.simulation-embleme { width: 22px; height: 22px; object-fit: contain; flex: none; }
-.simulation-corps { min-width: 0; }
-.simulation-tete { display: flex; align-items: baseline; gap: 8px; }
-.simulation-nom {
-  flex: 1; min-width: 0; cursor: text;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 12px; font-weight: 620; color: var(--texte);
-}
-.simulation-nom:hover {
-  text-decoration: underline dotted var(--filet-clair); text-underline-offset: 3px;
-}
-.simulation-score {
-  font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
-}
-.simulation-score.pos { color: var(--jade); }
-.simulation-score.neg { color: var(--rose); }
-.simulation-sous { font-size: 10px; color: var(--texte-3); }
-.simulation-actions { display: flex; flex-wrap: wrap; gap: 5px; }
-.simulation-actions .mini, .simulations .mini, .rangee-ajout .mini {
-  height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--r);
-  background: var(--surface-3); border: 1px solid var(--filet);
-  color: var(--texte-2); font: 11px/1 var(--ui);
-}
-.simulation-actions .mini:hover { color: var(--texte); border-color: var(--filet-clair); }
-/* Le crayon reste discret tant que la ligne n'est pas survolee : la liste se
-   lit d'un coup d'oeil, elle ne montre pas un outil par ligne. */
-.simulation-renommer { opacity: .35; padding: 0 5px; }
-.simulation:hover .simulation-renommer, .simulation-renommer:focus-visible { opacity: 1; }
-@media (hover: none) { .simulation-renommer { opacity: 1; min-height: 28px; min-width: 28px; } }
-/* Le stuff de chaque essai, en une bande : deux essais au meme score se
-   distinguent alors sans les ouvrir. */
-.simulation-stuff { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-.simulation-stuff img {
-  width: 19px; height: 19px; object-fit: contain;
-  border-radius: 3px; background: var(--fond);
-}
-.rangee-ajout .filtre-case {
-  flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; color: var(--texte-2); cursor: pointer;
-}
-#simulations .note { font-size: 11.5px; color: var(--texte-3); }
+     un BANDEAU qui nomme et dit ce que ca coute en PA,
+     un REGISTRE ou chaque ligne porte son chiffre dans la meme colonne,
+     une BARRE de total, qui est le chiffre qu'on etait venu chercher.
 
-/* ============================== Le combo et l'arme, sous les degats ===
+   Elles ne sont pas un verdict : elles l'expliquent. Dans la colonne des
+   mesures elles ecrasaient le nombre de quarante pixels qu'elles eclairent ;
+   sous lui, bornees en largeur, elles redeviennent un detail qu'on consulte.
 
-   Ils disent d'ou vient CE chiffre-la : leur place est sous lui. */
+   Rien n'y flotte au milieu : chaque bande touche les bords de la carte, et
+   les chiffres s'alignent a droite en chasse fixe. C'est ce qui permet de
+   comparer deux lignes d'un coup d'oeil sans les lire. */
+
+.detail-degats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  align-items: start; gap: 12px; margin-top: 16px;
+}
+.detail-degats:empty, .detail-degats > div:empty { display: none; }
 
 .carte-combo, .sort.arme {
-  margin-top: 10px; padding: 7px 9px; border-radius: var(--r);
+  border-radius: var(--r); overflow: hidden;
   background: var(--surface-2); border: 1px solid var(--filet);
-  border-left: 2px solid var(--iris);
 }
-.sort.arme { border-left-color: var(--ambre); }
-.tete-combo, .sort-tete {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+
+/* --- Le bandeau ------------------------------------------------------- */
+
+.carte-combo .tete-combo, .sort.arme .sort-tete {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px 6px;
+  background: var(--surface-3); border-bottom: 1px solid var(--filet);
+  box-shadow: inset 2px 0 0 var(--iris);
 }
-.tete-combo .titre, .nom-arme { font-size: 12px; font-weight: 620; color: var(--texte); }
-.tete-combo .pa, .meta-arme {
-  font: 10px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-3);
-}
-.ligne-combo { display: flex; align-items: center; gap: 7px; font-size: 11px; margin-top: 5px; }
-.ligne-combo img { width: 18px; height: 18px; border-radius: 3px; object-fit: contain; }
-.ligne-combo .nom {
-  flex: 1; min-width: 0; color: var(--texte-2);
+.sort.arme .sort-tete { box-shadow: inset 2px 0 0 var(--ambre); }
+.carte-combo .titre, .nom-arme {
+  flex: 1; min-width: 0; font-size: 12px; font-weight: 620; color: var(--texte);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.ligne-combo .pa { font: 10px/1 var(--mono); color: var(--ambre); }
-.ligne-combo .deg { font: 11px/1 var(--mono); color: var(--jade); }
+/* Le cout en PA se lit a droite, a la meme place dans les deux cartes. */
+.carte-combo .tete-combo .pa, .meta-arme {
+  flex: none; font: 10px/1.4 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--texte-3);
+}
+.sort.arme .icone-sort { width: 20px; height: 20px; object-fit: contain; flex: none; }
+
+/* --- Le registre ------------------------------------------------------ */
+
+/* Trois colonnes fixes : ce qui est lance, ce que ca coute, ce que ca rend.
+   Le nom se tronque, jamais les chiffres. */
+.ligne-combo {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center; gap: 8px;
+  padding: 3px 10px; font-size: 11px;
+}
+.ligne-combo:nth-of-type(odd) { background: color-mix(in srgb, var(--surface-3) 45%, transparent); }
+.ligne-combo img { width: 16px; height: 16px; border-radius: 3px; object-fit: contain; }
+.ligne-combo .nom {
+  min-width: 0; color: var(--texte-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ligne-combo .pa { font: 10px/1 var(--mono); color: var(--ambre); text-align: right; }
+.ligne-combo .deg {
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--jade); text-align: right; min-width: 44px;
+}
+
+/* Les elements couverts : une bande a part, sous le registre. */
+.elements-combo {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-top: 1px solid var(--filet);
+}
+.elements-combo img { width: 15px; height: 15px; object-fit: contain; }
+.elements-combo.manque img { opacity: .5; }
+.note-elements { font-size: 10px; color: var(--texte-3); }
+.elements-combo.manque .note-elements { color: var(--ambre); }
+
+/* --- L'arme : sa base, puis ce qu'elle donne une fois les stats comptees --- */
+
+/* Les deux rangees de pastilles ne disent pas la meme chose. Celle du haut
+   est la fiche de l'arme, telle que le jeu l'ecrit ; celle du bas est ce que
+   VOS caracteristiques en font. Identiques, elles se confondaient. */
+.sort.arme > .lignes-arme {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 6px 10px 0; opacity: .62;
+}
+.sort-detail { display: grid; gap: 0; }
+.sort-plages {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px;
+  align-items: baseline; padding: 7px 10px;
+}
+.sort-plages .cle { font-size: 10px; color: var(--texte-3); white-space: nowrap; }
+.sort-plages .val {
+  font: 12px/1.4 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--texte); text-align: right;
+}
+/* Le critique se distingue du coup normal : l'ambre le dit sans un mot. */
+.sort-plages .cle.crit, .sort-plages .val.crit { color: var(--ambre); }
+.sort-detail .lignes-arme {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 0 10px 7px;
+}
+
+/* Chaque pastille porte la teinte de son element, posee par le module. */
+.ligne-arme {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 7px; border-radius: 999px;
+  font: 10px/1.5 var(--mono); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--teinte, var(--filet)); color: var(--teinte, var(--texte-2));
+  background: color-mix(in srgb, var(--teinte, var(--filet)) 12%, transparent);
+}
+.ligne-arme img { width: 12px; height: 12px; object-fit: contain; }
+
+/* --- La barre de total ------------------------------------------------- */
+
 .total-combo, .sort-moyennes {
-  display: flex; justify-content: space-between; gap: 8px;
-  margin-top: 7px; padding-top: 6px; border-top: 1px dashed var(--filet);
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 4px 12px;
+  padding: 6px 10px; border-top: 1px solid var(--filet);
+  background: color-mix(in srgb, var(--jade) 7%, var(--surface-3));
   font-size: 10px; color: var(--texte-3);
 }
 .total-combo .deg, .sort-moyennes b {
-  font: 620 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+  font: 620 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--jade);
+}
+
+/* Les boutons du combo ferment la carte : ils touchent le bas, pas le total. */
+.actions-combo {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 7px 10px; border-top: 1px solid var(--filet);
 }
 .carte-combo .mini, .sort .mini {
   height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--r);
   background: var(--surface-3); border: 1px solid var(--filet);
   color: var(--texte-2); font: 11px/1 var(--ui);
 }
-.lignes-arme { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-/* Chaque ligne d'arme porte la teinte de son element, posee par le module. */
-.ligne-arme {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 1px 8px; border-radius: 999px;
-  font: 10px/1.5 var(--mono); font-variant-numeric: tabular-nums;
-  border: 1px solid var(--teinte, var(--filet)); color: var(--teinte, var(--texte-2));
-}
-.ligne-arme img { width: 13px; height: 13px; object-fit: contain; }
+.carte-combo .note { padding: 6px 10px; font-size: 11px; color: var(--texte-3); }
 .fiche-arme.calc { padding-top: 7px; border-top: 1px solid var(--filet); }
 
 /* Les reglages du moteur : combien de fils, a quelle intensite. */
@@ -1529,7 +1240,7 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
    trois listes, il n'appartient donc a aucune. Il se colle en bas pour
    rester atteignable pendant qu'on fait defiler. */
 .bandeau-comparer { position: sticky; bottom: 12px; z-index: 20; display: flex; justify-content: center; }
-.bandeau-comparer .btn { box-shadow: 0 8px 24px rgb(0 0 0 / .5); }
+.bandeau-comparer .btn { box-shadow: 0 8px 24px var(--ombre); }
 .bandeau-comparer .btn[hidden] { display: none; }
 
 /* La case a cocher d'un palier, comme celle d'un stuff trouve. */
@@ -1587,34 +1298,6 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
   .plateau { order: -1; }
 }
 
-/* ===================== Le combo et l'arme : un detail, pas un verdict ===
-
-   Ils disent d'ou viennent les degats. Dans la colonne du verdict ils
-   l'ecrasaient — trois cents pixels de haut pour un chiffre de quarante. */
-
-/* Les cartes se bornent en largeur : cinq lignes courtes etalees sur sept
-   cents pixels laissent un nom a gauche et son chiffre a l'autre bout, et
-   l'oeil doit traverser le vide pour les relier. */
-.detail-degats {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
-  justify-content: start; gap: 10px; margin-top: 16px;
-}
-.detail-degats:empty, .detail-degats > div:empty { display: none; }
-.carte-combo, .sort.arme { margin-top: 0; padding: 8px 10px; }
-.ligne-combo { gap: 6px; font-size: 10.5px; margin-top: 3px; }
-.ligne-combo img { width: 16px; height: 16px; }
-/* Les elements du combo sortaient a leur taille d'origine : cinquante-cinq
-   pixels de large chacun, pour une information qui tient en seize. */
-.elements-combo { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
-.elements-combo img { width: 16px; height: 16px; object-fit: contain; }
-.note-elements { font-size: 10px; color: var(--texte-3); }
-.actions-combo { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.total-combo, .sort-moyennes { margin-top: 6px; padding-top: 5px; }
-.sort .sort-lignes, .lignes-arme { gap: 4px; margin-top: 5px; }
-.ligne-arme { font-size: 9.5px; padding: 1px 7px; }
-.ligne-arme img { width: 12px; height: 12px; }
-.sort-tete img { width: 22px; height: 22px; object-fit: contain; }
-
 /* Une icone devant chaque nom : un sort et une caracteristique se
    reconnaissent a leur image avant de se lire. */
 .chip img, .limite-icone { width: 15px; height: 15px; object-fit: contain; flex: none; }
@@ -1623,18 +1306,253 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
    trait dit que le chiffre montre n'est pas encore celui du reglage. */
 .consequence.survolee { outline: 1px dashed var(--filet-clair); outline-offset: 2px; }
 
-/* Les plages de degats d'une arme : normal d'un cote, critique de l'autre.
-   Sans grille, les quatre morceaux se collaient en une seule phrase illisible
-   — « Normal534 – 622Critique 55 %811 – 897 ». */
-.sort-detail { display: grid; gap: 6px; margin-top: 8px; }
-.sort-plages {
-  display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline;
+/* ==================================== Le choix de l'habillage ===
+
+   Un nom ne montre pas un habillage : chaque carte porte un echantillon de
+   ses trois couleurs porteuses — le fond, la surface, l'accent — dans
+   l'ordre ou l'ecran les emploie. Le survol pose l'habillage pour de vrai ;
+   c'est l'essai avant l'achat, et il ne coute rien. */
+
+.titre-reglage {
+  margin: 18px 0 8px; font-size: 11px; font-weight: 640;
+  letter-spacing: .8px; text-transform: uppercase; color: var(--texte-3);
 }
-.sort-plages .cle { font-size: 10px; color: var(--texte-3); white-space: nowrap; }
-.sort-plages .val {
-  font: 11.5px/1.4 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte);
+.feuille-corps > .titre-reglage:first-child { margin-top: 0; }
+
+.themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; }
+.carte-theme {
+  display: grid; gap: 7px; padding: 8px; cursor: pointer; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte-2); font: 12px/1 var(--ui);
 }
-/* Le critique se distingue du coup normal : l'ambre le dit sans un mot. */
-.sort-plages .cle.crit, .sort-plages .val.crit { color: var(--ambre); }
-.icone-sort { width: 22px; height: 22px; object-fit: contain; flex: none; }
-.sort-tete { gap: 8px; }
+.carte-theme:hover { border-color: var(--filet-clair); color: var(--texte); }
+.carte-theme.actif { border-color: var(--iris); color: var(--texte); }
+
+/* Trois bandes, pas trois pastilles : un habillage se juge a la surface que
+   chaque couleur occupe, pas a sa teinte prise a part. */
+.apercu-theme {
+  display: block; height: 30px; border-radius: 4px; border: 1px solid var(--filet);
+  background: linear-gradient(90deg,
+    var(--a) 0 58%, var(--b) 58% 86%, var(--c) 86% 100%);
+}
+.nom-theme { font-weight: 560; }
+
+/* ---------------------------------------------------------- Partage ---
+   Le lien se montre en toutes lettres a cote du bouton qui le copie. Un
+   bouton seul demande de croire sur parole, et le presse-papier est refuse
+   des que la page n'est pas servie en HTTPS : le champ reste alors le seul
+   chemin. Il passe sous le bouton des que la ligne devient etroite. */
+
+.ligne-lien { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ligne-lien .btn { flex: none; }
+
+.champ-lien {
+  flex: 1 1 260px; min-width: 0;
+  padding: 7px 9px;
+  background: var(--surface-3); border: 1px solid var(--filet);
+  border-radius: var(--r); color: var(--texte-2);
+  font: 11px/1.4 var(--mono, ui-monospace, monospace);
+  /* Le lien est long par nature : il se lit d'un bout, pas en entier. */
+  text-overflow: ellipsis;
+}
+.champ-lien:focus { outline: 2px solid var(--iris); outline-offset: 1px; }
+
+/* ==================================== Corrections d'ecran ===
+
+   Ce qui suit corrige ce que la maquette n'avait pas prevu. Chaque bloc dit
+   ce qui n'allait pas : sans cela, une regle qui a l'air arbitraire finit par
+   se faire supprimer par quelqu'un qui n'a jamais vu le defaut. */
+
+/* --- Vider est le seul geste qui detruit --- */
+
+/* Il enleve seize pieces d'un clic. Les autres boutons de la barre lancent,
+   arretent ou annulent : aucun ne fait perdre de travail. Le rouge le separe
+   d'eux, sans en faire un bouton d'alerte — il reste fantome, il ne reclame
+   pas l'attention, il previent seulement la main qui passe. */
+.btn.fantome.danger { color: color-mix(in srgb, var(--rose) 80%, var(--texte-2)); }
+.btn.fantome.danger:hover {
+  background: color-mix(in srgb, var(--rose) 14%, transparent);
+  border-color: color-mix(in srgb, var(--rose) 45%, transparent);
+  color: var(--rose);
+}
+
+/* --- Le bouton des reglages --- */
+
+/* Un « ⚙ » dans un bouton de texte sort a douze pixels, avec le dessin que
+   le systeme veut bien lui donner : sur une machine il a des dents, sur une
+   autre c'est un soleil. Le trace vient de `icones.mjs` et a la meme forme
+   partout. */
+.btn.icone {
+  width: 30px; height: 30px; padding: 0;
+  justify-content: center; flex: none;
+  background: transparent; border-color: transparent; color: var(--texte-2);
+}
+.btn.icone:hover {
+  background: var(--surface-2); border-color: var(--filet);
+  color: var(--texte);
+}
+.btn.icone .pictogramme { width: 18px; height: 18px; }
+
+/* --- Les pictogrammes de la barre ---
+
+   Deux familles : les formes PLEINES du lecteur — lire, pause, arret — qui
+   se remplissent, et les traces AU TRAIT — corbeille, retour, engrenage —
+   qui se dessinent. Les melanger sous une seule regle donnait soit des
+   triangles vides, soit une corbeille en pate. */
+.pictogramme { width: 13px; height: 13px; flex: none; display: block; }
+.pictogramme.plein { fill: currentColor; stroke: none; }
+.pictogramme.trait {
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+/* Le bouton garde son libelle : un pictogramme seul se devine, il ne se lit
+   pas. L'image le precede et respire un peu moins que du texte. */
+.btn .pictogramme + span { margin-left: -1px; }
+
+/* --- Le graphe de la recherche --- */
+
+/* Il etait colle au bas de la page, apres l'analyse : on ne le voyait qu'en
+   defilant, donc jamais pendant une recherche — c'est-a-dire exactement quand
+   il sert. Il remonte sous le verdict, dans un cadre qui le nomme. */
+.bloc-graphe {
+  margin-top: 18px; padding: 10px 12px 6px;
+  background: var(--surface); border: 1px solid var(--filet); border-radius: var(--r-lg);
+}
+.tete-graphe { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+/* Huit fils tiennent sur une ligne qui defile plutot que d'en prendre trois :
+   c'est un detail de surveillance, pas le sujet du bloc. */
+.bloc-graphe .fils {
+  display: flex; flex-wrap: nowrap; gap: 12px; margin: 2px 0 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+.bloc-graphe .fils::-webkit-scrollbar { display: none; }
+.fil {
+  display: inline-flex; align-items: baseline; gap: 4px; flex: none;
+  font: 10px/1.6 var(--mono); color: var(--texte-3); white-space: nowrap;
+}
+.fil .valeur {
+  font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--texte-2);
+}
+
+/* --- Les reglages du moteur, adoptes par la feuille --- */
+
+#reglages-moteur { display: grid; gap: 8px; }
+#reglages-moteur .reglage-moteur {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-size: 12px; color: var(--texte-2);
+}
+#reglages-moteur .reglage-moteur input { width: 64px; }
+#reglages-moteur .reglage-moteur select { width: 132px; }
+#reglages-moteur .btn { justify-content: center; margin-top: 2px; }
+
+/* --- Les listes gardees, sous « ce que j'ai » --- */
+
+/* Trois listes a la suite, toutes ouvertes sur « aucun » : sans etiquette,
+   rien ne disait laquelle gardait le stuff et laquelle les interdictions.
+   L'etiquette prend sa propre ligne — la ranger dans la rangee laissait
+   quatre-vingts pixels a la liste deroulante, qui ne montrait plus rien. */
+.rangee-jeux { flex-wrap: wrap; }
+.rangee-jeux + .rangee-jeux { margin-top: 8px; }
+.nom-jeu {
+  flex-basis: 100%;
+  font-size: 10px; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--texte-3);
+}
+
+/* --- Le volet droit : ce que le joueur a demande, et les resistances --- */
+
+/* Une mesure qui porte un minimum se reconnait a son fond : c'est celle qu'on
+   vient verifier, et la chercher dans quarante lignes grises annulait tout
+   l'interet de la liste. */
+.ligne.exigee {
+  background: color-mix(in srgb, var(--iris) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--iris);
+}
+.ligne.exigee:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--iris) 20%, transparent);
+}
+.ligne.exigee .ligne-nom { color: var(--texte); }
+
+/* Une resistance porte deux chiffres — ce qui est retire au coup, et ce qui
+   en est retranche en pourcentage. Ils ne se lisent jamais l'un sans l'autre,
+   et les montrer sur deux lignes obligeait a les rapprocher de tete. */
+.ligne-paire {
+  display: grid; grid-template-columns: auto 44px; gap: 8px;
+  align-items: baseline; justify-items: end;
+}
+.ligne-paire b { font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--texte); }
+.ligne-paire b.pct { color: var(--texte-2); font-size: 11px; }
+
+/* --- Le comparateur --- */
+
+.compare-nom { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.compare-icone { width: 14px; height: 14px; object-fit: contain; flex: none; }
+.compare-libelle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* L'intitule d'une famille separe, il ne compte pas : pas de fond de cellule,
+   un filet et une casse qui le distinguent des mesures. */
+.compare-famille th {
+  padding: 14px 10px 4px;
+  font-size: 10px; font-weight: 640; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--texte-3); background: transparent;
+  border-bottom: 1px solid var(--filet);
+}
+.compare tbody tr:first-child .compare-famille th,
+.compare-famille:first-child th { padding-top: 4px; }
+
+/* ==================================== Le telephone ===
+
+   v2 se regle au grand ecran : trois volets, un plateau, une courbe. Sur un
+   telephone l'ambition tombe a deux gestes — consulter son stuff, et porter
+   une proposition. Le reste reste atteignable, mais personne ne fera de
+   reglage fin sur quatre cents pixels.
+
+   Ce qui etait CASSE, en revanche, l'etait vraiment : la barre du haut tenait
+   sur une ligne de mille pixels, et toute la page glissait de cote. Une page
+   qui se decale a l'horizontale n'est pas une page dense, c'est une page
+   fausse. */
+
+@media (max-width: 720px) {
+  .barre { position: static; padding: 8px 10px; gap: 8px 10px; }
+  /* Le pousse-a-droite n'a plus de sens quand la barre passe a la ligne. */
+  .pousse { margin-left: 0; flex-basis: 100%; height: 0; }
+  #barre-droite { gap: 8px 10px !important; width: 100%; }
+  /* Le compteur de generations s'efface ; le score, lui, reste. */
+  .score-vif b { font-size: 17px; }
+
+  /* Ce qui se deduit ou se relit ailleurs cede la place aux commandes. */
+  #score-note, #compteur-generations, #identite-detail { display: none; }
+
+  .appli { height: auto; }
+  .scene { padding: 16px 12px 32px; }
+  .section { padding: 12px 12px 14px; }
+
+  /* --- Les deux traces ---
+
+     Un canvas prend la largeur qu'on lui donne. Sur quatre cents pixels, une
+     proportion de deux et demi pour un donnerait encore un fil : les deux
+     traces se rapprochent du carre, seule forme ou une pente se lit a cette
+     largeur. */
+  /* Trois pour deux redonne une pente lisible sur quatre cents pixels. La
+     borne haute evite qu'une tablette en portrait n'y consacre un tiers de
+     l'ecran : passe deux cent soixante pixels, le trace n'apprend plus rien. */
+  .graphe-v2 { aspect-ratio: 3 / 2; max-height: 260px; }
+  .melange-courbe { height: 200px; }
+  .bloc-graphe { padding: 10px 10px 6px; }
+  .tete-graphe { flex-wrap: wrap; gap: 6px; }
+  .tete-graphe .fils { justify-content: flex-start; }
+
+  /* Le verdict encadrait le personnage : a cette largeur il l'etrangle. */
+  .verdict { gap: 12px; }
+  .verdict-cote { grid-auto-flow: row; }
+
+  /* Les feuilles prennent l'ecran : une boite centree de six cents pixels
+     sur un telephone ne montre que ses bords. */
+  .feuille, .feuille.large, .compare-boite, .palette {
+    width: 100%; max-width: none; max-height: 100%; height: 100%;
+    border-radius: 0;
+  }
+  .feuille-fond, .compare-fond, .palette-fond { padding: 0; }
+
+  /* Le message passager se met au-dessus du pouce, pas sous lui. */
+  .message-v2 { left: 10px; right: 10px; max-width: none; text-align: center; }
+}

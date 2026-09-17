@@ -109,9 +109,14 @@ const recherche = creerRecherche({
   garderSimulation: () => garderSimulation({ siNouvelle: true, silencieux: true }),
 });
 
-/** Pose un build rendu par le solveur, points de caracteristique compris. */
-function appliquer(resultat) {
-  setEtat(appliquerBuild(etat, resultat, catalogue.itemById));
+/**
+ * Pose un build rendu par le solveur, points de caracteristique compris.
+ *
+ * @param {any} resultat
+ * @param {object} [aussi] Reglages poses dans le meme etat que le build.
+ */
+function appliquer(resultat, aussi = null) {
+  setEtat({ ...appliquerBuild(etat, resultat, catalogue.itemById), ...(aussi ?? {}) });
 }
 
 /* ------------------------------------------------------------- Gestes --- */

@@ -71,14 +71,45 @@ elle-meme.
 
 ## La dette d'habillage
 
-`item-panel`, `hover-card`, `spell-picker` et `renderCandidats` se reutilisent
-tels quels, mais leur habillage vit dans `styles.css`, que v2 ne charge pas.
-Leurs regles sont donc ecrites DEUX FOIS : une fois avec les variables de v1,
-une fois avec les jetons de v2, dans `coquille.css`.
+Elle est resorbee pour l'essentiel. `web/composants.css` tient desormais, une
+seule fois, les sept familles dessinees par des modules partages : la fiche
+d'une piece et son infobulle, le choix des sorts, les stuffs trouves, les
+paliers de « proche de mon stuff », les panoplies, l'analyse du stuff et les
+essais gardes. Les deux coquilles la chargent AVANT leur propre feuille,
+donc chacune peut encore la corriger sans lutte de specificite.
 
-C'est voulu pour l'instant, et ce n'est pas tenable longtemps. La sortie tient
-en un geste : extraire ces composants de `styles.css` vers un
-`web/composants.css` commun, que les deux coquilles chargent, chacune
-definissant les memes variables depuis ses propres couleurs. A faire quand v2
-sera complete — le faire maintenant deplacerait des regles de v1 sans que
-personne ne regarde v1.
+Elle ne connait que des jetons — `--surface-2`, `--filet`, `--jade`,
+`--mono` — jamais une couleur en dur. v2 les definit dans `socle.css` ; v1
+les aliase sur sa propre palette dans `styles.css`, si bien que ses themes
+continuent de les teindre sans rien savoir du fichier partage. `styles.css` y
+a perdu cent soixante-seize regles redondantes.
+
+Ce qui reste : les familles a moins de sept dixiemes de partage — la feuille
+des points, celle des minimums, le profil. Leurs regles communes valent moins
+que le risque de deplacer de l'habillage de v1 avant la bascule.
+
+## Ce qui survit a un rechargement
+
+L'etat range porte desormais les PROPOSITIONS du solveur — `candidats`,
+`paliers`, `survie` — bornees a quarante par liste. Leur absence se lisait
+comme une perte de tout le travail : le joueur revenait, retrouvait son stuff,
+ses sorts et ses interdictions, mais plus une seule des propositions qu'il
+comparait, ni la courbe du compromis, qui n'est faite que de ces paliers.
+
+Corollaire : une recherche qui continue n'efface plus ces listes au depart.
+Elle ne les jette que si elle repart de zero — ce que « Chercher » fait
+maintenant tout seul quand les reglages ont bouge depuis le dernier
+lancement, parce qu'une population porte les reponses a la question qu'on lui
+a posee.
+
+## Les habillages de v2
+
+`web/v2/themes/` en porte quatre, et `catalogue-themes.mjs` les decrit sans
+rien importer : cle, feuille, apercu de trois couleurs, phrase. Le choix vit
+dans la feuille des reglages, sous forme de cartes qui posent l'habillage au
+survol — un nom ne montre pas un habillage, et l'essayer un par un coutait
+cinq allers-retours.
+
+La cle de rangement differe de celle de v1 : « braise » n'existe pas dans sa
+liste, et une cle commune ferait retomber v1 sur son habillage de depart des
+que v2 aurait ecrit le sien.

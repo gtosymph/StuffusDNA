@@ -5,7 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Best Roxxeur — v2</title>
 <link rel="stylesheet" href="socle.css">
+<link rel="stylesheet" href="../composants.css">
 <link rel="stylesheet" href="coquille.css">
+<script>
+  // L'habillage garde se pose avant le premier rendu : sans cela, la page
+  // clignote sur l'habillage de depart le temps de charger le module.
+  // Gardez cette liste d'accord avec THEMES_V2, dans web/theme.mjs.
+  try {
+    var adresse = new URLSearchParams(location.search);
+    // Bac d'essai : les cles portent un suffixe. Voir suffixeDeBac() dans
+    // stockage.mjs, qui pose la meme regle.
+    var bac = '';
+    if (adresse.has('test')) {
+      var nom = (adresse.get('test') || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      bac = nom && nom !== '1' ? '_test_' + nom : '_test';
+    }
+    var choix = adresse.get('theme')
+      || localStorage.getItem('copyroxx_v2_theme' + bac) || 'studio';
+    if (/^[a-z-]+$/.test(choix) && choix !== 'studio') {
+      var feuille = document.createElement('link');
+      feuille.id = 'feuille-theme';
+      feuille.rel = 'stylesheet';
+      feuille.href = 'themes/' + choix + '.css';
+      document.head.appendChild(feuille);
+    }
+  } catch (erreur) { /* stockage refuse : l'habillage de depart s'applique */ }
+</script>
 </head>
 <body>
 
@@ -23,13 +48,24 @@
   <div id="barre-droite" hidden style="align-items:center;gap:14px">
     <div class="score-vif"><b class="pos" id="score">—</b> <span id="score-note">score</span></div>
     <span id="compteur-generations" class="n" style="font-size:11px;color:var(--texte-3)"></span>
-    <button class="btn premier" id="lancer" type="button">Chercher</button>
-    <button class="btn fantome" id="arreter" type="button" title="Pause" disabled>Pause</button>
-    <button class="btn fantome" id="annuler" type="button"
-      title="Annule la derniere action (Ctrl+Z)" disabled>Annuler</button>
-    <button class="btn fantome" id="vider" type="button"
-      title="Enleve toutes les pieces portees">Vider</button>
-    <button class="btn fantome" id="reglages" type="button" title="Reglages de calcul">⚙</button>
+    <!-- Les quatre commandes de la recherche se lisent comme un lecteur :
+         lire, mettre en pause, arreter, jeter. Le libelle reste, parce qu'un
+         pictogramme seul se devine et ne se lit pas. app.mjs y pose les
+         dessins, et change celui d'« Annuler » selon ce qu'il fait. -->
+    <button class="btn premier" id="lancer" type="button"><span>Chercher</span></button>
+    <button class="btn fantome" id="arreter" type="button" title="Pause" disabled>
+      <span>Pause</span></button>
+    <button class="btn fantome" id="annuler" type="button" disabled><span>Annuler</span></button>
+    <button class="btn fantome danger" id="vider" type="button"
+      title="Enleve toutes les pieces portees"><span>Vider</span></button>
+    <!-- « Partager » porte son nom : c'est le seul geste de la barre qui sort
+         de l'outil, et personne ne devine un pictogramme qu'il n'a jamais
+         employe. Il reste en retrait de « Chercher », qui garde l'accent. -->
+    <button class="btn" id="partager" type="button"
+      title="Partager ce reglage par un lien, ou l'ouvrir chez Dofusbook">
+      <span>Partager</span></button>
+    <button class="btn icone" id="reglages" type="button"
+      title="Reglages de calcul et habillage" aria-label="Reglages"></button>
   </div>
 </header>
 
@@ -46,6 +82,12 @@
 
 <!-- ===================== L'atelier ===================== -->
 <div class="appli" id="travail" hidden>
+
+  <!-- Sur telephone, chaque volet se replie derriere sa poignee. La case
+       precede le volet parce que la cascade ne remonte pas : c'est elle qui
+       commande l'ouverture, sans une ligne de script. -->
+  <input class="tiroir" type="checkbox" id="tiroir-gauche">
+  <label class="poignee" for="tiroir-gauche">Mes reglages</label>
 
   <aside class="volet volet-gauche">
     <div class="section">
@@ -87,6 +129,32 @@
       <button class="btn" id="ouvrir-palette" type="button"
         style="width:100%;justify-content:center;margin-top:9px">Toutes les pieces</button>
       <p class="aide">Une piece que vous possedez deja ne compte pas comme un achat.</p>
+
+      <!-- Trois listes se gardent a part : elles ne changent pas au meme
+           rythme. Les pieces interdites tiennent une saison, la banque suit
+           les achats, le stuff change a chaque essai. -->
+      <p class="chapeau" style="margin-top:14px">Garder ces listes</p>
+      <div class="rangee-jeux">
+        <span class="nom-jeu">Stuff</span>
+        <select id="sets-stuff" aria-label="Stuffs enregistres"></select>
+        <button class="btn mini" id="charger-stuff" type="button" title="Reprendre ce stuff">Reprendre</button>
+        <button class="btn mini" id="garder-stuff" type="button" title="Enregistrer le stuff porte">Garder</button>
+        <button class="btn mini fantome" id="oublier-stuff" type="button" title="Enlever ce stuff">×</button>
+      </div>
+      <div class="rangee-jeux">
+        <span class="nom-jeu">Banque</span>
+        <select id="sets-banque" aria-label="Jeux de pieces en banque"></select>
+        <button class="btn mini" id="charger-banque" type="button" title="Reprendre cette banque">Reprendre</button>
+        <button class="btn mini" id="garder-banque" type="button" title="Enregistrer les pieces en banque">Garder</button>
+        <button class="btn mini fantome" id="oublier-banque" type="button" title="Enlever ce jeu">×</button>
+      </div>
+      <div class="rangee-jeux">
+        <span class="nom-jeu">Interdits</span>
+        <select id="sets-bannis" aria-label="Jeux de pieces interdites"></select>
+        <button class="btn mini" id="charger-bannis" type="button" title="Reprendre ces interdictions">Reprendre</button>
+        <button class="btn mini" id="garder-bannis" type="button" title="Enregistrer les pieces interdites">Garder</button>
+        <button class="btn mini fantome" id="oublier-bannis" type="button" title="Enlever ce jeu">×</button>
+      </div>
     </div>
   </aside>
 
@@ -124,6 +192,19 @@
           </div>
         </div>
       </dl>
+
+      <!-- Ce que la recherche a trouve au fil des generations. Il se lit
+           juste sous le verdict, avant le detail des degats : c'est lui qui
+           dit si le chiffre du dessus a fini de monter. -->
+      <section class="bloc-graphe" id="bloc-graphe">
+        <div class="tete-graphe">
+          <p class="chapeau" style="padding:0;margin:0">Ce que la recherche a trouve</p>
+        </div>
+        <canvas id="graphe" class="graphe-v2" height="130"></canvas>
+        <!-- Le detail par fil se lit SOUS le trace : dans le bandeau, huit
+             fils repoussaient le titre et prenaient deux lignes. -->
+        <div class="fils" id="etat-fils"></div>
+      </section>
 
       <!-- D'ou viennent CES degats-la : le detail se lit sous le verdict, pas
            dedans. Dans le verdict, il l'ecrasait. -->
@@ -195,31 +276,11 @@
         <div class="remplacements" id="remplacements"></div>
       </section>
 
-      <!-- La courbe de la recherche. Elle vit ici tant que le volet de
-           reglage fin n'existe pas : mieux vaut un graphe visible qu'un
-           graphe absent qui laisse croire que rien ne tourne. -->
-      <canvas id="graphe" class="graphe-v2" height="120"></canvas>
-      <div class="rangee-moteur">
-        <div class="fils" id="etat-fils"></div>
-        <div class="pousse"></div>
-        <label class="reglage-moteur" for="fils" title="Fils de calcul">
-          <span>Fils</span>
-          <input id="fils" type="number" min="1" max="8" value="4" class="n">
-        </label>
-        <label class="reglage-moteur" for="intensite"
-          title="Part du temps ou les fils calculent. Une intensite basse laisse souffler le processeur : la recherche avance moins vite, la machine chauffe moins.">
-          <span>Intensite</span>
-          <select id="intensite">
-            <option value="1">Maximale</option>
-            <option value="0.7">Menagee</option>
-            <option value="0.4">Basse</option>
-          </select>
-        </label>
-        <button class="btn mini" id="recommencer" type="button"
-          title="Repart de zero : coupe la recherche en cours, population neuve, sans le stuff courant en graine">Recommencer</button>
-      </div>
     </div>
   </main>
+
+  <input class="tiroir" type="checkbox" id="tiroir-droit">
+  <label class="poignee" for="tiroir-droit">La fiche du personnage</label>
 
   <aside class="volet volet-droit">
     <div class="inspecteur-tete">
@@ -230,12 +291,42 @@
   </aside>
 </div>
 
+<!-- Les commandes du moteur vivent ici, hors de l'ecran, et la feuille des
+     reglages les ADOPTE a son ouverture. Ce sont les memes noeuds : leur
+     valeur survit donc a la fermeture de la feuille, et la recherche les lit
+     au lancement meme si personne n'a jamais ouvert les reglages. -->
+<div id="reglages-moteur" hidden>
+  <label class="reglage-moteur" for="fils">
+    <span>Fils de calcul</span>
+    <input id="fils" type="number" min="1" max="8" value="4" class="n">
+  </label>
+  <label class="reglage-moteur" for="intensite">
+    <span>Intensite</span>
+    <select id="intensite">
+      <option value="1">Maximale</option>
+      <option value="0.7">Menagee</option>
+      <option value="0.4">Basse</option>
+    </select>
+  </label>
+  <button class="btn" id="recommencer" type="button"
+    title="Coupe la recherche en cours et repart d'une population neuve, sans le stuff courant en graine">Recommencer de zero</button>
+</div>
+
 <div id="message" role="status" aria-live="polite" class="message-v2"></div>
 
 <script type="module">
   import { installerProfil } from '../profil-panel.mjs';
   import { installerPliage } from '../pliage.mjs';
   import { EN_BAC_DESSAI } from '../stockage.mjs';
+  import { CLE_THEME_V2, configurerThemes, installerTheme, THEMES_V2 } from '../theme.mjs';
+
+  // v2 a ses propres habillages et sa propre cle : « braise » n'existe pas
+  // dans la liste de v1, et une cle commune ferait retomber v1 sur son
+  // habillage de depart des que v2 aurait ecrit le sien.
+  configurerThemes({ themes: THEMES_V2, defaut: 'studio', cle: CLE_THEME_V2 });
+  // Sans hote, la fonction se contente de poser l'habillage garde : le choix
+  // vit dans la feuille des reglages, pas dans la barre.
+  installerTheme(null);
 
   // Un bac d'essai se voit, sinon il ne protege de rien : le joueur doit
   // savoir d'un coup d'oeil que cet onglet n'ecrit pas dans son profil.

@@ -449,7 +449,11 @@ export function renderArme(root, attaque, detail) {
       attaque.icon ? el('img', { class: 'icone-sort', src: attaque.icon, alt: '', decoding: 'async' }) : null,
       el('span', { class: 'nom-arme', text: attaque.name }),
       el('span', { class: 'meta-arme',
-        text: `${attaque.apCost ?? '?'} PA · ${attaque.castsPerTurn}/tour · arme` })),
+        title: 'Cout, cadence et portee de l\'arme',
+        text: `${attaque.apCost ?? '?'} PA · ${attaque.castsPerTurn}/tour`
+          + (Number(attaque.portee) > 0
+            ? ` · ${attaque.portee} PO`
+            : '') })),
     el('div', { class: 'lignes-arme' },
       attaque.lines.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`))),
     detail ? detailSort(detail) : null,

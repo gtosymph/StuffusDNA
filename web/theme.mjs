@@ -10,13 +10,13 @@
  * dans `copyroxx_etat` : les deux ne se touchent jamais.
  */
 
-import { CLES, ecrire, lireTexte } from './stockage.mjs';
+import { CLES, ecrire, lireTexte, nomDeCle } from './stockage.mjs';
 
 /**
  * Themes proposes. Le premier porte la feuille de base : il n'a pas de
  * feuille propre a poser.
  */
-export const THEMES = [
+export const THEMES_V1 = [
   { cle: 'nuit', nom: 'Nuit', fichier: null },
   { cle: 'papier', nom: 'Papier', fichier: 'themes/papier.css' },
   { cle: 'forge', nom: 'Forge', fichier: 'themes/forge.css' },
@@ -31,13 +31,57 @@ export const THEMES = [
  */
 export const THEME_DEFAUT = 'cockpit';
 
-const CLE = CLES.theme;
+/**
+ * Themes de la coquille v2, repris du catalogue.
+ *
+ * Les chemins de `fichier` y sont relatifs au document, donc a `web/v2/`.
+ */
+export { THEMES_V2 } from './v2/catalogue-themes.mjs';
+
+/**
+ * Cle ou v2 garde son choix.
+ *
+ * Elle differe de celle de v1 : « braise » n'existe pas dans la liste de v1,
+ * et une cle commune ferait retomber v1 sur son theme de depart des que v2
+ * aurait ecrit le sien.
+ */
+export const CLE_THEME_V2 = nomDeCle('copyroxx_v2_theme');
+
+/**
+ * Liste et defaut en vigueur.
+ *
+ * Le module sert deux coquilles qui n'ont ni la meme palette ni les memes
+ * feuilles. Plutot que de dupliquer tout ce qui suit, chaque coquille dit
+ * une fois lequel des deux jeux elle porte.
+ */
+let THEMES = THEMES_V1;
+let DEFAUT = THEME_DEFAUT;
+
+/**
+ * Cle ou le choix se garde.
+ *
+ * Chaque coquille a la sienne : « braise » n'existe pas dans la liste de v1,
+ * et une cle commune ferait retomber v1 sur son theme de depart des que v2
+ * aurait ecrit le sien.
+ */
+let CLE = CLES.theme;
 const ID_FEUILLE = 'feuille-theme';
+
+/**
+ * Dit quel jeu de themes cette coquille propose.
+ *
+ * @param {{themes: any[], defaut: string, cle?: string}} reglage
+ */
+export function configurerThemes({ themes, defaut, cle = CLES.theme }) {
+  THEMES = themes;
+  DEFAUT = defaut;
+  CLE = cle;
+}
 
 /** Rend le theme demande, ou celui par defaut si la cle est inconnue. */
 function trouver(cle) {
   return THEMES.find((t) => t.cle === cle)
-    ?? THEMES.find((t) => t.cle === THEME_DEFAUT)
+    ?? THEMES.find((t) => t.cle === DEFAUT)
     ?? THEMES[0];
 }
 

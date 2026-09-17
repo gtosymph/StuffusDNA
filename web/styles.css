@@ -82,6 +82,33 @@
   --pad-bloc: 9px 10px;
   --gap-atelier: 8px;
   --colonnes-atelier: 204px minmax(300px, 1.2fr) minmax(280px, 470px) minmax(286px, 1fr);
+
+  /* --- Les noms que `composants.css` emploie ---
+
+     Les composants communs aux deux coquilles ne connaissent que ces
+     noms-la. Les faire pointer sur la palette de v1 suffit a les habiller :
+     un theme qui redefinit `--accent` ou `--carte` continue donc de les
+     teindre, sans rien savoir du fichier partage. */
+  --surface: var(--carte);
+  --surface-2: var(--champ);
+  --surface-3: var(--carte-haute);
+  --filet: var(--bord);
+  --filet-clair: var(--bord-clair);
+  --texte-2: var(--texte);
+  --texte-3: var(--faible);
+  --iris: var(--accent);
+  --iris-fond: var(--prise-fond);
+  --iris-sourd: var(--accent-doux);
+  --sur-iris: var(--sur-accent);
+  --jade: var(--positif);
+  --rose: var(--alerte);
+  --mono: var(--chiffre);
+  --ui: var(--police);
+  --r-lg: 8px;
+  --iris-vif: var(--accent-vif);
+  --sur-ambre: #241a02;
+  /* `--voile` existe deja plus haut : les feuilles partagees s'en servent. */
+  --ombre: var(--ombre-fiche);
 }
 
 * { box-sizing: border-box; }
@@ -346,8 +373,6 @@ button.pleine-largeur { width: 100%; margin-top: 6px; }
 .rangee-masse { display: grid; grid-template-columns: 1fr auto; gap: 4px; margin-top: 5px; }
 .rangee-masse button { font-size: 11px; }
 
-/* ---------- Pieces bannies ---------- */
-
 /* Deux cent quatre-vingts pieces bannies faisaient une page de neuf mille
    pixels de haut. La liste garde sa hauteur et defile dans son cadre. */
 .bannis { display: flex; flex-wrap: wrap; gap: 4px; max-height: 220px; overflow-y: auto; }
@@ -404,16 +429,6 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); }
 .ajout-ligne .mini.large:hover { color: var(--accent); border-color: var(--accent); }
 .sort-total { margin-top: 5px; font-family: var(--chiffre); font-size: 11px; color: var(--positif); text-align: right; }
 
-/* ---------- Panoplies et options ---------- */
-
-.panoplies { display: grid; gap: 6px; }
-.panoplie { border: 1px solid var(--bord); border-radius: var(--r); padding: 6px 8px; background: var(--champ); }
-.panoplie-tete { display: flex; justify-content: space-between; font-size: 11px; color: var(--titre); margin-bottom: 4px; }
-.panoplie-tete .pieces { color: var(--accent); font-family: var(--chiffre); }
-.panoplie dl { display: grid; grid-template-columns: 1fr auto; gap: 1px 6px; margin: 0; font-size: 10px; }
-.panoplie dt { color: var(--faible); }
-.panoplie dd { margin: 0; font-family: var(--chiffre); color: var(--positif); text-align: right; }
-
 .options { display: grid; gap: 5px; }
 .option { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--texte); }
 .option input { accent-color: var(--accent); }
@@ -469,13 +484,11 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); }
   .mini { min-height: 30px; min-width: 30px; }
   .mini.large { min-height: 32px; }
   table.conditions .mini { padding: 4px 8px; font-size: 14px; }
-  .simulation-favori { min-height: 30px; min-width: 30px; font-size: 15px; }
   input[type="checkbox"] { width: 18px; height: 18px; }
   .objectif-mesure { min-height: 32px; }
   .bascule-tiroir { min-height: 32px; }
   .option.liste select, .option.nombre input { min-height: 30px; }
 }
-
 
 /* ---------- Courbe d'evolution ---------- */
 
@@ -526,52 +539,7 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 /* ---------- Avatar ---------- */
 
 .avatar-cadre img { max-width: 100%; max-height: 190px; object-fit: contain; }
-
-
-/* ---------- Fiche d'equipement ---------- */
-
-.fiche-fond {
-  position: fixed; inset: 0; z-index: 100;
-  background: var(--voile);
-  display: grid; place-items: center; padding: 16px;
-}
 .fiche-fond[hidden] { display: none; }
-
-.fiche {
-  width: min(360px, 100%); max-height: 84vh; overflow-y: auto;
-  background: var(--carte-haute); border: 1px solid var(--bord-clair);
-  border-radius: 8px; padding: 14px;
-  box-shadow: 0 18px 50px var(--ombre-fiche);
-}
-.fiche-tete { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.fiche-tete img { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
-.fiche-tete > div { flex: 1; min-width: 0; }
-.fiche-nom { font-size: 14px; font-weight: 640; color: var(--titre); }
-.fiche-sous { font-size: 11px; color: var(--faible); }
-
-.fiche-condition {
-  display: flex; gap: 7px; align-items: baseline;
-  font-size: 11px; margin-bottom: 8px; padding: 5px 8px;
-  background: var(--or-fond); border: 1px solid var(--or-bord); border-radius: 4px;
-}
-.fiche-condition .cle { color: var(--ambre); }
-.fiche-condition code { font-family: var(--chiffre); color: var(--texte); word-break: break-all; }
-
-.fiche-note {
-  font-size: 11px; color: var(--info-texte); margin-bottom: 8px;
-  padding: 5px 8px; background: var(--info-fond); border: 1px solid var(--info-bord); border-radius: 4px;
-}
-
-.fiche-stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; margin: 0 0 12px; }
-.fiche-stats dt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texte); }
-.fiche-stats dt img { width: 15px; height: 15px; object-fit: contain; }
-.fiche-stats dd { margin: 0; font-family: var(--chiffre); font-size: 12px; text-align: right; }
-.fiche-stats dd.pos { color: var(--positif); }
-.fiche-stats dd.neg { color: var(--alerte); }
-
-.fiche-actions { display: flex; gap: 6px; }
-.fiche-actions button { flex: 1; padding: 7px; }
-
 
 /* ---------- Points de caracteristique ---------- */
 
@@ -629,14 +597,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   border: 1px solid var(--bord-clair); color: var(--faible); background: var(--champ);
 }
 .parcho.pris span { color: var(--ambre); border-color: var(--or-bord); background: var(--or-fond); }
-
-
-/* ---------- Degats d'arme sur les fiches ---------- */
-
-.fiche-arme { margin-top: 7px; }
-.titre-arme { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
-.bulle-arme { margin: 4px 0; }
-.bulle-arme-cout { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
 .bulle-arme-lignes { display: flex; flex-wrap: wrap; gap: 3px; }
 .bulle-arme .ligne-arme { font-size: 9px; padding: 0 6px; }
 
@@ -667,15 +627,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   border: 1px solid var(--teinte, var(--bord)); color: var(--teinte, var(--texte));
 }
 .ligne-arme img { width: 13px; height: 13px; }
-
-/* ---------- Passifs en combat ---------- */
-
-.fiche-passif, .bulle-passif {
-  margin-top: 7px; padding: 6px 8px; border-radius: 4px;
-  background: var(--or-voile); border: 1px solid var(--or-trait);
-  font-size: 11px; color: var(--ambre);
-}
-.titre-passif { font-size: 10px; font-weight: 600; margin-bottom: 3px; }
 .ligne-passif { display: flex; align-items: center; gap: 5px; }
 .ligne-passif img { width: 14px; height: 14px; }
 
@@ -688,109 +639,20 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 }
 .piece-panoplie.portee { border-color: var(--positif); }
 .piece-panoplie.absente { opacity: .3; filter: grayscale(.7); }
-.panoplie dt { display: flex; align-items: center; gap: 5px; }
-.panoplie dt img { width: 14px; height: 14px; }
-.panoplie dd.pos { color: var(--positif); }
-.panoplie dd.neg { color: var(--alerte); }
 
 /* ---------- Jeux enregistres ---------- */
 
 .rangee-sets { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px; margin-top: 6px; }
 .rangee-sets select { min-width: 0; }
 .rangee-sets button { font-size: 11px; padding: 4px 7px; }
-
-/* ---------- Overlay de choix des sorts ---------- */
-
-.picker-fond {
-  position: fixed; inset: 0; z-index: 120;
-  background: var(--voile);
-  display: grid; place-items: center; padding: 16px;
-}
 .picker-fond[hidden] { display: none; }
-
-.picker {
-  width: min(880px, 100%); max-height: 86vh;
-  display: flex; flex-direction: column;
-  background: var(--carte-haute); border: 1px solid var(--bord-clair);
-  border-radius: 10px; box-shadow: 0 20px 56px var(--ombre-picker);
-}
-.picker-tete {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 16px 10px; border-bottom: 1px solid var(--bord);
-}
-.picker-tete > div:first-child { flex: 1; }
-.picker-titre { font: 600 15px var(--display); color: var(--titre); }
-.picker-sous { font-size: 11px; color: var(--faible); }
-
-.picker-filtres { display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--bord); }
-.picker-filtres input[type="search"] { flex: 1; min-width: 0; }
-
-.picker-liste { overflow-y: auto; padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 7px; }
-
-.couple-sorts {
-  display: grid; gap: 4px; padding: 5px; border-radius: 5px; align-items: stretch;
-  background: var(--couple-fond); border: 1px solid var(--bord);
-}
-/* Un duo se lit a l'horizontale : les deux variantes cote a cote. */
-.couple-sorts.duo { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-.couple-sorts .carte-sort { min-width: 0; }
-.lien-couple {
-  display: grid; place-items: center; font-size: 9px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--faible); padding: 0 2px;
-}
 @media (max-width: 700px) {
-  .couple-sorts.duo { grid-template-columns: minmax(0, 1fr); }
-  .couple-sorts.duo .lien-couple { padding: 2px 0; }
-}
-.carte-sort { border: 1px solid var(--bord); border-radius: 7px; padding: 8px 10px; background: var(--champ); }
-.carte-sort.prise { border-color: var(--accent); background: var(--mine-soft, var(--prise-fond)); }
-.tete-sort { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.tete-sort img { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; flex: 0 0 26px; }
-.tete-sort .ident { flex: 1; min-width: 0; }
-.tete-sort .nom { font: 600 13px var(--display); color: var(--titre); }
-.tete-sort .meta { font-size: 10px; color: var(--faible); font-family: var(--chiffre); }
-
-.variantes { display: flex; flex-wrap: wrap; gap: 4px; }
-.variante {
-  display: flex; align-items: baseline; gap: 6px;
-  padding: 4px 9px; font-size: 11px; border-radius: 5px;
-  border: 1px solid var(--bord-clair); background: var(--carte);
-  border-left: 3px solid var(--teinte, var(--accent));
-}
-.variante:hover { border-color: var(--accent); background: var(--survol-fort); }
-.variante .niv { color: var(--faible); font: 400 10px var(--chiffre); }
-.variante .plage { font: 600 11px var(--chiffre); color: var(--texte); }
-.variante .cc { font: 400 10px var(--chiffre); color: var(--ambre); }
-
-/* ---------- Infobulle d'equipement ---------- */
-
-.bulle {
-  position: fixed; z-index: 130; pointer-events: none;
-  width: 236px; padding: 9px 11px;
-  background: var(--carte-haute); border: 1px solid var(--bord-clair);
-  border-radius: 8px; box-shadow: 0 12px 32px var(--ombre-bulle);
 }
 .bulle[hidden] { display: none; }
-.bulle-tete { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; }
 .bulle-tete img { width: 32px; height: 32px; object-fit: contain; flex: 0 0 32px; }
-.bulle-nom { font: 600 12px var(--display); color: var(--titre); line-height: 1.25; }
-.bulle-sous { font-size: 10px; color: var(--faible); }
-.bulle-condition {
-  font: 400 10px var(--chiffre); color: var(--ambre);
-  background: var(--or-fond); border: 1px solid var(--or-bord); border-radius: 4px;
-  padding: 3px 6px; margin-bottom: 6px; word-break: break-all;
-}
-.bulle-stats { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; margin: 0; }
-.bulle-stats dt { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faible); }
 .bulle-stats dt img { width: 13px; height: 13px; object-fit: contain; }
-.bulle-stats dd { margin: 0; font: 400 11px var(--chiffre); text-align: right; }
-.bulle-stats dd.pos { color: var(--positif); }
-.bulle-stats dd.neg { color: var(--alerte); }
-.bulle-vide, .bulle-reste { font-size: 10px; color: var(--faible); font-style: italic; }
-.bulle-reste { margin-top: 3px; }
-.bulle-aide { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--bord); font-size: 9px; color: var(--faible); }
 
-@media (hover: none) { .bulle { display: none; } }
+@media (hover: none) { }
 
 /* ---------- Combo optimise ---------- */
 
@@ -841,11 +703,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   color: var(--ambre); border: 1px solid var(--ambre); border-radius: 999px;
   padding: 0 5px; align-self: center; white-space: nowrap;
 }
-
-/* ---------- Filtres du picker de sorts ---------- */
-
-.picker-elements { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.picker-elements .espace { flex: 1; }
 .chip-element {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; padding: 2px 8px; border-radius: 999px; cursor: pointer;
@@ -881,35 +738,8 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 /* Filtre des trophees majeurs (condition Pk<3). */
 .filtre-case { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faible); cursor: pointer; user-select: none; }
 .filtre-case input { margin: 0; }
-
-/* Degats de l'arme calcules avec les caracteristiques du build. */
-.bulle-arme-calc { margin: 4px 0; padding-top: 4px; border-top: 1px solid var(--bord); }
-.titre-arme-calc { font-size: 10px; color: var(--faible); margin-bottom: 3px; }
 .bulle-arme-calc .ligne-arme { font-size: 9px; padding: 0 6px; margin: 0 3px 3px 0; }
-.bulle-arme-moyenne { font-size: 10px; color: var(--faible); margin-top: 2px; }
 .fiche-arme.calc { padding-top: 6px; border-top: 1px solid var(--bord); }
-
-/* ---------- Autres builds trouves ---------- */
-
-.candidats { display: grid; gap: 6px; }
-.candidat {
-  border: 1px solid var(--bord); border-radius: var(--r);
-  padding: 6px 8px; background: var(--champ);
-}
-.candidat.porte { border-color: var(--accent); }
-.candidat-tete { display: flex; align-items: center; gap: 8px; }
-.candidat-score { font-family: var(--chiffre); font-size: 14px; color: var(--positif); font-weight: 600; }
-.candidat-ecart { font-family: var(--chiffre); font-size: 11px; }
-.candidat-ecart.pos { color: var(--positif); }
-.candidat-ecart.neg { color: var(--ambre); }
-.candidat-changements { flex: 1; font-size: 10px; color: var(--faible); }
-.candidat-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 5px; }
-.candidat-legende {
-  font-size: 8px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--faible);
-}
-.piece-candidat { width: 26px; height: 26px; border-radius: 4px; border: 1px solid transparent; }
-.piece-candidat.entrante { border-color: var(--positif); }
-.piece-candidat.sortante { border-color: var(--bord); opacity: 0.55; }
 
 /* ---------- Analyse du build ---------- */
 
@@ -918,48 +748,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   color: var(--faible); margin: 8px 0 5px; font-weight: 600;
 }
 .sous-titre:first-of-type { margin-top: 0; }
-.apports, .sensibilite { display: grid; gap: 2px; }
-/* La jauge occupe le fond de la ligne : le nom garde toute la largeur. */
-.apport, .mesure {
-  position: relative; display: flex; align-items: center; gap: 6px;
-  font-size: 10px; padding: 3px 5px; border-radius: 4px; overflow: hidden;
-}
-.apport > *, .mesure > * { position: relative; z-index: 1; }
-.apport-icone { width: 18px; height: 18px; flex: none; }
-.mesure-icone { width: 14px; height: 14px; flex: none; }
-.apport-nom, .mesure-nom {
-  flex: 1; min-width: 0; color: var(--texte);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.apport-jauge {
-  position: absolute; inset: 0; z-index: 0; background: none; border-radius: 4px;
-}
-.apport-jauge i {
-  display: block; height: 100%; border-radius: 4px;
-  background: color-mix(in srgb, var(--accent) 26%, transparent);
-}
-.apport-valeur, .mesure-gain {
-  flex: none; text-align: right;
-  font-family: var(--chiffre); font-size: 11px; color: var(--positif);
-}
-.apport-valeur.neg { color: var(--alerte); }
-.apport-valeur.nul { color: var(--faible); }
-.apport.decisive .apport-nom { color: var(--ambre); }
-.apport-marque {
-  flex: none; width: 10px; text-align: center;
-  font-family: var(--chiffre); font-size: 11px; font-weight: 700; color: var(--ambre);
-}
-.remplacements { display: grid; gap: 2px; }
-.remplacement {
-  position: relative; display: flex; align-items: center; gap: 5px;
-  font-size: 10px; padding: 3px 5px; border-radius: 4px; overflow: hidden;
-}
-.remplacement > * { position: relative; z-index: 1; }
-.remplacement-fleche { flex: none; color: var(--faible); font-size: 10px; }
-.remplacement .apport-icone.vide {
-  display: inline-block; border: 1px dashed var(--bord-clair); border-radius: 3px; box-sizing: border-box;
-}
-.remplacement .mini { flex: none; }
 
 /* ---------- Pliage des sections ---------- */
 
@@ -991,8 +779,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .note-score.cliquable { cursor: pointer; text-decoration: underline dotted var(--bord-clair); text-underline-offset: 3px; }
 .note-score.cliquable:hover { color: var(--alerte); text-decoration-color: var(--alerte); }
 
-/* ---------- Paires : une seule par ligne quand le bloc est etroit ---------- */
-
 /* Deux paires par ligne coupent les libelles longs des le moment ou la colonne
    se resserre. Le bloc se mesure lui-meme et rend la main a une seule paire. */
 .bloc { container-type: inline-size; }
@@ -1012,72 +798,9 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 .barre-info.rappel-score.defaut { color: var(--alerte); border-color: var(--alerte-bord); }
 .barre-info.rappel-score:hover { background: var(--survol); }
 
-/* ---------- Simulations gardees ---------- */
-
-.simulations {
-  display: flex; flex-direction: column; gap: 4px;
-  /* Quarante essais feraient une colonne interminable : la liste defile. */
-  max-height: 300px; overflow-y: auto;
-}
-
-.simulation {
-  display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
-  align-items: center; gap: 8px;
-  padding: 5px 6px; border: 1px solid var(--bord); border-radius: 5px;
-  background: var(--carte-haute);
-}
-.simulation:hover { border-color: var(--bord-clair); }
-.simulation.cochee { border-color: var(--accent); background: var(--couple-fond); }
-
-/* Un favori se repere avant d'etre lu : le liseré le signale dans la pile. */
-.simulation.favori { border-left: 3px solid var(--ambre); }
-
-.simulation-favori {
-  padding: 0 3px; border: none; background: none; cursor: pointer;
-  font-size: 14px; line-height: 1; color: var(--faible);
-}
-.simulation-favori:hover { color: var(--ambre); }
-.simulation-favori.actif { color: var(--ambre); }
-
-.simulation-coche { display: flex; align-items: center; }
-.simulation-coche input { accent-color: var(--accent); margin: 0; }
-.simulation-embleme { width: 22px; height: 22px; object-fit: contain; flex: none; }
-
-.simulation-corps { min-width: 0; }
-.simulation-tete { display: flex; align-items: baseline; gap: 8px; }
-.simulation-nom {
-  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 12px; font-weight: 620; color: var(--titre); cursor: text;
-}
-.simulation-nom:hover { text-decoration: underline dotted var(--bord-clair); text-underline-offset: 3px; }
-.simulation-score { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; }
-.simulation-score.pos { color: var(--positif); }
-.simulation-score.neg { color: var(--alerte); }
-.simulation-sous { font-size: 10px; color: var(--faible); }
-
-.simulation-actions { display: flex; flex-wrap: wrap; gap: 4px; }
-
-/*
- * Le crayon reste discret tant que la ligne n'est pas survolee : la liste
- * doit se lire d'un coup d'oeil, pas montrer un outil par ligne.
- */
-.simulation-renommer {
-  opacity: .35;
-  padding: 0 4px;
-  line-height: 1.4;
-}
-
-.simulation:hover .simulation-renommer,
-.simulation-renommer:focus-visible { opacity: 1; }
-
 /* Sans survol, un outil a demi efface ne se trouve pas : il reste entier. */
 @media (hover: none) {
-  .simulation-renommer { opacity: 1; min-height: 28px; min-width: 28px; }
 }
-
-/* Le filtre des favoris tient sur la meme ligne que les boutons. */
-.rangee-ajout .filtre-case { flex: none; white-space: nowrap; }
 .rangee-ajout .filtre-case.actif { color: var(--ambre); }
 
 /* ---------- Comparaison de deux simulations ---------- */
@@ -1139,7 +862,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 /* Deux gestes par colonne : remettre l'essai, ou en faire la reference. */
 .compare-gestes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
-
 .compare-fleche { text-align: center; }
 .compare-ecart {
   font-family: var(--chiffre); font-size: 20px; font-variant-numeric: tabular-nums;
@@ -1166,56 +888,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   .compare-cote.apres { align-items: flex-start; text-align: left; }
 }
 
-/* Le stuff de chaque simulation, en une bande : deux essais au meme score se
-   distinguent alors sans les ouvrir. */
-.simulation-stuff { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 3px; }
-.simulation-stuff img {
-  width: 19px; height: 19px; object-fit: contain;
-  border-radius: 3px; background: var(--champ);
-}
-
-/* ---------- Proche de mon stuff ---------- */
-
-.proximite-barre {
-  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 7px;
-}
-.proximite-barre .note { margin: 0; flex: 1 1 100%; min-width: 0; }
-.proximite-barre .jeton { white-space: nowrap; }
-.proximite-barre .jeton.banque { color: var(--positif); border-color: var(--positif); background: none; }
-
-.proximite-max { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--faible); }
-.proximite-max input { width: 52px; font-family: var(--chiffre); text-align: right; padding: 3px 4px; }
-
-.paliers { display: flex; flex-direction: column; gap: 4px; }
-
-.palier {
-  display: grid; grid-template-columns: 54px minmax(0, 1fr) auto;
-  gap: 8px; align-items: center;
-  padding: 5px 6px; border: 1px solid var(--bord); border-radius: 5px;
-  background: var(--carte-haute);
-}
-.palier:hover { border-color: var(--bord-clair); }
-
-/* Le cout se lit avant le gain : c'est lui que le joueur arbitre. */
-.palier-cout {
-  display: grid; place-items: center; gap: 0;
-  padding: 3px 0; border-radius: 4px; background: var(--champ);
-}
-.palier-cout strong { font: 600 15px var(--chiffre); color: var(--ambre); line-height: 1.1; }
-.palier-cout span { font-size: 9px; color: var(--faible); }
-
-.palier-corps { min-width: 0; }
-.palier-tete { display: flex; align-items: baseline; gap: 8px; }
-.palier-score { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; }
-.palier-score.pos { color: var(--positif); }
-.palier-score.neg { color: var(--alerte); }
-.palier-gain { font-family: var(--chiffre); font-size: 11px; }
-.palier-gain.pos { color: var(--positif); }
-.palier-gain.neg { color: var(--alerte); }
-
-.palier-pieces { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
-.palier-pieces img { width: 24px; height: 24px; object-fit: contain; }
-
 /* Une piece deja en banque se repere dans le catalogue : la prendre ne coute
    aucun achat, et cela change ce que le solveur propose. */
 .case-item.possedee::before {
@@ -1223,37 +895,8 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   border: 1px solid var(--positif); border-radius: var(--r); pointer-events: none;
 }
 
-/* Un palier sans achat se distingue : le gain y est entierement gratuit. */
-.palier-cout.gratuit strong { color: var(--positif); }
-
-/* La ligne de depart n'est pas une proposition : elle rappelle d'ou l'on part. */
-.palier.depart { background: none; border-style: dashed; }
-.palier.depart .palier-score { color: var(--faible); }
-
-.palier-degats { font-family: var(--chiffre); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--titre); }
-.palier-ecart { font-family: var(--chiffre); font-size: 11px; color: var(--faible); font-variant-numeric: tabular-nums; }
-.palier.depart .palier-degats { color: var(--faible); }
-
-/* Ce qu'un chiffre ne dit pas : une condition redressee, une condition perdue. */
-.palier-marque {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--positif); border: 1px solid var(--positif); border-radius: 999px;
-  padding: 0 5px; white-space: nowrap;
-}
-.palier-marque.defaut { color: var(--alerte); border-color: var(--alerte-bord); }
-
-.candidat-marque {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--positif); border: 1px solid var(--positif); border-radius: 999px;
-  padding: 0 5px; white-space: nowrap;
-}
-.candidat-marque.defaut { color: var(--alerte); border-color: var(--alerte-bord); }
-
 /* Une limite a zero ferme la caracteristique : elle se lit autrement qu'un plafond. */
 .limite-point.fermee { color: var(--alerte); border-color: var(--alerte-bord); }
-
-/* Une piece deja en banque : le bouton de sa fiche le dit d'un coup d'oeil. */
-.fiche-actions button.possede { color: var(--positif); border-color: var(--positif); }
 
 /* Une piece deja en banque ne coute rien : elle se montre en retrait. */
 .palier-pieces img.en-banque { opacity: .55; outline: 1px solid var(--positif); outline-offset: -1px; border-radius: 3px; }
@@ -1336,8 +979,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
   border-radius: 4px;
 }
 
-/* ------------------------------------------------------ Part des degats --- */
-
 /*
  * Curseur du mode mixte. Il ne sert qu'a ce mode : les deux modes purs sont
  * ses bornes, et les montrer ailleurs laisserait croire qu'il change quelque
@@ -1404,8 +1045,6 @@ table.conditions .barre-ecart.manque > span { background: var(--alerte); }
 @media (hover: none) {
   .poids-repere { min-height: 28px; }
 }
-
-/* ------------------------------------------------- Courbe degats/survie --- */
 
 /*
  * La forme du compromis, au-dessus du detail. La liste dit chaque palier et

@@ -19,6 +19,9 @@ import { el, renderConditions } from '../render.mjs';
 import { piegerFocus } from '../focus-piege.mjs';
 import { STATS, STAT_LABELS } from '../../src/data/stats.mjs';
 import { STAT_DEGATS } from '../../src/solver/condition-value.mjs';
+import { mesuresLibres, MINIMUM_NEUF } from './minimums.mjs';
+
+export { MINIMUM_NEUF } from './minimums.mjs';
 
 let racine = null;
 let libererFocus = null;
@@ -33,17 +36,6 @@ export function fermerMinimums() {
 
 /** Vrai quand la feuille est ouverte. */
 export const minimumsOuverts = () => Boolean(racine) && !racine.hidden;
-
-/**
- * Ce qu'un minimum vaut a sa creation.
- *
- * Le poids 1 en fait une preference, pas un couperet : le solveur la tiendra
- * s'il peut. C'est le reglage le moins surprenant pour qui vient d'ajouter
- * une ligne sans encore savoir ce que le poids veut dire.
- */
-export const MINIMUM_NEUF = (stat) => ({
-  stat, target: 0, weight: 1, max: null, absolute: false,
-});
 
 /**
  * Ouvre la feuille des minimums.
@@ -91,13 +83,8 @@ export function ouvrirMinimums({ lireEtat, setEtat, message, lireMesures }) {
       }),
     });
 
-    // La liste d'ajout ne propose que ce qui n'est pas deja pose : offrir un
-    // choix qui sera refuse au clic suivant n'aide personne.
-    const posees = new Set(etat.conditions.map((c) => c.stat));
-    const libres = [
-      ...STATS.filter((s) => !posees.has(s.key)).map((s) => [s.key, s.fr]),
-      ...(posees.has(STAT_DEGATS) ? [] : [[STAT_DEGATS, STAT_LABELS[STAT_DEGATS]]]),
-    ];
+    const libres = mesuresLibres(etat.conditions, STATS,
+      { cle: STAT_DEGATS, libelle: STAT_LABELS[STAT_DEGATS] });
     const garde = choix.value;
     choix.replaceChildren(...(libres.length === 0
       ? [el('option', { value: '', text: 'toutes les mesures sont posees' })]

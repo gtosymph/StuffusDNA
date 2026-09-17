@@ -1,0 +1,40 @@
+/* Braise — la forge.
+
+   Dofus se joue avec des enclumes et des runes. Ce theme part du meme
+   endroit : un noir chaud, comme du charbon refroidi, et une braise orange
+   qui ne sert qu'a ce qu'on doit prendre. Le vert d'un minimum tenu vire au
+   vert-de-gris du cuivre ; le rouge d'un manque, au rouge de la rouille.
+
+   L'accent y est chaud : pensez a le regarder cote a cote avec l'ambre, qui
+   l'est aussi. Ils se distinguent par la saturation, pas par la teinte. */
+
+:root {
+  --fond: #100c0a;
+  --surface: #191310;
+  --surface-2: #211915;
+  --surface-3: #2d221c;
+  --filet: #2b211b;
+  --filet-clair: #453227;
+
+  --texte: #f0e6dd;
+  --texte-2: #a89485;
+  --texte-3: #756254;
+
+  --iris: #e8712e;
+  --iris-vif: #f2803f;
+  --iris-sourd: #7a3a16;
+  --iris-fond: #2a1409;
+  --sur-iris: #1a0d05;
+
+  --jade: #86b87a;
+  --rose: #e0554f;
+  --ambre: #f0c040;
+  --sur-ambre: #261c02;
+
+  --voile: rgb(12 8 6 / .72);
+  --ombre: rgb(10 4 0 / .6);
+}
+
+/* La braise porte son propre texte sombre : le bouton premier doit rester
+   lisible quand l'accent est clair. */
+.btn.premier { font-weight: 600; }

@@ -40,6 +40,10 @@ export function lignesComparaison(mesures, colonnes, options = {}) {
     return {
       cle: mesure.cle,
       libelle: mesure.libelle,
+      // La famille voyage avec la ligne : le tableau la regroupe a l'affichage.
+      // Quarante mesures a la file se lisent comme un mur ; les memes, rangees
+      // sous « Dommages » et « Resistances », se parcourent.
+      famille: mesure.famille ?? null,
       absolue,
       cellules: valeurs.map((valeur, i) => ({
         valeur,
@@ -54,6 +58,26 @@ export function lignesComparaison(mesures, colonnes, options = {}) {
 
   const gardees = masquerIdentiques ? toutes.filter((l) => l.varie) : toutes;
   return { lignes: gardees, masquees: toutes.length - gardees.length };
+}
+
+/**
+ * Les lignes gardees, rangees par famille.
+ *
+ * Une famille dont toutes les lignes ont ete masquees disparait : un intitule
+ * seul se lit comme un defaut d'affichage. Les lignes sans famille se
+ * regroupent sous un groupe anonyme, en tete, plutot que de disparaitre.
+ *
+ * @param {{famille: string|null}[]} lignes
+ * @returns {{famille: string|null, lignes: any[]}[]}
+ */
+export function grouperParFamille(lignes) {
+  const groupes = [];
+  for (const ligne of lignes) {
+    const dernier = groupes[groupes.length - 1];
+    if (dernier && dernier.famille === (ligne.famille ?? null)) dernier.lignes.push(ligne);
+    else groupes.push({ famille: ligne.famille ?? null, lignes: [ligne] });
+  }
+  return groupes;
 }
 
 /**

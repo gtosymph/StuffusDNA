@@ -25,6 +25,52 @@ export const FAMILLES = Object.freeze([
   ['Resistances', RESISTANCES],
 ]);
 
+/**
+ * Les resistances, appariees par element.
+ *
+ * Le jeu donne deux nombres par element : ce qui est retire au coup, et ce
+ * qui en est retranche en pourcentage. Ils ne se lisent JAMAIS l'un sans
+ * l'autre — « 120 » ne veut rien dire sans le « 15 % » qui l'accompagne — et
+ * les montrer sur deux lignes obligeait a les rapprocher de tete, dix fois de
+ * suite. Une ligne par element, deux colonnes de chiffres.
+ *
+ * Quelques mesures n'ont qu'une moitie : la resistance critique et la poussee
+ * n'existent qu'en brut, la melee et la distance qu'en pourcentage. Elles
+ * gardent leur ligne, avec une seule colonne remplie.
+ */
+export const RESISTANCES_APPARIEES = Object.freeze([
+  ['Neutre', 'resNeutre', 'pctResNeutre'],
+  ['Terre', 'resTerre', 'pctResTerre'],
+  ['Feu', 'resFeu', 'pctResFeu'],
+  ['Eau', 'resEau', 'pctResEau'],
+  ['Air', 'resAir', 'pctResAir'],
+  ['Critique', 'resCritique', null],
+  ['Poussee', 'resPoussee', null],
+  ['Melee', null, 'pctResMelee'],
+  ['Distance', null, 'pctResDistance'],
+]);
+
+/**
+ * Les lignes de la famille « Resistances », une par element.
+ *
+ * @param {Record<string, number>} stats
+ * @param {Set<string>} minimums
+ */
+function lignesResistances(stats, minimums) {
+  return RESISTANCES_APPARIEES
+    .filter(([, brut, pct]) => stats?.[brut] !== undefined || stats?.[pct] !== undefined)
+    .map(([libelle, brut, pct]) => ({
+      // La ligne se clique pour poser un minimum : elle vise le brut quand il
+      // existe, sinon le pourcentage. C'est la seule mesure qu'elle porte.
+      cle: brut ?? pct,
+      libelle,
+      valeur: Number(stats?.[brut]) || 0,
+      pourcent: pct && stats?.[pct] !== undefined ? Number(stats[pct]) || 0 : null,
+      sansBrut: !brut,
+      sousMinimum: minimums.has(brut) || minimums.has(pct),
+    }));
+}
+
 /** Ce que l'on montre pour completer l'essentiel, quand il reste de la place. */
 const APPOINT = Object.freeze(['pa', 'pm', 'pdv', 'critique', 'puissance', 'initiative']);
 
@@ -44,13 +90,15 @@ const ESSENTIEL_MAX = 8;
  */
 export function lignesCompletes(stats, minimums = new Set()) {
   return FAMILLES.flatMap(([famille, paires]) => {
-    const dedans = paires
-      .filter(([cle]) => stats?.[cle] !== undefined)
-      .map(([cle, libelle]) => ({
-        cle, libelle,
-        valeur: Number(stats[cle]) || 0,
-        sousMinimum: minimums.has(cle),
-      }));
+    const dedans = famille === 'Resistances'
+      ? lignesResistances(stats, minimums)
+      : paires
+        .filter(([cle]) => stats?.[cle] !== undefined)
+        .map(([cle, libelle]) => ({
+          cle, libelle,
+          valeur: Number(stats[cle]) || 0,
+          sousMinimum: minimums.has(cle),
+        }));
     return dedans.length ? [{ famille }, ...dedans] : [];
   });
 }

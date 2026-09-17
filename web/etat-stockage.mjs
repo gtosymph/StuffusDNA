@@ -23,6 +23,27 @@ export const VERSION_LIMITES = 2;
 export const POINTS_GARDES = 600;
 
 /**
+ * Propositions gardees par liste.
+ *
+ * Elles y sont parce que leur absence se lisait comme une perte : le joueur
+ * revenait, retrouvait son stuff et ses reglages, mais plus une seule des
+ * propositions qu'il etait en train de comparer — ni la courbe du compromis,
+ * qui n'est faite que de ces paliers-la. Le travail avait disparu.
+ *
+ * La borne existe parce qu'une archive de recherche n'a pas de taille
+ * promise : le rangement du navigateur, lui, en a une.
+ */
+export const PROPOSITIONS_GARDEES = 40;
+
+/** Listes de propositions rendues par le solveur, rangees avec l'etat. */
+const LISTES = Object.freeze(['candidats', 'paliers', 'survie']);
+
+/** Garde une liste de propositions, bornee. */
+const bornerListe = (liste) => (Array.isArray(liste)
+  ? liste.slice(0, PROPOSITIONS_GARDEES)
+  : []);
+
+/**
  * Remet les limites d'un etat range au format courant.
  *
  * @param {any} data Etat lu du rangement.
@@ -57,6 +78,7 @@ export function serialiserEtat(etat) {
     verrous: [...etat.verrous],
     equipped: [...etat.equipped.entries()].map(([cle, piece]) => [cle, piece.id]),
     posees: [...etat.posees],
+    ...Object.fromEntries(LISTES.map((cle) => [cle, bornerListe(etat[cle])])),
   };
 }
 
@@ -79,7 +101,23 @@ export function sauverEtat(etat) {
  * @returns {any} Nouvel etat ; le meme si rien n'est range.
  */
 export function reprendreEtat(etat, catalogue) {
-  const data = lireJson(CLES.etat, null);
+  return appliquerRange(etat, lireJson(CLES.etat, null), catalogue);
+}
+
+/**
+ * Pose une forme rangee sur un etat.
+ *
+ * Elle vit a part de `reprendreEtat` parce que le rangement n'est plus la
+ * seule source d'une forme rangee : un lien de partage en porte une aussi.
+ * Les deux chemins passent donc par le meme lecteur, et un champ ajoute a la
+ * forme se relit des deux cotes sans qu'on ait a y penser.
+ *
+ * @param {any} etat Etat de depart, d'ordinaire l'etat initial.
+ * @param {any} data Forme rangee, ou null.
+ * @param {{itemById: Map<number, any>}} catalogue
+ * @returns {any} Nouvel etat ; le meme si la forme est absente ou abimee.
+ */
+export function appliquerRange(etat, data, catalogue) {
   if (!data || typeof data !== 'object') return etat;
 
   const equipped = new Map();
@@ -114,6 +152,9 @@ export function reprendreEtat(etat, catalogue) {
     ...(Array.isArray(data.verrous) ? { verrous: new Set(data.verrous) } : {}),
     equipped,
     posees: new Set(data.posees ?? []),
+    ...Object.fromEntries(LISTES
+      .filter((cle) => Array.isArray(data[cle]))
+      .map((cle) => [cle, data[cle]])),
   };
 }
 

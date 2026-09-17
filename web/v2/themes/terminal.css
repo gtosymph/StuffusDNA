@@ -1,0 +1,51 @@
+/* Terminal — le noir absolu et le phosphore.
+
+   Tout est chiffre dans cet outil : des degats, des pdv, des ecarts. Ce theme
+   le prend au mot. Fond noir, filets discrets, et une seule couleur vive —
+   le vert d'un ecran a phosphore — qui sert d'accent ET de mesure tenue.
+
+   Consequence assumee : l'accent et le « bon » se confondent. C'est le parti
+   pris du theme, pas un oubli. Le manque, lui, reste rouge et tranche net. */
+
+:root {
+  --fond: #000000;
+  --surface: #0a0d0b;
+  --surface-2: #101512;
+  --surface-3: #1a221d;
+  --filet: #1c241f;
+  --filet-clair: #2e3a32;
+
+  --texte: #d6e6da;
+  --texte-2: #7f9587;
+  --texte-3: #556b5d;
+
+  --iris: #3ee07f;
+  --iris-vif: #55ea90;
+  --iris-sourd: #1d6b3f;
+  --iris-fond: #07180e;
+  --sur-iris: #04140a;
+
+  --jade: #3ee07f;
+  --rose: #ff5f5f;
+  --ambre: #ffc53d;
+  --sur-ambre: #1a1200;
+
+  --voile: rgb(0 0 0 / .78);
+  --ombre: rgb(0 0 0 / .8);
+
+  /* Le theme se lit comme une console : le texte courant passe en chasse
+     fixe, et les titres perdent leur graisse au profit de l'espacement. */
+  --ui: "SF Mono", "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 3px;
+  --r-lg: 4px;
+}
+
+.btn.premier { font-weight: 600; }
+
+/* Une chasse fixe prend environ un dixieme de plus qu'une proportionnelle a
+   taille egale. Sans cette compensation, « Les deux » se coupe dans le
+   controle segmente et le volet de gauche deborde. */
+body { font-size: 12px; }
+.appli { grid-template-columns: 332px minmax(0, 1fr) 348px; }
+.segmente button { padding: 4px 7px; font-size: 11px; }
+.chapeau { letter-spacing: .4px; }

@@ -249,6 +249,10 @@ export function weaponAttack(item, options = {}) {
     repeats: utilisations,
     baseCrit: item.critProbability ?? 0,
     arme: true,
+    // La portee suit l'attaque : la carte de l'arme la montre, et sans elle
+    // deux armes de meme cout et de memes degats se ressemblent alors
+    // qu'elles ne se jouent pas du tout de la meme facon.
+    portee: item.range ?? 1,
     lines: lignes.map((ligne) => ({
       element: ligne.element,
       min: ligne.min,

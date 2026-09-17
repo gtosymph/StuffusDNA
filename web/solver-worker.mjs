@@ -219,6 +219,18 @@ async function chercher(request) {
     const resume = resumer(result);
     if (!meilleur || resume.score > meilleur.score) meilleur = resume;
 
+    /*
+     * La vague porte les paliers, pas seulement le score.
+     *
+     * Le trace « degats ou survie » se construit a partir d'eux. Tant qu'ils
+     * n'arrivaient qu'a la fin, la courbe restait celle de la recherche
+     * PRECEDENTE pendant toute la nouvelle : le joueur lancait, attendait
+     * plusieurs minutes, et ne voyait rien bouger.
+     *
+     * Ce sont deux frontieres, une entree par tranche : quelques dizaines de
+     * lignes, envoyees une fois par seconde et par fil. L'archive des
+     * candidats, elle, reste pour la fin — elle n'a pas de taille promise.
+     */
     self.postMessage({
       type: 'vague',
       seed: request.seed,
@@ -227,6 +239,8 @@ async function chercher(request) {
       // La premiere valeur d'une vague repete la derniere de la precedente.
       history: vague === 0 ? result.history : result.history.slice(1),
       resume,
+      paliers: [...paliers.values()].sort((a, b) => a.changements - b.changements),
+      survie: [...survie.values()].sort((a, b) => a.tranche - b.tranche),
       topGenomes: result.topGenomes.slice(0, 4),
     });
 

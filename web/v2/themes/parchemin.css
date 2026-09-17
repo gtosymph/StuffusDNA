@@ -1,0 +1,49 @@
+/* Parchemin — le clair chaleureux.
+
+   Un fond ivoire, une encre brune, un bleu d'encrier pour l'accent. Il ne
+   s'agit pas d'inverser le theme sombre : un blanc pur fatigue autant qu'un
+   noir pur, et les couleurs de sens doivent etre RABATTUES, pas eclaircies.
+   Le vert et le rouge y sont plus sombres que sur fond noir, sans quoi ils
+   disparaissent dans le papier.
+
+   Le voile et les ombres s'eclaircissent aussi : un noir a 66 % sur du
+   papier ecrase la page au lieu de la faire reculer. */
+
+:root {
+  --fond: #f3efe6;
+  --surface: #fbf8f2;
+  --surface-2: #f0ece2;
+  --surface-3: #e5dfd2;
+  --filet: #ddd6c7;
+  --filet-clair: #c4baa6;
+
+  --texte: #2b2620;
+  --texte-2: #5d564b;
+  --texte-3: #8b8274;
+
+  --iris: #35548c;
+  --iris-vif: #2c4879;
+  --iris-sourd: #a8b6d0;
+  --iris-fond: #e6ebf4;
+  --sur-iris: #f8fafd;
+
+  --jade: #2d7a56;
+  --rose: #b53d44;
+  --ambre: #a8700f;
+  --sur-ambre: #fdf6e6;
+
+  --voile: rgb(60 52 40 / .34);
+  --ombre: rgb(80 68 50 / .18);
+}
+
+/* Sur fond clair, les images du jeu sont posees sur du noir : une case vide
+   doit rester une case, pas un trou. */
+.case-slot.vide, .case-item { background: var(--surface-2); }
+
+/* Le lissage clair sur fond sombre epaissit le texte ; sur fond clair il
+   l'amincit au point de le rendre gris. */
+body { -webkit-font-smoothing: auto; }
+
+/* La fiche de base de l'arme s'estompe pour ne pas se confondre avec ce que
+   vos caracteristiques en font. Sur papier, la meme opacite l'efface. */
+.sort.arme > .lignes-arme { opacity: .8; }

@@ -22,7 +22,38 @@ function couleursFils() {
 }
 
 /** Marges interieures du trace. */
-const MARGE = { haut: 12, bas: 20, gauche: 52, droite: 10 };
+const MARGE = { haut: 14, bas: 22, gauche: 54, droite: 14 };
+
+/**
+ * Part des valeurs laissee sous le bas du cadre.
+ *
+ * Les premieres generations plongent tres bas : tant qu'un minimum n'est pas
+ * tenu, le score porte sa penalite, et le solveur la franchit en quelques
+ * dizaines de generations. Cadrer sur ce creux ecrasait tout le reste de la
+ * recherche — des milliers de generations — dans les cinq pour cent hauts du
+ * graphe, ou plus rien ne se distinguait.
+ *
+ * Le cadre s'arrete donc au dixieme centile. Ce qui passe dessous n'est pas
+ * cache en silence : une note sous l'axe annonce jusqu'ou la courbe est
+ * descendue.
+ */
+const CENTILE_BAS = 0.1;
+
+/**
+ * Bas du cadre : le dixieme centile des valeurs echantillonnees.
+ *
+ * Les series sont deja echantillonnees a six cents points chacune quand elles
+ * arrivent ici : le tri porte sur quelques milliers de valeurs, jamais sur
+ * l'historique entier.
+ *
+ * @param {number[]} valeurs
+ * @returns {number}
+ */
+function basRobuste(valeurs) {
+  if (valeurs.length === 0) return 0;
+  const triees = [...valeurs].sort((a, b) => a - b);
+  return triees[Math.floor((triees.length - 1) * CENTILE_BAS)];
+}
 
 const nombre = (v) => Math.round(v).toLocaleString('fr-FR');
 
@@ -98,19 +129,44 @@ export function dessinerEvolution(canvas, series, contexte = {}) {
     return;
   }
 
+  // Chaque serie est echantillonnee UNE fois : le trace, le cadrage et la
+  // note du creux lisent les memes points.
+  const echantillons = traces.map((serie) => echantillonner(serie.history));
+
   // Le parcours en boucle evite un depassement de pile : un spread sur des
   // centaines de milliers de points faisait disparaitre le graphe.
-  let bas = Infinity;
+  let creux = Infinity;
   let haut = -Infinity;
-  for (const serie of traces) {
-    for (const v of serie.history) {
-      if (v < bas) bas = v;
+  const plates = [];
+  for (const points of echantillons) {
+    for (const [, v] of points) {
+      if (v < creux) creux = v;
       if (v > haut) haut = v;
+      plates.push(v);
     }
   }
+
+  let bas = basRobuste(plates);
+  if (bas >= haut) bas = creux;
+
+  /*
+   * Le palier final ne colle pas au bas du cadre.
+   *
+   * Une recherche qui a converge passe l'essentiel de son temps sur une seule
+   * valeur : le dixieme centile tombe alors sur cette valeur meme, et le trait
+   * se posait sur la graduation du bas, moitie hors du cadre. Un tiers de la
+   * hauteur lui est reserve dessous — c'est la place ou se lit la remontee.
+   */
+  const finaux = traces.map((serie) => serie.history[serie.history.length - 1]);
+  const plancher = Math.min(...finaux.filter(Number.isFinite));
+  if (Number.isFinite(plancher)) {
+    const amplitude = Math.max(haut - plancher, Math.abs(plancher) * 0.01, 1);
+    bas = Math.min(bas, plancher - amplitude * 0.45);
+  }
+
   if (bas === haut) { bas -= 1; haut += 1; }
-  // Une marge de cinq pour cent evite que la courbe ne colle aux bords.
-  const marge = (haut - bas) * 0.05;
+  // Une marge de huit pour cent evite que la courbe ne colle aux bords.
+  const marge = (haut - bas) * 0.08;
   bas -= marge;
   haut += marge;
 
@@ -161,15 +217,26 @@ export function dessinerEvolution(canvas, series, contexte = {}) {
     return vb > va ? b : a;
   });
 
+  // Le trace se borne au cadre : une courbe qui plonge sous le dixieme
+  // centile doit s'arreter au bord, pas deborder sur la legende.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(MARGE.gauche, MARGE.haut, zoneL, zoneH);
+  ctx.clip();
+
   traces.forEach((serie, index) => {
     const couleur = teintes.fils[index % teintes.fils.length];
     const estMeilleur = serie === meilleur;
 
-    const points = echantillonner(serie.history);
+    const points = echantillons[index];
 
+    // L'aire ne remplit plus tout le cadre : elle s'eteint avant le bas.
+    // Un pave de couleur pleine hauteur pesait plus que la courbe qu'il
+    // accompagnait, et cachait les autres fils.
     if (estMeilleur && points.length > 1) {
       const fond = ctx.createLinearGradient(0, MARGE.haut, 0, MARGE.haut + zoneH);
-      fond.addColorStop(0, `rgba(${teintes.aire}, 0.22)`);
+      fond.addColorStop(0, `rgba(${teintes.aire}, 0.26)`);
+      fond.addColorStop(0.55, `rgba(${teintes.aire}, 0.06)`);
       fond.addColorStop(1, `rgba(${teintes.aire}, 0)`);
       ctx.fillStyle = fond;
       ctx.beginPath();
@@ -203,17 +270,22 @@ export function dessinerEvolution(canvas, series, contexte = {}) {
       ctx.arc(px, py, 3, 0, Math.PI * 2);
       ctx.fill();
 
+      // L'etiquette se pose a GAUCHE du dernier point : le point est colle au
+      // bord droit par construction, et une etiquette posee apres lui sortait
+      // du cadre ou se faisait couper.
       const texte = nombre(serie.history[dernier]);
       ctx.font = '600 10px ui-monospace, monospace';
       const l = ctx.measureText(texte).width;
-      const bx = Math.min(px + 6, largeur - MARGE.droite - l - 6);
+      const bx = Math.max(MARGE.gauche + 4, px - l - 9);
       ctx.fillStyle = teintes.etiquette;
-      ctx.fillRect(bx - 3, py - 14, l + 6, 13);
+      ctx.fillRect(bx - 4, py - 15, l + 8, 14);
       ctx.fillStyle = couleur;
       ctx.textAlign = 'left';
-      ctx.fillText(texte, bx, py - 4);
+      ctx.fillText(texte, bx, py - 5);
     }
   });
+
+  ctx.restore();
 
   ctx.font = '9px ui-sans-serif, system-ui, sans-serif';
   ctx.fillStyle = teintes.faible;
@@ -222,4 +294,11 @@ export function dessinerEvolution(canvas, series, contexte = {}) {
     ? `generation ${longueur} — recherche en cours`
     : `${longueur} generations · ${traces.length} fil${traces.length > 1 ? 's' : ''}`;
   ctx.fillText(legende, largeur / 2, hauteur - 6);
+
+  // Le creux coupe ne disparait pas en silence : sans cette note, un joueur
+  // pourrait croire que la recherche n'est jamais descendue si bas.
+  if (creux < bas) {
+    ctx.textAlign = 'left';
+    ctx.fillText(`creux ${nombre(creux)}`, MARGE.gauche, hauteur - 6);
+  }
 }

@@ -1,0 +1,36 @@
+/* Vigne — le pourpre et le laiton.
+
+   Une nuit violacee, un pourpre profond pour l'accent, un laiton chaud pour
+   ce qui attire l'oeil. C'est l'habillage le plus ORNE des six : il assume
+   une couleur dans les fonds, la ou Studio et Ardoise gardent des gris.
+
+   Le pourpre et le rose d'un minimum manque sont voisins de teinte. Le rose
+   reste donc nettement plus clair et plus sature : c'est la clarte qui les
+   separe, pas la couleur. */
+
+:root {
+  --fond: #120b18;
+  --surface: #1b1123;
+  --surface-2: #23172d;
+  --surface-3: #2f1f3c;
+  --filet: #2b1d36;
+  --filet-clair: #452e56;
+
+  --texte: #f0e7f5;
+  --texte-2: #a695b0;
+  --texte-3: #75657f;
+
+  --iris: #a855c7;
+  --iris-vif: #b768d4;
+  --iris-sourd: #5b2a6e;
+  --iris-fond: #20112a;
+  --sur-iris: #1a0a21;
+
+  --jade: #6fc79a;
+  --rose: #ff7d9b;
+  --ambre: #d9a441;
+  --sur-ambre: #201704;
+
+  --voile: rgb(10 5 14 / .72);
+  --ombre: rgb(6 0 10 / .6);
+}

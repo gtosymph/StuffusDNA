@@ -938,7 +938,7 @@ async function accueillirLien() {
     compte: resume(forme, catalogue),
     nomDeClasse,
     onAdopter: () => {
-      const recu = adopter(etat, forme, catalogue);
+      const recu = adopter(forme, catalogue);
 
       // Le lien ne porte que les identifiants des sorts : le catalogue les
       // refabrique. Un sort qu'il ne connait pas — classe changee, sort

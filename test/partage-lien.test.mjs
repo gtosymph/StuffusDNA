@@ -20,8 +20,11 @@ class Rangement {
 globalThis.localStorage = new Rangement();
 
 const {
-  adopter, CHAMP, coder, decoder, formePartagee, lienPartage, reglageDuFragment, resume, VERSION,
+  adopter, CHAMP, coder, decoder, formePartagee, formeRangee, lienPartage,
+  reglageDuFragment, resume, VERSION,
 } = await import('../web/partage-lien.mjs');
+const { SLOTS } = await import('../src/data/slots.mjs');
+const minimums = await import('../web/v2/minimums.mjs');
 const { etatInitial } = await import('../web/reglages.mjs');
 const { enBase64 } = await import('../src/partage/base64.mjs');
 
@@ -70,7 +73,7 @@ test('formePartagee : la question, jamais les reponses', () => {
 test('un aller-retour rend exactement le reglage', async () => {
   const depart = etatRegle();
   const forme = await decoder(await coder(depart));
-  const arrivee = adopter(etatInitial(), forme, CATALOGUE);
+  const arrivee = adopter(forme, CATALOGUE);
 
   assert.equal(arrivee.niveau, 196);
   assert.equal(arrivee.classe, 9);
@@ -101,19 +104,76 @@ test('le lien n\'emporte pas l\'adresse locale des icones de sorts', async () =>
   assert.ok(!texte.includes('/assets/spells/'), 'ni le chemin de l\'icone');
 });
 
-test('adopter : les resultats a l\'ecran ne suivent pas le reglage recu', async () => {
-  const forme = await decoder(await coder(etatRegle()));
-  const ecran = { ...etatInitial(), candidats: [{ score: 1 }], paliers: [{ score: 2 }], survie: [{ score: 3 }] };
-  const arrivee = adopter(ecran, forme, CATALOGUE);
+test('adopter : aucun resultat de recherche ne suit le reglage recu', async () => {
+  const arrivee = adopter(await decoder(await coder(etatRegle())), CATALOGUE);
 
   assert.deepEqual(arrivee.candidats, []);
   assert.deepEqual(arrivee.paliers, []);
   assert.deepEqual(arrivee.survie, []);
 });
 
+/*
+ * La liste des cases est ecrite a la main dans le module, pour qu'un lien
+ * deja partage se relise toujours de la meme facon. Ce test est le garde-fou
+ * de ce choix : elle doit couvrir exactement ce que le personnage porte.
+ */
+test('les cases du lien couvrent exactement celles du personnage', () => {
+  const attendues = SLOTS.flatMap((slot) => Array.from(
+    { length: slot.capacity }, (_, i) => `${slot.key}:${i}`));
+
+  const forme = formePartagee({
+    ...etatInitial(),
+    equipped: new Map(attendues.map((cle, i) => [cle, { id: 500 + i }])),
+  });
+
+  assert.equal(forme.equipped.length, attendues.length, 'autant de positions que de cases');
+  assert.equal(forme.equipped.filter((id) => id > 0).length, attendues.length,
+    'aucune piece ne tombe faute de position');
+
+  const rendues = formeRangee(forme).equipped.map(([cle]) => cle);
+  assert.deepEqual([...rendues].sort(), [...attendues].sort());
+});
+
+/*
+ * Le lien ne porte que l'ecart au reglage de depart. C'est la moitie de ce
+ * qui l'a raccourci, et c'est aussi ce qui oblige `adopter` a repartir d'un
+ * etat neuf : un champ absent veut dire « celui d'origine », pas « garde le
+ * tien ».
+ */
+test('ce qui vaut le reglage de depart ne voyage pas', () => {
+  assert.deepEqual(Object.keys(formePartagee(etatInitial())), ['v']);
+});
+
+test('une option changee voyage seule, sans ses vingt voisines', () => {
+  const etat = { ...etatInitial(), options: { ...etatInitial().options, arme: true } };
+
+  assert.deepEqual(formePartagee(etat).options, { arme: true });
+});
+
+test('celui qui recoit ne garde pas ses propres options', async () => {
+  // L'expediteur laisse « arme » au defaut ; le destinataire l'avait allumee.
+  const arrivee = adopter(
+    await decoder(await coder({ ...etatInitial(), niveau: 150 })), CATALOGUE);
+
+  assert.equal(arrivee.niveau, 150);
+  assert.equal(arrivee.options.arme, etatInitial().options.arme,
+    'le lien impose le reglage de depart, pas celui de l\'ecran d\'arrivee');
+});
+
+test('les cases posees a la main tiennent dans un seul nombre', () => {
+  const forme = formePartagee({
+    ...etatInitial(),
+    equipped: new Map([['amulette:0', { id: 1 }], ['arme:0', { id: 2 }]]),
+    posees: new Set(['arme:0']),
+  });
+
+  assert.equal(typeof forme.posees, 'number');
+  assert.deepEqual(formeRangee(forme).posees, ['arme:0']);
+});
+
 test('une piece que le catalogue ne connait pas ne se pose pas', async () => {
   const etat = { ...etatInitial(), equipped: new Map([['arme:0', EPEE], ['cape:0', { id: 9999 }]]) };
-  const arrivee = adopter(etatInitial(), await decoder(await coder(etat)), CATALOGUE);
+  const arrivee = adopter(await decoder(await coder(etat)), CATALOGUE);
 
   assert.deepEqual([...arrivee.equipped.keys()], ['arme:0']);
 });
@@ -135,7 +195,10 @@ test('lienPartage : un reglage complet tient dans un lien lisible', async () => 
     { stat: 'force', target: 100 + i, max: null, absolute: false, weight: 500 }));
 
   const lien = await lienPartage(etat, PAGE);
-  assert.ok(lien.length < 2000, `un lien de ${lien.length} caracteres ne se colle plus`);
+  // Mesure du 2026-09-18 : 500 caracteres pour ce reglage-la, adresse de la
+  // page comprise. La borne laisse de la marge sans laisser le lien regrossir
+  // sans que personne ne le remarque.
+  assert.ok(lien.length < 700, `un lien de ${lien.length} caracteres est trop long`);
 });
 
 test('reglageDuFragment : lit le champ, et lui seul', async () => {
@@ -179,4 +242,31 @@ test('resume : ce que le lien porte, avant de le prendre', async () => {
   assert.deepEqual(compte, {
     pieces: 2, inconnues: 1, sorts: 1, minimums: 1, niveau: 196, classe: 9,
   });
+});
+
+/*
+ * Un minimum voyage par l'ORDRE de ses champs. Ce test est le garde-fou de ce
+ * choix : ajouter un champ a un minimum sans l'ajouter au lien le ferait
+ * disparaitre en silence, et le minimum arriverait mutile.
+ */
+test('un minimum ne porte que les cinq champs que le lien transmet', () => {
+  const { MINIMUM_NEUF } = minimums;
+  const depart = etatInitial().conditions;
+
+  for (const minimum of [...depart, MINIMUM_NEUF('pa')]) {
+    assert.deepEqual(Object.keys(minimum).sort(), ['absolute', 'max', 'stat', 'target', 'weight']);
+  }
+});
+
+test('un minimum se retrouve entier apres l\'aller-retour', async () => {
+  const etat = {
+    ...etatInitial(),
+    conditions: [
+      { stat: 'pa', target: 12, weight: 250, max: 12, absolute: true },
+      { stat: 'sagesse', target: 600, weight: 1, max: null, absolute: false },
+    ],
+  };
+
+  const arrivee = adopter(await decoder(await coder(etat)), CATALOGUE);
+  assert.deepEqual(arrivee.conditions, etat.conditions);
 });

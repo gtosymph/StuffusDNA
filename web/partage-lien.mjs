@@ -33,6 +33,7 @@
 
 import { enBase64, versOctets } from '../src/partage/base64.mjs';
 import { appliquerRange, serialiserEtat } from './etat-stockage.mjs';
+import { etatInitial } from './reglages.mjs';
 
 /** Nom du champ, dans le fragment. */
 export const CHAMP = 'b';
@@ -45,7 +46,7 @@ export const CHAMP = 'b';
  * reglage. Elle sert a REFUSER un lien venu d'une version future, ou un texte
  * qui n'est pas un lien du tout.
  */
-export const VERSION = 1;
+export const VERSION = 2;
 
 /** Premier caractere du code : ce qui suit est comprime, ou non. */
 const NU = '0';
@@ -57,6 +58,50 @@ const COMPRIME = '1';
  * Ils sont dans la forme rangee parce qu'un rechargement doit les rendre.
  */
 const RESULTATS = Object.freeze(['candidats', 'paliers', 'survie']);
+
+/**
+ * Les seize cases du personnage, dans un ordre fige.
+ *
+ * Le nom d'une case ne voyage plus : sa POSITION le dit. « cape:0 » pesait
+ * neuf caracteres repetes a chaque piece, pour une information que les deux
+ * bouts connaissent deja.
+ *
+ * L'ordre est ecrit ici plutot que deduit de SLOTS, et c'est voulu : deduit,
+ * il changerait le jour ou quelqu'un reordonne les emplacements, et tous les
+ * liens deja partages se reliraient de travers sans que rien ne le dise. Un
+ * test tient cette liste face a SLOTS : elle doit les couvrir toutes.
+ */
+const CASES = Object.freeze([
+  'amulette:0', 'arme:0', 'anneau:0', 'anneau:1', 'ceinture:0', 'bottes:0',
+  'bouclier:0', 'chapeau:0', 'cape:0', 'monture:0',
+  'artefact:0', 'artefact:1', 'artefact:2', 'artefact:3', 'artefact:4', 'artefact:5',
+]);
+
+/**
+ * Champs plats dont seules les differences voyagent.
+ *
+ * Ce sont des tables a plat : une vingtaine d'options, six parchemins, six
+ * limites, six investissements. Un joueur en change deux ou trois ; les
+ * autres n'ont aucune raison d'etre dans le lien. `appliquerRange` les fond
+ * deja dans l'etat de depart, donc une table partielle se relit telle quelle.
+ */
+const PLATS = Object.freeze(['options', 'scrolls', 'limites', 'allocation']);
+
+/**
+ * Un minimum, a plat.
+ *
+ * Cinq champs nommes pesaient soixante-cinq caracteres par minimum, et un
+ * joueur en pose cinq ou six. Leur ORDRE les dit aussi bien. Un test tient
+ * cette liste face a ce qu'un minimum porte vraiment : y ajouter un champ
+ * sans l'ajouter ici le ferait disparaitre du lien en silence.
+ */
+const CHAMPS_MINIMUM = Object.freeze(['stat', 'target', 'weight', 'max', 'absolute']);
+
+/** Forme rangee d'un etat neuf, calculee une fois. */
+let defautRange = null;
+const defaut = () => (defautRange ??= serialiserEtat(etatInitial()));
+
+const memeValeur = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Vrai quand le navigateur sait comprimer. */
 const saitComprimer = () => typeof CompressionStream === 'function'
@@ -75,8 +120,25 @@ async function transformer(octets, flux) {
  * @returns {any}
  */
 export function formePartagee(etat) {
-  const forme = serialiserEtat(etat);
-  for (const cle of RESULTATS) delete forme[cle];
+  const range = serialiserEtat(etat);
+  const neuf = defaut();
+  const forme = { v: VERSION };
+
+  for (const [cle, valeur] of Object.entries(range)) {
+    if (RESULTATS.includes(cle)) continue;
+
+    // Une table a plat ne transmet que ses cases changees.
+    if (PLATS.includes(cle)) {
+      const change = Object.fromEntries(Object.entries(valeur ?? {})
+        .filter(([sous, v]) => !memeValeur(v, neuf[cle]?.[sous])));
+      if (Object.keys(change).length > 0) forme[cle] = change;
+      continue;
+    }
+
+    // Tout ce qui vaut encore le reglage de depart n'a rien a dire : celui
+    // qui ouvre le lien part du meme etat neuf.
+    if (!memeValeur(valeur, neuf[cle])) forme[cle] = valeur;
+  }
 
   /*
    * Un sort ne voyage que par son identifiant.
@@ -91,9 +153,74 @@ export function formePartagee(etat) {
    * s'ajoute et s'enleve. Le catalogue le refabrique a l'arrivee, et il le
    * refabrique AU NIVEAU DU LIEN, donc a la bonne variante.
    */
-  forme.sorts = (etat.sorts ?? []).map((sort) => ({ id: sort.id }));
+  if ((etat.sorts ?? []).length > 0) forme.sorts = etat.sorts.map((sort) => sort.id);
 
-  return { v: VERSION, ...forme };
+  // Un minimum se lit a l'ordre de ses champs, pas a leur nom. Le tri au
+  // dessus a deja decide si les minimums voyagent : ceux de depart, non.
+  if (Array.isArray(forme.conditions)) {
+    forme.conditions = forme.conditions.map((condition) => [
+      condition.stat, condition.target, condition.weight, condition.max ?? null,
+      condition.absolute ? 1 : 0,
+    ]);
+  }
+
+  // Les pieces portees par POSITION, et les cases posees a la main en un seul
+  // nombre : un bit par case, dans le meme ordre.
+  const portees = new Map(range.equipped ?? []);
+  if (portees.size > 0) forme.equipped = CASES.map((cle) => portees.get(cle) ?? 0);
+
+  const posees = new Set(range.posees ?? []);
+  const marque = CASES.reduce((n, cle, i) => (posees.has(cle) ? n | (1 << i) : n), 0);
+  if (marque !== 0) forme.posees = marque;
+  else delete forme.posees;
+
+  // Les limites se relisent avec leur marque de version : sans elle, une
+  // limite a zero — « n'investis rien ici » — se relirait comme « aucune
+  // limite », qui est son contraire.
+  if (forme.limites) forme.limitesVersion = range.limitesVersion;
+
+  return forme;
+}
+
+/**
+ * Rend a une forme partagee la tete d'une forme rangee.
+ *
+ * C'est l'exacte reciproque de ce que `formePartagee` compacte. Elle vit ici
+ * et non dans `appliquerRange` pour que le rangement du navigateur n'ait rien
+ * a savoir du format des liens.
+ *
+ * @param {any} forme
+ * @returns {any}
+ */
+export function formeRangee(forme) {
+  const range = { ...forme };
+
+  if (Array.isArray(forme.equipped)) {
+    range.equipped = forme.equipped
+      .map((id, i) => [CASES[i], id])
+      .filter(([cle, id]) => cle && Number.isFinite(id) && id > 0);
+  }
+
+  if (Number.isFinite(forme.posees)) {
+    range.posees = CASES.filter((cle, i) => (forme.posees & (1 << i)) !== 0);
+  } else {
+    range.posees = [];
+  }
+
+  if (Array.isArray(forme.sorts)) {
+    range.sorts = forme.sorts
+      .filter((id) => Number.isFinite(id))
+      .map((id) => ({ id }));
+  }
+
+  if (Array.isArray(forme.conditions)) {
+    range.conditions = forme.conditions
+      .filter(Array.isArray)
+      .map(([stat, target, weight, max, absolute]) => (
+        { stat, target, weight, max: max ?? null, absolute: absolute === 1 }));
+  }
+
+  return range;
 }
 
 /**
@@ -168,18 +295,23 @@ export async function reglageDuFragment(fragment) {
 }
 
 /**
- * Pose un reglage recu sur l'etat courant.
+ * Pose un reglage recu.
  *
- * @param {any} etat Etat de depart : celui de l'ecran, pas l'etat initial.
+ * Elle part d'un etat NEUF, jamais de l'ecran courant. Le lien ne porte que
+ * ce qui s'ecarte du reglage de depart : construire dessus l'ecran de celui
+ * qui recoit lui laisserait ses propres options la ou le lien dit « celles
+ * d'origine », et deux personnes ouvrant le meme lien ne verraient pas la
+ * meme chose.
+ *
  * @param {any} forme Forme lue dans le lien.
  * @param {{itemById: Map<number, any>}} catalogue
  * @returns {any} Nouvel etat.
  */
-export function adopter(etat, forme, catalogue) {
+export function adopter(forme, catalogue) {
   // Les resultats a l'ecran repondent a la question d'avant : le reglage qui
   // arrive n'est pas le leur.
   const vide = Object.fromEntries(RESULTATS.map((cle) => [cle, []]));
-  return { ...appliquerRange(etat, forme, catalogue), ...vide };
+  return { ...appliquerRange(etatInitial(), formeRangee(forme), catalogue), ...vide };
 }
 
 /**
@@ -194,10 +326,11 @@ export function adopter(etat, forme, catalogue) {
  *   minimums: number, niveau: number|null, classe: number|null}}
  */
 export function resume(forme, catalogue) {
-  const portees = Array.isArray(forme?.equipped) ? forme.equipped : [];
+  const portees = (Array.isArray(forme?.equipped) ? forme.equipped : [])
+    .filter((id) => Number.isFinite(id) && id > 0);
   return {
     pieces: portees.length,
-    inconnues: portees.filter(([, id]) => !catalogue?.itemById?.has(id)).length,
+    inconnues: portees.filter((id) => !catalogue?.itemById?.has(id)).length,
     sorts: Array.isArray(forme?.sorts) ? forme.sorts.length : 0,
     minimums: Array.isArray(forme?.conditions) ? forme.conditions.length : 0,
     niveau: Number.isFinite(forme?.niveau) ? forme.niveau : null,

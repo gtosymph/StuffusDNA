@@ -3,12 +3,19 @@
 # Le banc compte autant que les tests. Une regression de convergence ne casse
 # aucun test : le solveur rend toujours un build, simplement moins bon. Sans
 # cette garde, la qualite baisse sans que rien ne le dise.
+#
+# La publication vient apres, et seulement si les deux passent : un commit
+# casse ne doit jamais atteindre le site.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+
+# Le jeton ne peut que lire, sauf pour la publication qui en a besoin.
+permissions:
+  contents: read
 
 jobs:
   verifier:
@@ -26,3 +33,46 @@ jobs:
 
       - name: Banc de convergence
         run: npm run bench:gate
+
+  publier:
+    # Les propositions de fusion se verifient, elles ne se publient pas.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: verifier
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    # Deux poussees rapprochees ne se marchent pas dessus. La publication en
+    # cours va au bout : l'interrompre laisserait le site a moitie remplace.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.publication.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Le site n'a pas d'etape de construction : il se compose en copiant ce
+      # qui doit etre servi, et RIEN d'autre. Les maquettes, les tests et les
+      # scripts d'ingestion n'ont aucune raison d'etre publics.
+      - name: Composer le site
+        run: |
+          mkdir -p _site
+          cp index.html .nojekyll _site/
+          cp -r web src data _site/
+          rm -rf _site/web/maquettes _site/data/raw
+          du -sh _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: publication
+        uses: actions/deploy-pages@v4

@@ -176,6 +176,62 @@ export function ecrirePng({ largeur, hauteur, pixels }) {
 }
 
 /**
+ * Reduit une image, par moyenne des pixels de chaque bloc.
+ *
+ * La moyenne sur le bloc entier — et non un pixel pris au hasard dedans —
+ * est ce qui distingue une reduction propre d'un escalier : une icone de jeu
+ * est faite de traits fins, et en jeter un pixel sur quatre les hache.
+ *
+ * La moyenne se fait sur la couleur DEJA multipliee par son opacite, puis se
+ * redivise. Sans cela, le bord d'une icone melange sa couleur avec celle,
+ * arbitraire, des pixels transparents voisins — le halo noir ou blanc que
+ * l'on voit autour des sprites mal reduits.
+ *
+ * @param {{largeur: number, hauteur: number, pixels: Buffer}} image
+ * @param {number} cote Cote de l'image rendue, en pixels.
+ * @returns {{largeur: number, hauteur: number, pixels: Buffer}}
+ */
+export function reduire(image, cote) {
+  if (cote >= image.largeur && cote >= image.hauteur) return image;
+
+  const pixels = Buffer.alloc(cote * cote * 4);
+  const pasX = image.largeur / cote;
+  const pasY = image.hauteur / cote;
+
+  for (let y = 0; y < cote; y += 1) {
+    const hautSource = Math.floor(y * pasY);
+    const basSource = Math.max(hautSource + 1, Math.floor((y + 1) * pasY));
+
+    for (let x = 0; x < cote; x += 1) {
+      const gaucheSource = Math.floor(x * pasX);
+      const droiteSource = Math.max(gaucheSource + 1, Math.floor((x + 1) * pasX));
+
+      let r = 0; let v = 0; let b = 0; let a = 0; let compte = 0;
+      for (let sy = hautSource; sy < basSource; sy += 1) {
+        for (let sx = gaucheSource; sx < droiteSource; sx += 1) {
+          const i = (sy * image.largeur + sx) * 4;
+          const alpha = image.pixels[i + 3];
+          r += image.pixels[i] * alpha;
+          v += image.pixels[i + 1] * alpha;
+          b += image.pixels[i + 2] * alpha;
+          a += alpha;
+          compte += 1;
+        }
+      }
+
+      const sortie = (y * cote + x) * 4;
+      // Un bloc entierement transparent n'a aucune couleur a rendre : la
+      // division par son opacite serait une division par zero.
+      pixels[sortie] = a > 0 ? Math.round(r / a) : 0;
+      pixels[sortie + 1] = a > 0 ? Math.round(v / a) : 0;
+      pixels[sortie + 2] = a > 0 ? Math.round(b / a) : 0;
+      pixels[sortie + 3] = Math.round(a / compte);
+    }
+  }
+  return { largeur: cote, hauteur: cote, pixels };
+}
+
+/**
  * Rend la partie d'une image comprise dans un rectangle.
  *
  * @param {{largeur: number, hauteur: number, pixels: Buffer}} image

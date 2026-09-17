@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Best Roxxeur</title>
+<meta name="description" content="Solveur de stuff Dofus : il cherche le meilleur equipement pour vos sorts, votre niveau et vos contraintes.">
+
+<!--
+  Porte d'entree du site publie.
+
+  Les deux ecrans vivent dans des sous-dossiers, et la racine n'avait donc
+  aucune page : ouvrir l'adresse du site ne montrait rien. Cette page mene a
+  l'atelier, et laisse v1 joignable par son adresse.
+
+  Le renvoi passe par une balise « refresh » AVANT le script : elle marche
+  sans JavaScript, et c'est la seule facon d'etre sur qu'un visiteur arrive
+  quelque part. Le script qui suit ne sert qu'a emporter ce que la balise ne
+  sait pas porter — la requete et le fragment, donc un lien de partage.
+-->
+<meta http-equiv="refresh" content="0; url=web/v2/index.html">
+
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: grid; place-content: center; gap: 14px;
+    padding: 24px; text-align: center;
+    background: #0d1017; color: #c8cede;
+    font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { margin: 0; font-size: 20px; font-weight: 640; color: #e8ecf6; }
+  a { color: #9b93ff; }
+  .discret { font-size: 12px; color: #7b839b; }
+</style>
+</head>
+<body>
+
+<h1>The Best Roxxeur</h1>
+<p>Ouverture de l'atelier…</p>
+<p><a href="web/v2/index.html">Entrer maintenant</a></p>
+<p class="discret">L'ancien ecran reste la : <a href="web/index.html">version precedente</a>.</p>
+
+<script>
+  // La requete et le fragment suivent le visiteur : un lien de partage
+  // pose sur la racine ne doit pas perdre son reglage en chemin.
+  var suite = 'web/v2/index.html' + location.search + location.hash;
+  location.replace(new URL(suite, location.href).href);
+</script>
+
+</body>
+</html>

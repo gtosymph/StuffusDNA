@@ -32,5 +32,26 @@ async function fetchJson(name) {
  */
 export async function loadCatalog() {
   const [items, sets] = await Promise.all([fetchJson('items.json'), fetchJson('sets.json')]);
-  return buildCatalog(items, sets);
+  return buildCatalog(items.map(localiserIcone), sets);
 }
+
+/** Ou les icones d'objets vivent chez nous. */
+const ICONES = depuisIci('./assets/items/');
+
+/**
+ * Fait pointer l'icone d'un objet chez nous.
+ *
+ * Le catalogue porte l'adresse de la source qui l'a fourni, chez un tiers.
+ * La laisser telle quelle ferait chercher plusieurs centaines d'images chez
+ * lui a chaque visite, ce qu'il n'a jamais accepte. `scripts/fetch-item-icons`
+ * les copie ; ce module les designe.
+ *
+ * La reecriture se fait ICI, dans l'adaptateur du navigateur, et pas dans le
+ * catalogue partage : un chemin d'image ne veut rien dire sous Node, ou le
+ * meme catalogue sert aux tests et au banc.
+ *
+ * Un objet sans numero d'icone garde ce qu'il avait, faute de mieux.
+ */
+const localiserIcone = (item) => (Number.isFinite(item.iconId)
+  ? { ...item, img: `${ICONES}${item.iconId}.png` }
+  : item);

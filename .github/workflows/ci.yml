@@ -40,7 +40,11 @@ jobs:
     needs: verifier
     runs-on: ubuntu-latest
 
+    # Le bloc d'un travail REMPLACE celui du workflow, il ne s'y ajoute pas :
+    # sans « contents », le jeton ne peut plus lire le depot, et la copie du
+    # code echoue sur un « depot introuvable » qui n'a rien d'evident.
     permissions:
+      contents: read
       pages: write
       id-token: write
 

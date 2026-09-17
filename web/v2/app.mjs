@@ -19,7 +19,7 @@ import {
 } from '../render.mjs';
 import { SLOTS_ARTEFACTS, SLOTS_DROITE, SLOTS_GAUCHE } from '../layout.mjs';
 import { etatInitial, optionsAffichees } from '../reglages.mjs';
-import { reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
+import { etatRange, reprendreEtat, sauverEtat } from '../etat-stockage.mjs';
 import { adopter, reglageDuFragment, resume } from '../partage-lien.mjs';
 import {
   buildCourant, cibleAffichee, passifsActifs, profilDe, scoreAffiche, sortsCalcules,
@@ -996,7 +996,11 @@ async function main() {
 
     // Un etat range dit que le joueur est deja venu : l'ecran vide n'a plus
     // rien a demander, il ouvrirait une question deja repondue.
-    if (etat.equipped.size > 0 || etat.sorts.length > 0) {
+    //
+    // La question se pose au RANGEMENT, pas aux pieces portees. Un profil
+    // repris peut ne porter ni piece ni sort — une classe, un niveau et des
+    // minimums font deja un reglage — et l'ecran vide le cachait entier.
+    if (etatRange()) {
       vierge = false;
       $('accueil').hidden = true;
       $('travail').hidden = false;

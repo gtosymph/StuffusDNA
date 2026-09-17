@@ -169,3 +169,63 @@ test('la place occupee se mesure et previent avant le refus', () => {
 test('le nom du fichier porte la date du jour', () => {
   assert.equal(profil.nomFichier(new Date('2026-09-09T12:00:00Z')), 'the-best-roxxeur-2026-09-09.json');
 });
+
+/*
+ * Un profil exporte depuis un bac d'essai se reprend.
+ *
+ * « ?test » suffixe toutes les cles du rangement. Le fichier exporte la-bas
+ * portait donc des noms que l'import ne reconnaissait pas, et refusait le
+ * fichier ENTIER sur un « profil vide : aucune donnee reconnue » qui ne
+ * nommait pas la cause. Le suffixe est un detail de notre mode d'essai, pas
+ * une propriete du profil du joueur.
+ */
+test('les cles d\'un bac d\'essai se rabattent sur celles de ce navigateur', () => {
+  const venuDuBac = {
+    format: profil.FORMAT,
+    version: profil.VERSION,
+    donnees: {
+      copyroxx_etat_test_v2: '{"niveau":196}',
+      copyroxx_sets_sorts_test_v2: '[]',
+      copyroxx_v2_theme_test: 'braise',
+    },
+  };
+
+  const { donnees, inconnues } = profil.verifierProfil(venuDuBac);
+
+  assert.deepEqual(inconnues, []);
+  assert.equal(donnees[CLES.etat], '{"niveau":196}');
+  assert.equal(donnees[CLES.setsSorts], '[]');
+  assert.equal(donnees[CLES.themeV2], 'braise');
+});
+
+test('cleDici ne reconnait que nos cles', () => {
+  assert.equal(stockage.cleDici('copyroxx_etat'), CLES.etat);
+  assert.equal(stockage.cleDici('copyroxx_etat_test'), CLES.etat);
+  assert.equal(stockage.cleDici('copyroxx_etat_test_mobile'), CLES.etat);
+  assert.equal(stockage.cleDici('copyroxx_v2_theme'), CLES.themeV2);
+  assert.equal(stockage.cleDici('autre_application'), null);
+  assert.equal(stockage.cleDici('copyroxx_inconnue'), null);
+});
+
+test('l\'habillage de v2 fait partie du profil', () => {
+  assert.ok(stockage.CLES_PROFIL.includes(CLES.themeV2));
+
+  stockage.ecrire(CLES.themeV2, 'abysse');
+  assert.equal(profil.lireProfil().donnees[CLES.themeV2], 'abysse');
+});
+
+/*
+ * Un profil peut ne porter ni piece ni sort.
+ *
+ * Une classe, un niveau et des minimums font deja un reglage. v2 decidait
+ * d'ouvrir son ecran vide d'apres les pieces portees : un tel profil,
+ * pourtant repris correctement, disparaissait derriere « Quelle classe
+ * joues-tu ? », et l'import avait l'air de n'avoir rien fait.
+ */
+test('un etat range se reconnait, meme sans piece ni sort', async () => {
+  const { etatRange } = await import('../web/etat-stockage.mjs');
+
+  assert.equal(etatRange(), false);
+  stockage.ecrireJson(CLES.etat, { niveau: 196, classe: 9, equipped: [], sorts: [] });
+  assert.equal(etatRange(), true);
+});

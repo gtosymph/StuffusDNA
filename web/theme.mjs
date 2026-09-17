@@ -10,7 +10,7 @@
  * dans `copyroxx_etat` : les deux ne se touchent jamais.
  */
 
-import { CLES, ecrire, lireTexte, nomDeCle } from './stockage.mjs';
+import { CLES, ecrire, lireTexte } from './stockage.mjs';
 
 /**
  * Themes proposes. Le premier porte la feuille de base : il n'a pas de
@@ -45,7 +45,7 @@ export { THEMES_V2 } from './v2/catalogue-themes.mjs';
  * et une cle commune ferait retomber v1 sur son theme de depart des que v2
  * aurait ecrit le sien.
  */
-export const CLE_THEME_V2 = nomDeCle('copyroxx_v2_theme');
+export const CLE_THEME_V2 = CLES.themeV2;
 
 /**
  * Liste et defaut en vigueur.

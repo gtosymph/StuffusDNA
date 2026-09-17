@@ -71,20 +71,44 @@ function adresse() {
  * Les noms de base ne changent jamais : ils portent les sauvegardes deja
  * posees chez les visiteurs. Seul un bac d'essai leur ajoute un suffixe.
  */
-export const CLES = Object.freeze({
-  etat: nomDeCle('copyroxx_etat'),
-  resultat: nomDeCle('copyroxx_resultat'),
-  simulations: nomDeCle('copyroxx_simulations'),
-  setsSorts: nomDeCle('copyroxx_sets_sorts'),
-  setsConditions: nomDeCle('copyroxx_sets_conditions'),
-  setsBannis: nomDeCle('copyroxx_sets_bannis'),
-  setsBanque: nomDeCle('copyroxx_sets_banque'),
-  setsStuff: nomDeCle('copyroxx_sets_stuff'),
-  theme: nomDeCle('copyroxx_theme'),
-  disposition: nomDeCle('copyroxx_disposition'),
-  catalogue: nomDeCle('copyroxx_catalogue'),
-  plie: nomDeCle('copyroxx_plie'),
+const BASES = Object.freeze({
+  etat: 'copyroxx_etat',
+  resultat: 'copyroxx_resultat',
+  simulations: 'copyroxx_simulations',
+  setsSorts: 'copyroxx_sets_sorts',
+  setsConditions: 'copyroxx_sets_conditions',
+  setsBannis: 'copyroxx_sets_bannis',
+  setsBanque: 'copyroxx_sets_banque',
+  setsStuff: 'copyroxx_sets_stuff',
+  theme: 'copyroxx_theme',
+  themeV2: 'copyroxx_v2_theme',
+  disposition: 'copyroxx_disposition',
+  catalogue: 'copyroxx_catalogue',
+  plie: 'copyroxx_plie',
 });
+
+export const CLES = Object.freeze(Object.fromEntries(
+  Object.entries(BASES).map(([role, base]) => [role, nomDeCle(base)])));
+
+/**
+ * Cle de CE navigateur pour une cle venue d'ailleurs.
+ *
+ * Un profil exporte depuis un bac d'essai porte des cles suffixees. Les
+ * refuser revenait a refuser le fichier entier, avec pour seul mot « profil
+ * vide » : le joueur exportait son travail et ne pouvait plus le reprendre.
+ * Le suffixe est un detail de notre mode d'essai, pas une propriete de son
+ * profil ; il se rabat donc sur le bac courant, quel qu'il soit.
+ *
+ * @param {string} cle Cle telle qu'elle vient du fichier.
+ * @returns {string|null} Cle a employer ici, ou null si elle nous est
+ *   etrangere.
+ */
+export function cleDici(cle) {
+  for (const base of Object.values(BASES)) {
+    if (cle === base || cle.startsWith(`${base}_test`)) return nomDeCle(base);
+  }
+  return null;
+}
 
 /** Vrai quand la page tourne dans un bac d'essai. */
 export const EN_BAC_DESSAI = suffixeDeBac(adresse()) !== '';

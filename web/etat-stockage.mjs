@@ -85,6 +85,19 @@ export function serialiserEtat(etat) {
 /** Modes de recherche acceptes dans un etat range. */
 const MODES = new Set(['degats', 'endurance', 'mixte', 'caracteristiques']);
 
+/**
+ * Vrai quand ce navigateur porte deja un etat range.
+ *
+ * Elle repond a une question que « l'etat a-t-il des pieces ou des sorts ? »
+ * repondait mal : un profil importe peut ne porter ni piece ni sort, et
+ * n'en est pas moins le travail de quelqu'un. v2 ouvrait alors son ecran
+ * vide et redemandait la classe, si bien que l'import avait l'air de n'avoir
+ * rien fait.
+ *
+ * @returns {boolean}
+ */
+export const etatRange = () => lireJson(CLES.etat, null) !== null;
+
 /** Enregistre l'etat courant : un rechargement ne perd plus le travail. */
 export function sauverEtat(etat) {
   ecrireJson(CLES.etat, serialiserEtat(etat));

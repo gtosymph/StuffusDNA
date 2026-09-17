@@ -11,7 +11,7 @@
  * garde ou emporte ; importer le repose ailleurs. C'est la seule sauvegarde
  * qui survive au navigateur, et elle n'a besoin de personne.
  */
-import { CLES, CLES_PROFIL, lireTexte, ecrire, enlever, occupation } from './stockage.mjs';
+import { CLES, CLES_PROFIL, cleDici, lireTexte, ecrire, enlever, occupation } from './stockage.mjs';
 
 /** Marque du format, pour refuser un fichier qui vient d'ailleurs. */
 export const FORMAT = 'the-best-roxxeur/profil';
@@ -30,6 +30,7 @@ const NOMS = Object.freeze({
   [CLES.setsBanque]: 'jeux de pieces en banque',
   [CLES.setsStuff]: 'stuffs enregistres',
   [CLES.theme]: 'theme',
+  [CLES.themeV2]: 'habillage',
   [CLES.disposition]: 'disposition',
   [CLES.catalogue]: 'tiroir du catalogue',
   [CLES.plie]: 'sections repliees',
@@ -80,14 +81,16 @@ export function verifierProfil(brut) {
     throw new Error('Profil sans donnees.');
   }
 
-  const connues = new Set(CLES_PROFIL);
   const donnees = {};
   const inconnues = [];
 
   for (const [cle, valeur] of Object.entries(brut.donnees)) {
-    if (!connues.has(cle)) { inconnues.push(cle); continue; }
+    // Une cle exportee depuis un bac d'essai porte un suffixe. Elle designe
+    // la meme chose : elle se rabat sur la cle de ce navigateur.
+    const ici = cleDici(cle);
+    if (!ici) { inconnues.push(cle); continue; }
     if (typeof valeur !== 'string') { inconnues.push(cle); continue; }
-    donnees[cle] = valeur;
+    donnees[ici] = valeur;
   }
 
   if (Object.keys(donnees).length === 0) {

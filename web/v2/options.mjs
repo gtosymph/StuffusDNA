@@ -21,14 +21,26 @@ export const PRES_DES_DEGATS = Object.freeze(['arme', 'distance']);
 /** Options qui definissent ce que « Pdv effectifs » veut dire. */
 export const PRES_DES_PDV = Object.freeze(['menaceCoup', 'menacePlafond', 'menacePosition']);
 
-/** Toutes celles qui vivent a cote d'un nombre. */
-const PRES_D_UN_NOMBRE = new Set([...PRES_DES_DEGATS, ...PRES_DES_PDV]);
+/**
+ * Options qui ne parlent que de l'enchainement des sorts choisis.
+ *
+ * Elles ne reglent pas le calcul en general : elles disent dans quel ordre,
+ * et combien de fois, LES SORTS DE LA LISTE partent. Leur place est donc
+ * contre cette liste, pas dans un panneau ou rien ne rappelle qu'il existe
+ * des sorts.
+ */
+export const PRES_DES_SORTS = Object.freeze([
+  'combo', 'paReserves', 'comboElements', 'comboUnLancer',
+]);
+
+/** Toutes celles qui vivent ailleurs que dans les reglages. */
+const AILLEURS = new Set([...PRES_DES_DEGATS, ...PRES_DES_PDV, ...PRES_DES_SORTS]);
 
 /**
  * Range les options affichees selon l'endroit ou elles se lisent.
  *
  * @param {{cle: string}[]} options Sortie de `optionsAffichees`.
- * @returns {{degats: any[], pdv: any[], reglages: any[]}}
+ * @returns {{degats: any[], pdv: any[], sorts: any[], reglages: any[]}}
  */
 export function rangerOptions(options) {
   const parCle = new Map((options ?? []).map((o) => [o.cle, o]));
@@ -37,9 +49,36 @@ export function rangerOptions(options) {
   return {
     degats: prendre(PRES_DES_DEGATS),
     pdv: prendre(PRES_DES_PDV),
+    sorts: prendre(PRES_DES_SORTS),
     // Tout le reste part dans les reglages, y compris une option ajoutee
     // depuis : une option nouvelle doit se voir quelque part, jamais nulle
     // part.
-    reglages: (options ?? []).filter((o) => !PRES_D_UN_NOMBRE.has(o.cle)),
+    reglages: (options ?? []).filter((o) => !AILLEURS.has(o.cle)),
   };
+}
+
+/**
+ * Ce que le bouton de l'enchainement dit sans qu'on l'ouvre.
+ *
+ * Un bouton qui porte toujours le meme libelle oblige a l'ouvrir pour savoir
+ * ou en est le reglage. Celui-ci dit d'abord ce qui compte — chaque sort une
+ * fois, ou le meilleur enchainement — puis les restrictions posees dessus.
+ *
+ * @param {Record<string, any>} options Valeurs de l'etat.
+ * @returns {string}
+ */
+export function resumeCombo(options) {
+  const valeurs = options ?? {};
+  if (!valeurs.combo) return 'Chaque sort une fois';
+
+  const restrictions = [];
+  const reserves = Math.max(0, Math.trunc(Number(valeurs.paReserves) || 0));
+  if (reserves > 0) restrictions.push(`${reserves} PA gardes`);
+  const elements = Math.max(0, Math.trunc(Number(valeurs.comboElements) || 0));
+  if (elements > 0) restrictions.push(`${elements} elements au moins`);
+  if (valeurs.comboUnLancer) restrictions.push('1 lancer par sort');
+
+  return restrictions.length === 0
+    ? 'Meilleur enchainement'
+    : `Meilleur enchainement · ${restrictions.join(' · ')}`;
 }

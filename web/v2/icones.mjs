@@ -54,6 +54,19 @@ const DESSINS = Object.freeze({
   },
 
   /**
+   * Boussole : le cercle, et l'aiguille qui montre une direction.
+   *
+   * Un point d'interrogation dirait « aide », c'est-a-dire un texte a lire.
+   * La visite ne se lit pas : elle emmene d'une commande a la suivante, et
+   * c'est cela que l'aiguille annonce.
+   */
+  boussole: {
+    plein: false,
+    d: 'M12 2.8a9.2 9.2 0 1 0 0 18.4 9.2 9.2 0 0 0 0-18.4Z'
+      + 'M15.6 8.4l-2 5.2-5.2 2 2-5.2 5.2-2Z',
+  },
+
+  /**
    * Engrenage : le moyeu, et huit dents posees en couronne.
    *
    * Les dents sont ecrites une a une plutot que calculees : un trace fige se

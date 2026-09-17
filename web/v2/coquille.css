@@ -1556,3 +1556,59 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
   /* Le message passager se met au-dessus du pouce, pas sous lui. */
   .message-v2 { left: 10px; right: 10px; max-width: none; text-align: center; }
 }
+
+/* ============================================ La marque et le soutien ===
+
+   La version se lit contre le nom : un joueur qui signale un defaut dit
+   « v1.0.0 » au lieu de « la version d'hier ». Elle reste en retrait, parce
+   qu'elle n'est utile qu'au moment ou on la cherche. */
+.marque .version {
+  font-size: 10px; font-weight: 500; color: var(--texte-3);
+  padding: 1px 5px; border: 1px solid var(--filet); border-radius: 999px;
+}
+
+/* Le soutien ne se crie pas. Il se tient a cote de la marque, du poids d'une
+   note de bas de page, et prend la couleur de l'accent au survol seulement. */
+.kofi {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 9px; border-radius: 999px;
+  background: transparent; border: 1px solid var(--filet);
+  color: var(--texte-2); font-size: 11px; font-weight: 540; text-decoration: none;
+}
+.kofi::before { content: '☕'; font-size: 11px; }
+.kofi:hover { color: var(--texte); border-color: var(--iris-sourd); background: var(--surface-2); }
+
+/* ================================================= La visite guidee ===
+
+   Le voile n'est pas une surface posee sur la page : c'est l'OMBRE de la
+   lucarne. Un cadre vide avec une ombre portee de dix mille pixels assombrit
+   tout sauf lui, sans qu'aucun calcul ne decoupe quoi que ce soit, et sans
+   les quatre bandes qu'il faudrait sinon replacer a chaque etape. */
+.visite-fond { position: fixed; inset: 0; z-index: 90; }
+
+.visite-lucarne {
+  position: fixed; border-radius: var(--r-lg);
+  box-shadow: 0 0 0 9999px var(--voile), 0 0 0 2px var(--iris) inset;
+  transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease;
+  pointer-events: none;
+}
+
+/* Sans lucarne, le voile disparaitrait avec elle : le fond le reprend. */
+.visite-lucarne[hidden] + .visite-bulle { box-shadow: 0 0 0 9999px var(--voile), 0 14px 40px var(--ombre); }
+
+.visite-bulle {
+  position: fixed; width: min(340px, calc(100vw - 24px));
+  padding: 14px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--filet-clair);
+  box-shadow: 0 14px 40px var(--ombre);
+}
+.visite-titre { margin: 0 0 6px; font-size: 14px; font-weight: 640; color: var(--texte); }
+.visite-texte { margin: 0; font-size: 12px; line-height: 1.55; color: var(--texte-2); }
+.visite-pied { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+.visite-compte { font-size: 11px; color: var(--texte-3); }
+.visite-bulle .btn[disabled] { opacity: .4; cursor: default; }
+
+/* Un ecran qui refuse les animations garde la lucarne, sans le glissement. */
+@media (prefers-reduced-motion: reduce) {
+  .visite-lucarne { transition: none; }
+}

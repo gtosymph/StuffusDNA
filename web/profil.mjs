@@ -34,6 +34,7 @@ const NOMS = Object.freeze({
   [CLES.disposition]: 'disposition',
   [CLES.catalogue]: 'tiroir du catalogue',
   [CLES.plie]: 'sections repliees',
+  [CLES.visite]: 'visite guidee',
 });
 
 /**

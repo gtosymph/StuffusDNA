@@ -35,8 +35,16 @@
 <body>
 
 <header class="barre">
-  <div class="marque"><i></i> The Best Roxxeur</div>
+  <div class="marque"><i></i> The Best Roxxeur <span class="version n" id="version"></span></div>
   <div id="menus"></div>
+
+  <!-- Le soutien se donne quand l'outil vient de servir, pas au moment ou on
+       le decouvre : le lien reste donc discret, a cote de la marque, et ne
+       prend jamais la place d'une commande. « rel » coupe le lien entre les
+       deux pages, sinon la page ouverte garde une prise sur celle-ci. -->
+  <a class="kofi" id="kofi" href="https://ko-fi.com/gtosymph"
+    target="_blank" rel="noopener noreferrer"
+    title="Soutenir le projet sur Ko-fi">Soutenir</a>
 
   <button class="identite" id="identite" hidden type="button">
     <img id="identite-img" src="" alt=""><b id="identite-nom"></b>
@@ -64,6 +72,8 @@
     <button class="btn" id="partager" type="button"
       title="Partager ce reglage par un lien, ou l'ouvrir chez Dofusbook">
       <span>Partager</span></button>
+    <button class="btn icone" id="visite" type="button"
+      title="Visite guidee : a quoi sert chaque bouton" aria-label="Visite guidee"></button>
     <button class="btn icone" id="reglages" type="button"
       title="Reglages de calcul et habillage" aria-label="Reglages"></button>
   </div>
@@ -101,6 +111,14 @@
       <p class="chapeau pliable">Sur ces sorts <span class="compte" id="compte-sorts">0</span></p>
       <div class="chips" id="chips-sorts"></div>
       <p class="aide" id="aide-sorts"></p>
+      <!-- L'optimisateur de combo se regle ICI, contre la liste des sorts :
+           il ne dit rien d'autre que « dans quel ordre, et combien de fois,
+           ces sorts-la partent ». Range dans les reglages de calcul, il se
+           lisait a dix centimetres des sorts qu'il enchaine, et personne ne
+           faisait le rapprochement. -->
+      <button class="btn" id="regler-combo" type="button"
+        style="width:100%;justify-content:center;margin-top:10px">
+        <span id="etat-combo">Enchainement des sorts…</span></button>
       <div class="rangee-jeux">
         <select id="sets-sorts" aria-label="Jeux de sorts enregistres"></select>
         <button class="btn mini" id="charger-sorts" type="button" title="Reprendre ce jeu">Reprendre</button>

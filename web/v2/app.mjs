@@ -62,7 +62,11 @@ import { fermerReglages, ouvrirReglages, reglagesOuverts } from './vue-reglages.
 import {
   fermerPartage, ouvrirPartage, partageOuvert, proposerReglage,
 } from './vue-partage.mjs';
-import { rangerOptions } from './options.mjs';
+import { rangerOptions, resumeCombo } from './options.mjs';
+import { comboOuvert, fermerCombo, ouvrirCombo } from './vue-combo.mjs';
+import { visiteAfaire } from './visite.mjs';
+import { fermerVisite, ouvrirVisite, visiteOuverte } from './vue-visite.mjs';
+import { VERSION_LUE } from '../version.mjs';
 import { fermerMinimums, minimumsOuverts, MINIMUM_NEUF, ouvrirMinimums } from './vue-minimums.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
 import { renderAnalyse } from '../analyse-panel.mjs';
@@ -378,6 +382,9 @@ function renderSorts() {
       type: 'button', text: '×', title: `Enlever ${sort.name ?? sort.fr ?? 'ce sort'}`,
       onClick: () => setEtat({ sorts: etat.sorts.filter((s) => s.id !== sort.id) }),
     }))));
+  // Le bouton de l'enchainement porte l'etat du reglage : sans cela, il faut
+  // l'ouvrir pour savoir si le combo compte ou non.
+  $('etat-combo').textContent = resumeCombo(etat.options);
   $('aide-sorts').replaceChildren(
     ...(sorts.length ? [] : [
       'Aucun sort. L\'outil n\'en pose aucun d\'office : un chiffre de degats '
@@ -907,6 +914,17 @@ function ouvrirFicheDe(cle, item) {
 
 /* ------------------------------------------------------------------- Boot --- */
 
+/**
+ * Propose la visite au premier passage, et une seule fois.
+ *
+ * Elle attend que l'atelier soit pose : une lucarne mesuree avant la mise en
+ * page se poserait a cote de la commande qu'elle montre.
+ */
+function proposerVisiteUneFois() {
+  if (vierge || !visiteAfaire()) return;
+  setTimeout(() => { if (!vierge && visiteAfaire()) ouvrirVisite({ message }); }, 600);
+}
+
 function choisirClasse(classe) {
   vierge = false;
   $('accueil').hidden = true;
@@ -916,6 +934,7 @@ function choisirClasse(classe) {
   $('barre-droite').hidden = false;
   setEtat({ classe });
   recherche.lancer();
+  proposerVisiteUneFois();
 }
 
 /**
@@ -972,6 +991,8 @@ async function accueillirLien() {
 }
 
 async function main() {
+  $('version').textContent = VERSION_LUE;
+
   // Les noeuds que la nouvelle coquille ne montre plus vivent quand meme dans
   // le document : un champ hors de l'arbre ne garde pas sa valeur de facon
   // fiable, et les modules de v1 les lisent au lancement.
@@ -980,7 +1001,7 @@ async function main() {
   // Chaque commande recoit son dessin avant son libelle. Ceux de « Chercher »
   // et d'« Annuler » changent avec ce qu'ils font : ils se posent au rendu.
   for (const [id, nom] of [['arreter', 'pause'], ['vider', 'poubelle'],
-    ['partager', 'partage'], ['reglages', 'engrenage']]) {
+    ['partager', 'partage'], ['visite', 'boussole'], ['reglages', 'engrenage']]) {
     $(id).prepend(icone(nom));
   }
 
@@ -1037,6 +1058,7 @@ async function main() {
     recherche.reprendre();
     render();
     await accueillirLien();
+    proposerVisiteUneFois();
   } catch (erreur) {
     message(`Catalogue indisponible : ${erreur.message}`, 'erreur');
   }
@@ -1108,8 +1130,10 @@ window.addEventListener('keydown', (ev) => {
   }
 
   if (ev.key !== 'Escape') return;
-  if (comparaisonOuverte()) fermerComparaison();
+  if (visiteOuverte()) fermerVisite();
+  else if (comparaisonOuverte()) fermerComparaison();
   else if (minimumsOuverts()) fermerMinimums();
+  else if (comboOuvert()) fermerCombo();
   else if (reglagesOuverts()) fermerReglages();
   else if (partageOuvert()) fermerPartage();
   else if (pointsOuverts()) fermerPoints();
@@ -1176,5 +1200,8 @@ $('vider').addEventListener('click', vider);
 $('reglages').addEventListener('click',
   () => ouvrirReglages({ lireEtat, onOption: poserOption }));
 $('partager').addEventListener('click', () => ouvrirPartage({ lireEtat, message }));
+$('regler-combo').addEventListener('click',
+  () => ouvrirCombo({ lireEtat, onOption: poserOption }));
+$('visite').addEventListener('click', () => ouvrirVisite({ message }));
 
 main();

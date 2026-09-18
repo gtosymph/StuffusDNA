@@ -63,14 +63,20 @@ import {
   fermerPartage, ouvrirPartage, partageOuvert, proposerReglage,
 } from './vue-partage.mjs';
 import { rangerOptions, resumeCombo } from './options.mjs';
+import { creerCadence } from './cadence.mjs';
+import { caseOuverte, fermerCase, ouvrirCase } from './vue-case.mjs';
+import {
+  basculer, classesDeVolets, garderVolets, LARGEUR_ETROITE, lireVolets, ouvertureDepart,
+} from './volets.mjs';
 import { comboOuvert, fermerCombo, ouvrirCombo } from './vue-combo.mjs';
 import { visiteAfaire } from './visite.mjs';
 import { fermerVisite, ouvrirVisite, visiteOuverte } from './vue-visite.mjs';
+import { fermerSignaler, ouvrirSignaler, signalerOuvert } from './vue-signaler.mjs';
 import { VERSION_LUE } from '../version.mjs';
 import { fermerMinimums, minimumsOuverts, MINIMUM_NEUF, ouvrirMinimums } from './vue-minimums.mjs';
 import { paliersUtiles, renderPaliers, renderReglageProximite } from '../proximite-panel.mjs';
 import { renderAnalyse } from '../analyse-panel.mjs';
-import { remplacer } from '../equipement.mjs';
+import { equiperDans, remplacer, remplacementAuChoix } from '../equipement.mjs';
 
 const { $, muets } = creerPont({ racine: document, fabrique: (t) => document.createElement(t) });
 
@@ -207,7 +213,36 @@ const sansSorts = () => sortsCalcules(etat).length === 0;
 
 /* ----------------------------------------------------------------- Rendu --- */
 
-function render() {
+/*
+ * L'ecran se repeint au rythme de l'oeil, jamais sous un doigt pose.
+ *
+ * Voir `cadence.mjs` : pendant une recherche, le meilleur build s'applique
+ * des qu'il s'ameliore, et chaque application remplacait des noeuds au milieu
+ * d'un clic. Le clic se perdait.
+ */
+const cadence = creerCadence({
+  peindre: () => peindre(),
+  // Une image d'ecran est le bon moment pour peindre — sauf qu'un onglet en
+  // arriere-plan n'en produit aucune. La page s'ouvrait alors vide, et le
+  // restait jusqu'a ce qu'on vienne la regarder. Le compte a rebours prend le
+  // relais : le premier des deux qui arrive peint, le second ne fait rien.
+  planifier: (suite) => {
+    let fait = false;
+    const uneSeuleFois = () => { if (fait) return; fait = true; suite(); };
+    requestAnimationFrame(uneSeuleFois);
+    setTimeout(uneSeuleFois, 120);
+  },
+});
+
+const render = () => cadence.demander();
+
+window.addEventListener('pointerdown', cadence.enfoncer, true);
+window.addEventListener('pointerup', cadence.relacher, true);
+// Un doigt qui sort de l'ecran ne leve jamais : sans cela, l'ecran resterait
+// fige jusqu'au prochain clic.
+window.addEventListener('pointercancel', cadence.relacher, true);
+
+function peindre() {
   if (vierge) return;
 
   const build = buildCourant(etat, catalogue);
@@ -550,7 +585,7 @@ function renderPanoplie(build) {
   renderPanoplies($('panoplies'), sets, catalogue?.setById ?? new Map(), STAT_LABELS, {
     itemById: catalogue?.itemById ?? new Map(),
     equippedIds: new Set([...etat.equipped.values()].map((p) => p.id)),
-    onPick: (piece) => ouvrirFiche(piece, { onEquip: () => gestes.equiper(piece) }),
+    onPick: (piece) => ouvrirFiche(piece, { onEquip: () => poserPiece(piece) }),
   });
 }
 
@@ -925,13 +960,71 @@ function proposerVisiteUneFois() {
   setTimeout(() => { if (!vierge && visiteAfaire()) ouvrirVisite({ message }); }, 600);
 }
 
+/* ==================================== Les deux volets ===
+ *
+ * Voir `volets.mjs` : l'etat se calcule la, l'ecran ne fait que le porter.
+ */
+
+/** Vrai quand les trois colonnes ne tiennent plus cote a cote. */
+const ecranEtroit = () => window.innerWidth <= LARGEUR_ETROITE;
+
+let volets = ouvertureDepart({ garde: lireVolets(), etroit: ecranEtroit() });
+
+/** Pose l'etat des volets sur l'ecran. */
+function montrerVolets() {
+  const etroit = ecranEtroit();
+  const appli = $('travail');
+  appli.classList.remove('gauche-replie', 'droit-replie', 'volets-flottants');
+  appli.classList.add(...classesDeVolets(volets, etroit));
+
+  for (const cote of ['gauche', 'droit']) {
+    $(`bascule-${cote}`).setAttribute('aria-pressed', String(volets[cote]));
+  }
+  // Le voile ne sert qu'a refermer un volet flottant : sur un ecran large,
+  // les volets ne recouvrent rien.
+  $('volets-voile').hidden = !etroit || (!volets.gauche && !volets.droit);
+}
+
+/** Ouvre ou replie un volet, et garde le choix. */
+function basculerVolet(cote) {
+  const etroit = ecranEtroit();
+  volets = basculer(volets, cote, etroit);
+  garderVolets(volets, etroit);
+  montrerVolets();
+}
+
+/**
+ * Pose une piece, en demandant quelle case remplacer quand c'est necessaire.
+ *
+ * Tant qu'une case de la famille est libre, la piece s'y pose sans un mot.
+ * Quand elles sont toutes prises — six dofus, deux anneaux — l'outil ecrasait
+ * la derniere en silence : la question se pose maintenant.
+ */
+function poserPiece(item) {
+  if (!remplacementAuChoix(etat, item)) {
+    gestes.equiper(item);
+    return;
+  }
+
+  ouvrirCase({
+    etat,
+    item,
+    onChoisir: (cle) => {
+      const patch = equiperDans(etat, item, cle);
+      if (!patch) return;
+      setEtat(patch);
+      message(`« ${item.fr ?? item.name} » prend la place ${cle.split(':')[1] * 1 + 1}.`);
+    },
+  });
+}
+
 function choisirClasse(classe) {
   vierge = false;
   $('accueil').hidden = true;
   $('travail').hidden = false;
   $('identite').hidden = false;
-  $('barre-droite').style.display = 'flex';
   $('barre-droite').hidden = false;
+  $('barre-volets').hidden = false;
   setEtat({ classe });
   recherche.lancer();
   proposerVisiteUneFois();
@@ -992,6 +1085,7 @@ async function accueillirLien() {
 
 async function main() {
   $('version').textContent = VERSION_LUE;
+  montrerVolets();
 
   // Les noeuds que la nouvelle coquille ne montre plus vivent quand meme dans
   // le document : un champ hors de l'arbre ne garde pas sa valeur de facon
@@ -1001,7 +1095,8 @@ async function main() {
   // Chaque commande recoit son dessin avant son libelle. Ceux de « Chercher »
   // et d'« Annuler » changent avec ce qu'ils font : ils se posent au rendu.
   for (const [id, nom] of [['arreter', 'pause'], ['vider', 'poubelle'],
-    ['partager', 'partage'], ['visite', 'boussole'], ['reglages', 'engrenage']]) {
+    ['partager', 'partage'], ['signaler', 'megaphone'], ['visite', 'boussole'],
+    ['reglages', 'engrenage']]) {
     $(id).prepend(icone(nom));
   }
 
@@ -1027,7 +1122,7 @@ async function main() {
       $('travail').hidden = false;
       $('identite').hidden = false;
       $('barre-droite').hidden = false;
-      $('barre-droite').style.display = 'flex';
+      $('barre-volets').hidden = false;
     }
 
     // Les resultats ranges reviennent avec l'etat : ils doivent etre juges
@@ -1108,7 +1203,7 @@ $('identite').addEventListener('click', () => ouvrirIdentite({ lireEtat, setEtat
 
 const liensPalette = {
   lireEtat, lireCatalogue: () => catalogue, setEtat,
-  onPiece: (item) => { gestes.equiper(item); fermerPalette(); },
+  onPiece: (item) => { fermerPalette(); poserPiece(item); },
 };
 $('ouvrir-palette').addEventListener('click', () => basculerPalette(liensPalette));
 
@@ -1130,9 +1225,11 @@ window.addEventListener('keydown', (ev) => {
   }
 
   if (ev.key !== 'Escape') return;
-  if (visiteOuverte()) fermerVisite();
+  if (caseOuverte()) fermerCase();
+  else if (visiteOuverte()) fermerVisite();
   else if (comparaisonOuverte()) fermerComparaison();
   else if (minimumsOuverts()) fermerMinimums();
+  else if (signalerOuvert()) fermerSignaler();
   else if (comboOuvert()) fermerCombo();
   else if (reglagesOuverts()) fermerReglages();
   else if (partageOuvert()) fermerPartage();
@@ -1203,5 +1300,17 @@ $('partager').addEventListener('click', () => ouvrirPartage({ lireEtat, message 
 $('regler-combo').addEventListener('click',
   () => ouvrirCombo({ lireEtat, onOption: poserOption }));
 $('visite').addEventListener('click', () => ouvrirVisite({ message }));
+$('signaler').addEventListener('click',
+  () => ouvrirSignaler({ lireEtat, nomDeClasse, message }));
+$('bascule-gauche').addEventListener('click', () => basculerVolet('gauche'));
+$('bascule-droit').addEventListener('click', () => basculerVolet('droit'));
+$('volets-voile').addEventListener('click', () => {
+  volets = { gauche: false, droit: false };
+  montrerVolets();
+});
+
+// Un ecran qui passe d'etroit a large change ce qu'un volet ouvert veut
+// dire : il occupait le milieu, il reprend sa colonne.
+window.addEventListener('resize', montrerVolets);
 
 main();

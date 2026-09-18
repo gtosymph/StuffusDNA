@@ -54,6 +54,19 @@ const DESSINS = Object.freeze({
   },
 
   /**
+   * Megaphone : dire quelque chose a quelqu'un.
+   *
+   * Un point d'exclamation dans un triangle dirait « attention, danger » ;
+   * l'ecran propose aussi les demandes d'amelioration, qui n'ont rien d'une
+   * alerte. Le megaphone porte les deux.
+   */
+  megaphone: {
+    plein: false,
+    d: 'M4 9.6h3.2l8.4-4.4v13.6l-8.4-4.4H4a1.2 1.2 0 0 1-1.2-1.2v-2.4A1.2 1.2 0 0 1 4 9.6Z'
+      + 'M7.2 14.4v4.4a1.2 1.2 0 0 0 1.2 1.2h1.6M19 9.2a3.6 3.6 0 0 1 0 5.6',
+  },
+
+  /**
    * Boussole : le cercle, et l'aiguille qui montre une direction.
    *
    * Un point d'interrogation dirait « aide », c'est-a-dire un texte a lire.

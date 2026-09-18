@@ -24,6 +24,67 @@ function liberer(equipped, posees, id) {
 }
 
 /**
+ * Les cases d'une famille, avec ce qu'elles portent.
+ *
+ * Une amulette n'a qu'une case, un anneau en a deux, les artefacts six. C'est
+ * la seule information dont un ecran a besoin pour demander « laquelle
+ * remplacer ? ».
+ *
+ * @param {any} etat
+ * @param {any} item
+ * @returns {{cle: string, porte: any|null}[]} Vide quand aucune case ne
+ *   connait ce type de piece.
+ */
+export function casesDeLaFamille(etat, item) {
+  const slot = SLOTS.find((s) => s.key === item?.slot);
+  if (!slot) return [];
+
+  return Array.from({ length: slot.capacity }, (_, i) => {
+    const cle = `${slot.key}:${i}`;
+    return { cle, porte: etat.equipped.get(cle) ?? null };
+  });
+}
+
+/**
+ * Vrai quand poser cette piece va en jeter une autre sans rien demander.
+ *
+ * C'est le cas des six artefacts : passe la sixieme, `equiper` ecrasait
+ * toujours la derniere case, et le joueur voyait son dofus disparaitre sans
+ * comprendre lequel il venait de perdre. Une famille a une seule case ne pose
+ * pas la question : il n'y a rien a choisir.
+ *
+ * @param {any} etat
+ * @param {any} item
+ * @returns {boolean}
+ */
+export function remplacementAuChoix(etat, item) {
+  const cases = casesDeLaFamille(etat, item);
+  if (cases.length < 2) return false;
+  // Une piece deja portee se deplace, elle ne remplace rien.
+  if (cases.some(({ porte }) => porte?.id === item.id)) return false;
+  return cases.every(({ porte }) => porte !== null);
+}
+
+/**
+ * Pose une piece dans une case nommee, quoi qu'elle porte.
+ *
+ * @param {any} etat
+ * @param {any} item
+ * @param {string} cle Case visee, de la forme « artefact:3 ».
+ * @returns {{equipped: Map<string, any>, posees: Set<string>}|null}
+ */
+export function equiperDans(etat, item, cle) {
+  if (!casesDeLaFamille(etat, item).some((c) => c.cle === cle)) return null;
+
+  const equipped = new Map(etat.equipped);
+  const posees = new Set(etat.posees);
+  liberer(equipped, posees, item.id);
+  equipped.set(cle, item);
+  posees.add(cle);
+  return { equipped, posees };
+}
+
+/**
  * Pose une piece dans la premiere case libre qui l'accepte.
  *
  * @param {any} etat

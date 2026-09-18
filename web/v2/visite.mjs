@@ -51,16 +51,30 @@ export const ETAPES = Object.freeze([
       + 'possible sous votre budget de PA.',
   },
   {
-    cible: '#regler-minimums',
+    cible: '#limites',
     titre: 'Vos minimums',
     texte: 'Douze PA, six PM, une vitalite. La recherche tient ces planchers '
-      + 'avant de chercher a marquer des points.',
+      + 'avant de chercher a marquer des points. Un point vert dit que le '
+      + 'minimum est tenu, un point rose qu\'il manque.',
+  },
+  {
+    cible: '#regler-minimums',
+    titre: 'En ajouter un',
+    texte: 'Vous pouvez aussi cliquer n\'importe quel chiffre de la fiche, a '
+      + 'droite, pour en exiger au moins autant.',
+  },
+  {
+    cible: '#avoir',
+    titre: 'Ce que vous avez deja',
+    texte: 'Votre stuff actuel, votre banque, et les pieces que vous refusez. '
+      + 'Une piece que vous possedez ne compte pas comme un achat.',
   },
   {
     cible: '#ouvrir-palette',
-    titre: 'Ce que vous possedez',
-    texte: 'Vos pieces en banque et celles que vous refusez. Une piece que vous '
-      + 'avez deja ne compte pas comme un achat.',
+    titre: 'Le catalogue',
+    texte: 'Toutes les pieces du jeu, cherchables. Ctrl+K l\'ouvre de '
+      + 'n\'importe ou. Une piece posee a la main reste : la recherche cherche '
+      + 'autour d\'elle.',
   },
   {
     cible: '#lancer',
@@ -69,16 +83,71 @@ export const ETAPES = Object.freeze([
       + 'suspend sans rien perdre, « Annuler » jette ce qu\'elle a trouve.',
   },
   {
+    cible: '#score',
+    titre: 'Le score',
+    texte: 'La mesure que la recherche fait monter, celle de l\'objectif '
+      + 'choisi. Il ne se compare qu\'a lui-meme, d\'un essai a l\'autre.',
+  },
+  {
     cible: '#plateau',
     titre: 'Le stuff porte',
     texte: 'Ce que la recherche vous met sur le dos. Cliquez une case pour la '
       + 'figer : la recherche gardera cette piece et cherchera autour.',
   },
   {
+    cible: '#v-degats',
+    titre: 'Les degats',
+    texte: 'Ce que vos sorts envoient sur un tour. Les deux cases dessous '
+      + 'disent ce que ce chiffre veut dire : a distance ou au contact, avec '
+      + 'ou sans l\'arme.',
+  },
+  {
+    cible: '#v-pdv',
+    titre: 'Les pdv effectifs',
+    texte: 'Les degats bruts que vous encaissez avant de tomber : vos pdv, '
+      + 'peses par vos resistances. Bien plus parlant que la vitalite seule.',
+  },
+  {
+    cible: '#bloc-graphe',
+    titre: 'Ce que la recherche trouve',
+    texte: 'Un trait par fil de calcul. Quand les traits s\'aplatissent, la '
+      + 'recherche a fini de progresser : c\'est le moment de l\'arreter.',
+  },
+  {
     cible: '#trouves',
     titre: 'Les autres stuffs',
-    texte: 'La recherche en garde plusieurs, pas seulement le meilleur. Cochez-en '
-      + 'deux pour les comparer piece par piece.',
+    texte: 'La recherche en garde plusieurs, pas seulement le meilleur. '
+      + 'Cochez-en deux pour les comparer piece par piece.',
+  },
+  {
+    cible: '#paliers',
+    titre: 'Proche de votre stuff',
+    texte: 'Si je n\'achete qu\'une a trois pieces, que puis-je gagner ? La '
+      + 'reponse chiffree, par nombre d\'achats.',
+  },
+  {
+    cible: '#simulations',
+    titre: 'Vos essais gardes',
+    texte: 'Chaque pause garde une trace. Vous pouvez y revenir, les comparer, '
+      + 'ou en figer un comme stuff de reference.',
+  },
+  {
+    cible: '#bloc-analyse',
+    titre: 'D\'ou vient le score',
+    texte: 'Ce que chaque piece apporte, ou investir vos points pour gagner '
+      + 'des degats, et le meilleur remplacement possible case par case.',
+  },
+  {
+    cible: '#corps-inspecteur',
+    titre: 'La fiche',
+    texte: 'Toutes vos caracteristiques, a jour. Chaque chiffre se clique '
+      + 'pour en exiger au moins autant.',
+  },
+  {
+    cible: '#bascule-droit',
+    titre: 'Replier un volet',
+    texte: 'Les deux volets s\'ouvrent et se replient d\'ici. Sur un ecran '
+      + 'etroit, replier rend toute la largeur au personnage.',
   },
   {
     cible: '#partager',
@@ -87,10 +156,30 @@ export const ETAPES = Object.freeze([
       + 'Dofusbook. Le lien se relance tel quel chez celui qui le recoit.',
   },
   {
+    cible: '#signaler',
+    titre: 'Signaler',
+    texte: 'Un defaut, une idee. Le rapport emporte votre reglage exact : le '
+      + 'probleme se reproduit d\'un clic au lieu de se deviner.',
+  },
+  {
+    cible: '#menus',
+    titre: 'Votre profil',
+    texte: 'Tout vit dans votre navigateur, sans compte ni serveur. Exportez '
+      + 'un fichier pour passer d\'une machine a l\'autre, ou pour ne rien '
+      + 'perdre.',
+  },
+  {
     cible: '#reglages',
     titre: 'Les reglages',
-    texte: 'Comment vous jouez : distance ou melee, passifs, resistances. Ils '
-      + 'changent ce que les chiffres veulent dire, pas l\'ecran.',
+    texte: 'Comment vous jouez : passifs, resistances, bornes de l\'arme, et '
+      + 'l\'habillage de la page. Ils changent ce que les chiffres veulent '
+      + 'dire, pas l\'ecran.',
+  },
+  {
+    cible: '#kofi',
+    titre: 'C\'est tout',
+    texte: 'Le site est gratuit, sans publicite et sans compte. Si l\'outil '
+      + 'vous sert, un cafe aide a le tenir. Bonne chasse.',
   },
 ]);
 

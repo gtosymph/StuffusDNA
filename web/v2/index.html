@@ -35,48 +35,76 @@
 <body>
 
 <header class="barre">
-  <div class="marque"><i></i> The Best Roxxeur <span class="version n" id="version"></span></div>
-  <div id="menus"></div>
+  <!-- La barre se lit en trois groupes, et chacun repond a une question :
+       « ou suis-je », « que veux-je voir », « que fait la recherche ». Une
+       seule file de dix commandes passait a la ligne des que la fenetre
+       retrecissait, et la page entiere glissait de cote. -->
+  <div class="barre-groupe barre-identite">
+    <div class="marque"><i></i> <span class="marque-nom">The Best Roxxeur</span>
+      <span class="version n" id="version"></span></div>
+    <div id="menus"></div>
 
-  <!-- Le soutien se donne quand l'outil vient de servir, pas au moment ou on
-       le decouvre : le lien reste donc discret, a cote de la marque, et ne
-       prend jamais la place d'une commande. « rel » coupe le lien entre les
-       deux pages, sinon la page ouverte garde une prise sur celle-ci. -->
-  <a class="kofi" id="kofi" href="https://ko-fi.com/gtosymph"
-    target="_blank" rel="noopener noreferrer"
-    title="Soutenir le projet sur Ko-fi">Soutenir</a>
+    <!-- Le soutien se tient a gauche, avec l'identite du site, et non au bout
+         de la barre : au bout, il passait a la ligne tout seul des que les
+         commandes de la recherche s'allongeaient. Il porte ses mots en
+         entier — « Soutenir » seul ne dit ni quoi, ni comment. « rel » coupe
+         le lien entre les deux pages, sinon la page ouverte garde une prise
+         sur celle-ci. -->
+    <a class="kofi" id="kofi" href="https://ko-fi.com/gtosymph"
+      target="_blank" rel="noopener noreferrer"
+      title="Le site est gratuit et sans publicite. Un cafe aide a le tenir.">
+      <span class="kofi-tasse" aria-hidden="true">&#9749;</span>
+      <span class="kofi-mots">Offrir un cafe</span></a>
+  </div>
 
-  <button class="identite" id="identite" hidden type="button">
-    <img id="identite-img" src="" alt=""><b id="identite-nom"></b>
-    <span id="identite-detail"></span>
-  </button>
+  <!-- Les deux volets s'ouvrent et se replient d'ici. Sur un ecran de
+       portable, les trois colonnes etranglent celle du milieu : replier
+       rend la place au personnage, qui est ce qu'on vient voir. -->
+  <div class="barre-groupe barre-volets" id="barre-volets" hidden>
+    <button class="btn fantome bascule" id="bascule-gauche" type="button"
+      aria-pressed="true" title="Montrer ou replier mes reglages">
+      <span>Reglages</span></button>
+
+    <button class="identite" id="identite" hidden type="button">
+      <img id="identite-img" src="" alt=""><b id="identite-nom"></b>
+      <span id="identite-detail"></span>
+    </button>
+
+    <button class="btn fantome bascule" id="bascule-droit" type="button"
+      aria-pressed="true" title="Montrer ou replier la fiche">
+      <span>Fiche</span></button>
+  </div>
 
   <div class="pousse"></div>
 
-  <div id="barre-droite" hidden style="align-items:center;gap:14px">
+  <div id="barre-droite" class="barre-groupe barre-recherche" hidden>
     <div class="score-vif"><b class="pos" id="score">—</b> <span id="score-note">score</span></div>
-    <span id="compteur-generations" class="n" style="font-size:11px;color:var(--texte-3)"></span>
+    <span id="compteur-generations" class="n"></span>
     <!-- Les quatre commandes de la recherche se lisent comme un lecteur :
-         lire, mettre en pause, arreter, jeter. Le libelle reste, parce qu'un
-         pictogramme seul se devine et ne se lit pas. app.mjs y pose les
-         dessins, et change celui d'« Annuler » selon ce qu'il fait. -->
-    <button class="btn premier" id="lancer" type="button"><span>Chercher</span></button>
+         lire, mettre en pause, arreter, jeter. Le libelle reste tant que la
+         place le permet ; en dessous, le pictogramme porte seul, et
+         l'infobulle dit le mot. app.mjs pose les dessins, et change celui
+         d'« Annuler » selon ce qu'il fait. -->
+    <button class="btn premier" id="lancer" type="button" title="Chercher">
+      <span>Chercher</span></button>
     <button class="btn fantome" id="arreter" type="button" title="Pause" disabled>
       <span>Pause</span></button>
-    <button class="btn fantome" id="annuler" type="button" disabled><span>Annuler</span></button>
+    <button class="btn fantome" id="annuler" type="button" title="Annuler" disabled>
+      <span>Annuler</span></button>
     <button class="btn fantome danger" id="vider" type="button"
       title="Enleve toutes les pieces portees"><span>Vider</span></button>
-    <!-- « Partager » porte son nom : c'est le seul geste de la barre qui sort
-         de l'outil, et personne ne devine un pictogramme qu'il n'a jamais
-         employe. Il reste en retrait de « Chercher », qui garde l'accent. -->
     <button class="btn" id="partager" type="button"
       title="Partager ce reglage par un lien, ou l'ouvrir chez Dofusbook">
       <span>Partager</span></button>
+    <button class="btn icone" id="signaler" type="button"
+      title="Signaler un probleme ou proposer une amelioration"
+      aria-label="Signaler"></button>
     <button class="btn icone" id="visite" type="button"
       title="Visite guidee : a quoi sert chaque bouton" aria-label="Visite guidee"></button>
     <button class="btn icone" id="reglages" type="button"
       title="Reglages de calcul et habillage" aria-label="Reglages"></button>
   </div>
+
 </header>
 
 <!-- ===================== Ecran vide ===================== -->
@@ -93,11 +121,11 @@
 <!-- ===================== L'atelier ===================== -->
 <div class="appli" id="travail" hidden>
 
-  <!-- Sur telephone, chaque volet se replie derriere sa poignee. La case
-       precede le volet parce que la cascade ne remonte pas : c'est elle qui
-       commande l'ouverture, sans une ligne de script. -->
-  <input class="tiroir" type="checkbox" id="tiroir-gauche">
-  <label class="poignee" for="tiroir-gauche">Mes reglages</label>
+  <!-- Les volets s'ouvrent depuis la barre du haut, jamais d'ici : deux
+       commandes pour un meme geste laissaient croire a deux gestes. Sur un
+       ecran etroit, un volet ouvert passe par-dessus le milieu, et ce voile
+       le referme d'un clic a cote. -->
+  <div class="volets-voile" id="volets-voile" hidden></div>
 
   <aside class="volet volet-gauche">
     <div class="section">
@@ -116,9 +144,9 @@
            ces sorts-la partent ». Range dans les reglages de calcul, il se
            lisait a dix centimetres des sorts qu'il enchaine, et personne ne
            faisait le rapprochement. -->
-      <button class="btn" id="regler-combo" type="button"
-        style="width:100%;justify-content:center;margin-top:10px">
-        <span id="etat-combo">Enchainement des sorts…</span></button>
+      <button class="btn bouton-reglage" id="regler-combo" type="button">
+        <span class="bouton-reglage-nom">Mode optimisateur combo de sorts</span>
+        <span class="bouton-reglage-etat" id="etat-combo"></span></button>
       <div class="rangee-jeux">
         <select id="sets-sorts" aria-label="Jeux de sorts enregistres"></select>
         <button class="btn mini" id="charger-sorts" type="button" title="Reprendre ce jeu">Reprendre</button>
@@ -296,9 +324,6 @@
 
     </div>
   </main>
-
-  <input class="tiroir" type="checkbox" id="tiroir-droit">
-  <label class="poignee" for="tiroir-droit">La fiche du personnage</label>
 
   <aside class="volet volet-droit">
     <div class="inspecteur-tete">

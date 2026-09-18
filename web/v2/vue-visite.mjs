@@ -47,22 +47,25 @@ export function fermerVisite() {
 }
 
 /**
- * Ouvre le volet de gauche quand la commande visee s'y cache.
+ * Ouvre le volet qui porte la commande visee, s'il est replie.
  *
- * Sur telephone les deux volets sont replies derriere une case a cocher. Une
- * etape qui vise « Regler mes minimums » montrerait alors une lucarne sur du
- * vide. La case se coche donc avant de mesurer.
+ * Un volet replie n'est plus dans la page : une etape qui vise « Regler mes
+ * minimums » montrerait une lucarne sur du vide. La visite appuie donc sur la
+ * bascule de la barre, exactement comme le ferait un joueur.
  *
- * @param {Element} cible
+ * @param {string} cible Selecteur de l'etape.
+ * @returns {boolean} Vrai quand un volet vient d'etre ouvert : la commande
+ *   n'existe pas encore, il faut la rechercher.
  */
 function ouvrirLeVolet(cible) {
-  const volet = cible.closest('.volet-gauche, .volet-droit');
-  if (!volet) return;
-  const tiroir = document.getElementById(
-    volet.classList.contains('volet-gauche') ? 'tiroir-gauche' : 'tiroir-droit');
-  // La case n'existe a l'ecran que sur telephone : ailleurs, la cocher ne
-  // ferait que replier un volet deja ouvert.
-  if (tiroir instanceof HTMLInputElement && tiroir.offsetParent !== null) tiroir.checked = true;
+  for (const cote of ['gauche', 'droit']) {
+    const volet = document.querySelector(`.volet-${cote}`);
+    if (!volet?.querySelector(cible)) continue;
+    const bascule = document.getElementById(`bascule-${cote}`);
+    if (bascule?.getAttribute('aria-pressed') === 'false') { bascule.click(); return true; }
+    return false;
+  }
+  return false;
 }
 
 /**
@@ -109,6 +112,9 @@ export function ouvrirVisite({ message } = {}) {
   /** Pose la lucarne et la bulle sur l'etape courante. */
   function poser() {
     const etape = etapes[index];
+    // Un volet replie cache sa commande : il s'ouvre d'abord, et la mesure
+    // attend l'image suivante, sinon elle porte sur un volet encore absent.
+    if (ouvrirLeVolet(etape.cible)) { requestAnimationFrame(poser); return undefined; }
     const cible = document.querySelector(etape.cible);
 
     titre.textContent = etape.titre;
@@ -118,7 +124,6 @@ export function ouvrirVisite({ message } = {}) {
     suivant.textContent = index === etapes.length - 1 ? 'Terminer' : 'Suivant';
 
     if (!(cible instanceof HTMLElement)) return placerAuMilieu();
-    ouvrirLeVolet(cible);
     cible.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
     const cadre = cible.getBoundingClientRect();

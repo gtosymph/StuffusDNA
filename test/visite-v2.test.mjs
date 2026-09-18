@@ -14,7 +14,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { avancer, ETAPES, etapesVisibles } from '../web/v2/visite.mjs';
+import {
+  avancer, ETAPES, ETAPES_TELEPHONE, etapesVisibles, visitePour,
+} from '../web/v2/visite.mjs';
+import { LARGEUR_TELEPHONE } from '../web/v2/volets.mjs';
 import { VERSION, VERSION_LUE } from '../web/version.mjs';
 
 const ici = (chemin) => new URL(chemin, import.meta.url);
@@ -25,7 +28,7 @@ test('les etapes de la visite', async (t) => {
   const coquille = await readFile(ici('../web/v2/index.html'), 'utf8');
 
   await t.test('chaque etape vise une commande qui existe', () => {
-    for (const { cible } of ETAPES) {
+    for (const { cible } of [...ETAPES, ...ETAPES_TELEPHONE]) {
       assert.match(cible, /^#[a-z-]+$/, `cible mal formee : ${cible}`);
       assert.ok(coquille.includes(`id="${cible.slice(1)}"`),
         `la coquille ne porte aucun « ${cible} »`);
@@ -38,7 +41,7 @@ test('les etapes de la visite', async (t) => {
   });
 
   await t.test('chaque etape dit quelque chose', () => {
-    for (const etape of ETAPES) {
+    for (const etape of [...ETAPES, ...ETAPES_TELEPHONE]) {
       assert.ok(etape.titre?.length > 0, `titre vide : ${etape.cible}`);
       assert.ok(etape.texte?.length > 20, `texte trop court : ${etape.cible}`);
     }
@@ -96,5 +99,33 @@ test('la version', async (t) => {
   await t.test('elle se lit avec son « v »', () => {
     assert.equal(VERSION_LUE, `v${VERSION}`);
     assert.match(VERSION, /^\d+\.\d+\.\d+$/);
+  });
+});
+
+/* ------------------------------------------- La visite du telephone --- */
+
+/*
+ * Vingt-cinq bulles a faire defiler au pouce se font quitter avant la moitie.
+ * La visite du telephone n'est pas la version courte de l'autre : elle
+ * raconte une autre application, celle qui tient en trois ecrans.
+ */
+test('la visite du telephone', async (t) => {
+  await t.test('elle tient en six etapes', () => {
+    assert.equal(ETAPES_TELEPHONE.length, 6);
+    assert.ok(ETAPES_TELEPHONE.length < ETAPES.length / 3);
+  });
+
+  await t.test('elle nomme les trois ecrans', () => {
+    const cibles = ETAPES_TELEPHONE.map((e) => e.cible);
+    for (const attendue of ['#quai-onglets', '#onglet-gauche', '#onglet-droit']) {
+      assert.ok(cibles.includes(attendue), `la visite oublie ${attendue}`);
+    }
+  });
+
+  await t.test('la largeur decide de la visite', () => {
+    assert.equal(visitePour(390), ETAPES_TELEPHONE);
+    assert.equal(visitePour(LARGEUR_TELEPHONE), ETAPES_TELEPHONE);
+    assert.equal(visitePour(LARGEUR_TELEPHONE + 1), ETAPES);
+    assert.equal(visitePour(1600), ETAPES);
   });
 });

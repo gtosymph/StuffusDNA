@@ -16,9 +16,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { creerCadence } from '../web/v2/cadence.mjs';
-import { basculer, classesDeVolets, ouvertureDepart } from '../web/v2/volets.mjs';
 import {
-  composerRapport, contexte, lienTicket, LONGUEUR_MAX, NATURES, navigateurLisible,
+  basculer, choisirOnglet, classesDeVolets, ongletCourant, ouvertureDepart,
+} from '../web/v2/volets.mjs';
+import {
+  contexteEnLigne, FORMULAIRE, lienFormulaire, navigateurLisible, rapportACopier,
 } from '../web/v2/rapport.mjs';
 
 /* ============================================ La cadence de repeint === */
@@ -140,68 +142,124 @@ test('les volets', async (t) => {
   });
 });
 
-/* ================================================ Le rapport qui part === */
+/* ============================================ Les trois ecrans === */
 
-const FAITS = contexte({
-  version: 'v1.0.0', navigateur: 'Firefox 141 · macOS',
-  adresse: 'https://exemple.test/', personnage: 'Xelor 196', pieces: 16, sorts: 8,
-});
-
-test('le rapport de signalement', async (t) => {
-  await t.test('le titre vient de la premiere ligne du joueur', () => {
-    const { titre } = composerRapport({
-      nature: 'probleme', texte: 'Le score reste a zero\nmeme apres dix minutes',
-      contexte: FAITS, lien: null });
-    assert.equal(titre, 'Le score reste a zero');
+/*
+ * Sur telephone, les deux memes etats disent TROIS ecrans : un volet ouvert
+ * nomme le sien, aucun volet ouvert nomme le milieu. Rien de nouveau a
+ * garder, donc rien qui puisse se contredire.
+ */
+test('les onglets du telephone', async (t) => {
+  await t.test('l\'etat des volets nomme l\'ecran', () => {
+    assert.equal(ongletCourant({ gauche: false, droit: false }), 'stuff');
+    assert.equal(ongletCourant({ gauche: true, droit: false }), 'gauche');
+    assert.equal(ongletCourant({ gauche: false, droit: true }), 'droit');
   });
 
-  await t.test('un titre trop long se coupe proprement', () => {
-    const { titre } = composerRapport({
-      nature: 'probleme', texte: 'x'.repeat(200), contexte: FAITS, lien: null });
-    assert.equal(titre.length, 73);
-    assert.ok(titre.endsWith('…'));
+  await t.test('un etat abime retombe sur le milieu', () => {
+    assert.equal(ongletCourant(null), 'stuff');
+    assert.equal(ongletCourant({}), 'stuff');
   });
 
-  await t.test('un rapport vide reste envoyable', () => {
-    const { titre, corps } = composerRapport({
-      nature: 'amelioration', texte: '   ', contexte: FAITS, lien: null });
-    assert.equal(titre, 'Une amelioration sans titre');
-    assert.ok(corps.includes('(rien n\'a ete ecrit)'));
+  await t.test('un onglet n\'est pas un interrupteur', () => {
+    // Appuyer sur l'onglet ou l'on est deja doit y rester. `basculer`
+    // ramenerait ailleurs, ce qui est exactement ce qu'un onglet ne fait pas.
+    const gauche = { gauche: true, droit: false };
+    assert.deepEqual(choisirOnglet(gauche, 'gauche'), gauche);
   });
 
-  await t.test('le lien du reglage voyage avec le rapport', () => {
-    const { corps } = composerRapport({
-      nature: 'probleme', texte: 'Souci', contexte: FAITS, lien: 'https://x.test/#b=abc' });
-    assert.ok(corps.includes('https://x.test/#b=abc'));
+  await t.test('un onglet ferme les deux autres', () => {
+    assert.deepEqual(choisirOnglet({ gauche: true, droit: false }, 'droit'),
+      { gauche: false, droit: true });
+    assert.deepEqual(choisirOnglet({ gauche: true, droit: false }, 'stuff'),
+      { gauche: false, droit: false });
   });
 
-  await t.test('le contexte porte les cinq faits', () => {
-    for (const mot of ['v1.0.0', 'Firefox 141', 'Xelor 196', '16 piece', '8 sort']) {
-      assert.ok(FAITS.includes(mot), `le contexte oublie ${mot}`);
+  await t.test('un onglet inconnu ne change rien', () => {
+    const depart = { gauche: true, droit: false };
+    assert.equal(choisirOnglet(depart, 'ailleurs'), depart);
+  });
+
+  await t.test('l\'aller-retour est stable', () => {
+    for (const onglet of ['gauche', 'stuff', 'droit']) {
+      assert.equal(ongletCourant(choisirOnglet({ gauche: false, droit: false }, onglet)), onglet);
     }
   });
 });
 
-test('le lien du ticket', async (t) => {
-  await t.test('il porte le titre, le corps et l\'etiquette', () => {
-    const lien = lienTicket({ titre: 'Un souci', corps: 'Detail', etiquette: 'bug' });
-    const adresse = new URL(lien);
-    assert.equal(adresse.searchParams.get('title'), 'Un souci');
-    assert.equal(adresse.searchParams.get('body'), 'Detail');
-    assert.equal(adresse.searchParams.get('labels'), 'bug');
+/* ================================================ Le rapport qui part === */
+
+const CONTEXTE = contexteEnLigne({
+  navigateur: 'Firefox 141 · macOS', page: 'https://exemple.test/',
+  personnage: 'Xelor 196', pieces: 16, sorts: 8,
+});
+
+test('le contexte du rapport', async (t) => {
+  await t.test('il tient sur une ligne', () => {
+    // Il voyage dans un champ cache d'une adresse : un retour a la ligne y
+    // survit mal, et le rapport arriverait coupe.
+    assert.ok(!CONTEXTE.includes('\n'));
   });
 
-  await t.test('un rapport enorme se coupe plutot que de rendre une erreur', () => {
-    // GitHub rend une page « 414 URI Too Long » sans rien expliquer : un
-    // rapport ampute vaut mieux que ce mur-la.
-    const lien = lienTicket({
-      titre: 'Gros', corps: 'a'.repeat(50000), etiquette: 'bug' });
-    assert.ok(lien.length <= LONGUEUR_MAX, `adresse de ${lien.length} caracteres`);
-    assert.ok(decodeURIComponent(new URL(lien).searchParams.get('body')).endsWith('[…]'));
+  await t.test('il porte les quatre faits', () => {
+    for (const mot of ['Firefox 141', 'Xelor 196', '16 piece', '8 sort', 'exemple.test']) {
+      assert.ok(CONTEXTE.includes(mot), `le contexte oublie ${mot}`);
+    }
+  });
+});
+
+test('le lien du formulaire', async (t) => {
+  /*
+   * Les trois noms de champ sont ceux poses dans le formulaire, et ils sont
+   * sensibles a la casse. Une faute de frappe ne fait aucune erreur : elle
+   * fait arriver un rapport vide, et personne ne s'en apercoit avant d'avoir
+   * perdu des retours. Ce test est le seul garde-fou de ces trois mots.
+   */
+  await t.test('il remplit les trois champs caches, par leur nom exact', () => {
+    const adresse = new URL(lienFormulaire({
+      version: 'v1.0.0', contexte: CONTEXTE, lien: 'https://x.test/#b=abc' }));
+
+    assert.equal(adresse.searchParams.get('version'), 'v1.0.0');
+    assert.equal(adresse.searchParams.get('contexte'), CONTEXTE);
+    assert.equal(adresse.searchParams.get('lien'), 'https://x.test/#b=abc');
+    assert.deepEqual([...adresse.searchParams.keys()], ['version', 'contexte', 'lien']);
   });
 
-  await t.test('chaque nature porte une etiquette que GitHub connait', () => {
-    assert.deepEqual(NATURES.map((n) => n.etiquette), ['bug', 'enhancement']);
+  await t.test('il vise le formulaire, pas un ticket', () => {
+    assert.ok(lienFormulaire({ version: 'v1', contexte: '', lien: null }).startsWith(FORMULAIRE));
+    // Un compte a creer perd la plupart des retours avant le premier mot.
+    assert.ok(!FORMULAIRE.includes('github'));
+  });
+
+  await t.test('sans lien de reglage, le champ ne part pas du tout', () => {
+    // Un champ portant le mot « null » est pire que pas de champ : il se lit
+    // comme une reponse.
+    const adresse = new URL(lienFormulaire({ version: 'v1', contexte: 'x', lien: null }));
+    assert.equal(adresse.searchParams.has('lien'), false);
+  });
+
+  await t.test('le lien de partage traverse l\'adresse sans s\'abimer', () => {
+    // Il porte un fragment et des caracteres de base64 : mal encode, il
+    // arrive tronque au premier « # », et ne rouvre plus rien.
+    const partage = 'https://x.test/web/v2/index.html#b=1XZ-Dbt_MBE+g/Fc=';
+    const adresse = new URL(lienFormulaire({ version: 'v1', contexte: 'x', lien: partage }));
+    assert.equal(adresse.searchParams.get('lien'), partage);
+  });
+});
+
+test('le rapport a coller', async (t) => {
+  await t.test('il porte la version, le contexte et le lien', () => {
+    const texte = rapportACopier({
+      version: 'v1.0.0', contexte: CONTEXTE, lien: 'https://x.test/#b=abc' });
+
+    assert.match(texte, /^The Best Roxxeur v1\.0\.0$/m);
+    assert.ok(texte.includes(CONTEXTE));
+    assert.ok(texte.includes('https://x.test/#b=abc'));
+  });
+
+  await t.test('sans lien, il ne laisse pas de ligne vide', () => {
+    const texte = rapportACopier({ version: 'v1.0.0', contexte: CONTEXTE, lien: null });
+    assert.equal(texte.split('\n').length, 2);
   });
 });
 

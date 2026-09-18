@@ -66,8 +66,10 @@ import { rangerOptions, resumeCombo } from './options.mjs';
 import { creerCadence } from './cadence.mjs';
 import { caseOuverte, fermerCase, ouvrirCase } from './vue-case.mjs';
 import {
-  basculer, classesDeVolets, garderVolets, LARGEUR_ETROITE, lireVolets, ouvertureDepart,
+  basculer, choisirOnglet, classesDeVolets, garderVolets, LARGEUR_ETROITE,
+  LARGEUR_TELEPHONE, lireVolets, ongletCourant, ouvertureDepart,
 } from './volets.mjs';
+import { fermerPlus, ouvrirPlus, plusOuvert } from './vue-plus.mjs';
 import { comboOuvert, fermerCombo, ouvrirCombo } from './vue-combo.mjs';
 import { visiteAfaire } from './visite.mjs';
 import { fermerVisite, ouvrirVisite, visiteOuverte } from './vue-visite.mjs';
@@ -968,7 +970,44 @@ function proposerVisiteUneFois() {
 /** Vrai quand les trois colonnes ne tiennent plus cote a cote. */
 const ecranEtroit = () => window.innerWidth <= LARGEUR_ETROITE;
 
+/** Vrai quand l'ecran ne montre plus qu'une zone a la fois. */
+const surTelephone = () => window.innerWidth <= LARGEUR_TELEPHONE;
+
 let volets = ouvertureDepart({ garde: lireVolets(), etroit: ecranEtroit() });
+
+/*
+ * Les commandes de la recherche demenagent, elles ne se dupliquent pas.
+ *
+ * Sur telephone elles descendent dans le quai, sous le pouce ; ailleurs elles
+ * remontent dans la barre, a leur place exacte. Un second jeu de boutons
+ * aurait demande de tenir deux etats d'accord — un « Pause » grise en haut et
+ * vif en bas — et cet ecart-la se voit toujours au pire moment.
+ */
+const COMMANDES_DU_QUAI = ['lancer', 'arreter', 'annuler', 'partager'];
+
+/** Ou chaque commande retourne quand l'ecran s'elargit. */
+const attaches = new Map();
+
+/** Deplace les commandes vers le quai, ou les rend a la barre. */
+function placerCommandes() {
+  const quai = $('quai');
+  const versLeQuai = surTelephone();
+  // Le quai commande l'atelier : sur l'ecran d'accueil il n'y a rien a
+  // commander, et une barre d'onglets y montrerait trois ecrans vides.
+  quai.hidden = !versLeQuai || vierge;
+
+  for (const id of COMMANDES_DU_QUAI) {
+    const bouton = $(id);
+    if (!attaches.has(id)) attaches.set(id, [bouton.parentNode, bouton.nextSibling]);
+
+    if (versLeQuai) {
+      $('quai-actions').insertBefore(bouton, $('plus'));
+    } else {
+      const [parent, suivant] = attaches.get(id);
+      parent.insertBefore(bouton, suivant);
+    }
+  }
+}
 
 /** Pose l'etat des volets sur l'ecran. */
 function montrerVolets() {
@@ -980,9 +1019,15 @@ function montrerVolets() {
   for (const cote of ['gauche', 'droit']) {
     $(`bascule-${cote}`).setAttribute('aria-pressed', String(volets[cote]));
   }
-  // Le voile ne sert qu'a refermer un volet flottant : sur un ecran large,
-  // les volets ne recouvrent rien.
-  $('volets-voile').hidden = !etroit || (!volets.gauche && !volets.droit);
+  // Le voile ne sert qu'a refermer un volet pose PAR-DESSUS le milieu. Sur
+  // telephone les zones sont des ecrans : il n'y a rien dessous a decouvrir.
+  $('volets-voile').hidden = !etroit || surTelephone()
+    || (!volets.gauche && !volets.droit);
+
+  const courant = ongletCourant(volets);
+  for (const onglet of $('quai-onglets').children) {
+    onglet.setAttribute('aria-selected', String(onglet.dataset.onglet === courant));
+  }
 }
 
 /** Ouvre ou replie un volet, et garde le choix. */
@@ -990,6 +1035,12 @@ function basculerVolet(cote) {
   const etroit = ecranEtroit();
   volets = basculer(volets, cote, etroit);
   garderVolets(volets, etroit);
+  montrerVolets();
+}
+
+/** Va sur un des trois ecrans du telephone. */
+function allerA(onglet) {
+  volets = choisirOnglet(volets, onglet);
   montrerVolets();
 }
 
@@ -1025,6 +1076,7 @@ function choisirClasse(classe) {
   $('identite').hidden = false;
   $('barre-droite').hidden = false;
   $('barre-volets').hidden = false;
+  placerCommandes();
   setEtat({ classe });
   recherche.lancer();
   proposerVisiteUneFois();
@@ -1085,6 +1137,7 @@ async function accueillirLien() {
 
 async function main() {
   $('version').textContent = VERSION_LUE;
+  placerCommandes();
   montrerVolets();
 
   // Les noeuds que la nouvelle coquille ne montre plus vivent quand meme dans
@@ -1123,6 +1176,7 @@ async function main() {
       $('identite').hidden = false;
       $('barre-droite').hidden = false;
       $('barre-volets').hidden = false;
+      placerCommandes();
     }
 
     // Les resultats ranges reviennent avec l'etat : ils doivent etre juges
@@ -1225,7 +1279,8 @@ window.addEventListener('keydown', (ev) => {
   }
 
   if (ev.key !== 'Escape') return;
-  if (caseOuverte()) fermerCase();
+  if (plusOuvert()) fermerPlus();
+  else if (caseOuverte()) fermerCase();
   else if (visiteOuverte()) fermerVisite();
   else if (comparaisonOuverte()) fermerComparaison();
   else if (minimumsOuverts()) fermerMinimums();
@@ -1311,6 +1366,11 @@ $('volets-voile').addEventListener('click', () => {
 
 // Un ecran qui passe d'etroit a large change ce qu'un volet ouvert veut
 // dire : il occupait le milieu, il reprend sa colonne.
-window.addEventListener('resize', montrerVolets);
+window.addEventListener('resize', () => { placerCommandes(); montrerVolets(); });
+
+for (const onglet of $('quai-onglets').children) {
+  onglet.addEventListener('click', () => allerA(onglet.dataset.onglet));
+}
+$('plus').addEventListener('click', () => ouvrirPlus());
 
 main();

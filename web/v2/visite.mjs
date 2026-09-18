@@ -14,6 +14,7 @@
  * commande absente de l'ecran du moment.
  */
 import { CLES, ecrire, lireTexte } from '../stockage.mjs';
+import { LARGEUR_TELEPHONE } from './volets.mjs';
 
 /** Cle du rangement : la visite ne se propose d'office qu'une fois. */
 export const CLE_VISITE = CLES.visite;
@@ -184,6 +185,53 @@ export const ETAPES = Object.freeze([
 ]);
 
 /**
+ * La visite du telephone : six etapes, pas vingt-cinq.
+ *
+ * Vingt-cinq bulles a faire defiler au pouce se font quitter avant la
+ * moitie. Sur un petit ecran, la visite n'a qu'un travail : dire que
+ * l'application tient en TROIS ecrans, et ou se trouve le geste principal.
+ * Le reste se decouvre en s'en servant.
+ */
+export const ETAPES_TELEPHONE = Object.freeze([
+  {
+    cible: '#quai-onglets',
+    titre: 'Trois ecrans',
+    texte: 'Tout tient en trois ecrans, et cette barre dit lequel vous '
+      + 'regardez : vos reglages, votre stuff, votre fiche.',
+  },
+  {
+    cible: '#onglet-gauche',
+    titre: 'Vos reglages',
+    texte: 'Ce que vous cherchez, vos sorts, vos minimums, et les pieces que '
+      + 'vous possedez deja.',
+  },
+  {
+    cible: '#plateau',
+    titre: 'Votre stuff',
+    texte: 'Ce que la recherche vous met sur le dos, et juste dessous vos '
+      + 'degats et vos pdv effectifs. Touchez une case pour la figer.',
+  },
+  {
+    cible: '#onglet-droit',
+    titre: 'Votre fiche',
+    texte: 'Toutes vos caracteristiques. Touchez un chiffre pour en exiger au '
+      + 'moins autant.',
+  },
+  {
+    cible: '#lancer',
+    titre: 'Chercher',
+    texte: 'La recherche tourne tant que vous la laissez tourner. Elle reste '
+      + 'sous votre pouce, quel que soit l\'ecran.',
+  },
+  {
+    cible: '#plus',
+    titre: 'Le reste',
+    texte: 'Partager, signaler un defaut, les reglages de calcul, et de quoi '
+      + 'soutenir le projet. Bonne chasse.',
+  },
+]);
+
+/**
  * Les etapes qui ont encore une cible a montrer.
  *
  * Une commande peut manquer : l'ecran d'accueil n'a pas de plateau, un
@@ -197,6 +245,16 @@ export const ETAPES = Object.freeze([
 export function etapesVisibles(present, etapes = ETAPES) {
   return etapes.filter((etape) => present(etape.cible));
 }
+
+/**
+ * Quelle visite montrer, selon la largeur.
+ *
+ * @param {number} largeur
+ * @returns {readonly {cible: string}[]}
+ */
+export const visitePour = (largeur) => (largeur <= LARGEUR_TELEPHONE
+  ? ETAPES_TELEPHONE
+  : ETAPES);
 
 /**
  * Numero d'etape apres un deplacement, borne aux deux bouts.

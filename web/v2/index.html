@@ -355,6 +355,36 @@
     title="Coupe la recherche en cours et repart d'une population neuve, sans le stuff courant en graine">Recommencer de zero</button>
 </div>
 
+<!-- ===================== Le quai du telephone =====================
+
+     Sur un telephone, le haut de l'ecran est le plus loin du pouce, et la
+     barre y empilait treize commandes sur trois rangees. Le quai prend le
+     bas : une rangee d'action, et les trois ecrans en onglets.
+
+     Il ne vit que sous 720 px — la feuille de style le cache partout
+     ailleurs — et il ne fabrique aucune commande nouvelle : « Chercher »,
+     « Pause » et « Annuler » sont les MEMES boutons que ceux de la barre,
+     deplaces ici par app.mjs. Deux boutons pour un meme geste laisseraient
+     deux etats a tenir d'accord. -->
+<nav class="quai" id="quai" hidden aria-label="Commandes">
+  <div class="quai-actions" id="quai-actions">
+    <button class="btn fantome quai-plus" id="plus" type="button"
+      aria-label="Toutes les commandes" title="Toutes les commandes">
+      <span aria-hidden="true">•••</span></button>
+  </div>
+  <div class="quai-onglets" id="quai-onglets" role="tablist">
+    <button class="quai-onglet" id="onglet-gauche" type="button" role="tab"
+      aria-selected="false" data-onglet="gauche">
+      <span class="quai-dessin" aria-hidden="true"></span>Reglages</button>
+    <button class="quai-onglet" id="onglet-stuff" type="button" role="tab"
+      aria-selected="true" data-onglet="stuff">
+      <span class="quai-dessin" aria-hidden="true"></span>Stuff</button>
+    <button class="quai-onglet" id="onglet-droit" type="button" role="tab"
+      aria-selected="false" data-onglet="droit">
+      <span class="quai-dessin" aria-hidden="true"></span>Fiche</button>
+  </div>
+</nav>
+
 <div id="message" role="status" aria-live="polite" class="message-v2"></div>
 
 <script type="module">

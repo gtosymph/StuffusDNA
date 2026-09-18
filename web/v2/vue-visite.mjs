@@ -13,7 +13,7 @@
  */
 import { el } from '../render.mjs';
 import { piegerFocus } from '../focus-piege.mjs';
-import { avancer, etapesVisibles, visiteFaite } from './visite.mjs';
+import { avancer, etapesVisibles, visiteFaite, visitePour } from './visite.mjs';
 
 /** Marge autour de la commande montree, en pixels. */
 const MARGE = 6;
@@ -47,24 +47,41 @@ export function fermerVisite() {
 }
 
 /**
- * Ouvre le volet qui porte la commande visee, s'il est replie.
+ * Amene a l'ecran la zone qui porte la commande visee.
  *
- * Un volet replie n'est plus dans la page : une etape qui vise « Regler mes
- * minimums » montrerait une lucarne sur du vide. La visite appuie donc sur la
- * bascule de la barre, exactement comme le ferait un joueur.
+ * Une commande peut etre dans la page sans etre visible : un volet replie sur
+ * un ecran large, ou l'un des trois ecrans du telephone. La visite appuie
+ * alors exactement sur la commande qu'un joueur emploierait — l'onglet du
+ * quai, ou la bascule de la barre — plutot que de manipuler des classes dans
+ * son dos.
  *
  * @param {string} cible Selecteur de l'etape.
- * @returns {boolean} Vrai quand un volet vient d'etre ouvert : la commande
- *   n'existe pas encore, il faut la rechercher.
+ * @returns {boolean} Vrai quand l'ecran vient de changer : la commande n'est
+ *   pas encore mesurable, il faut recommencer a l'image suivante.
  */
-function ouvrirLeVolet(cible) {
-  for (const cote of ['gauche', 'droit']) {
-    const volet = document.querySelector(`.volet-${cote}`);
-    if (!volet?.querySelector(cible)) continue;
-    const bascule = document.getElementById(`bascule-${cote}`);
-    if (bascule?.getAttribute('aria-pressed') === 'false') { bascule.click(); return true; }
-    return false;
+function montrerLaZone(cible) {
+  const noeud = document.querySelector(cible);
+  if (!(noeud instanceof HTMLElement)) return false;
+  // Deja a l'ecran : rien a faire. C'est le cas de la barre et du quai, qui
+  // n'appartiennent a aucune des trois zones.
+  if (noeud.offsetParent !== null || noeud === document.body) return false;
+
+  const zone = noeud.closest('.volet-gauche') ? 'gauche'
+    : (noeud.closest('.volet-droit') ? 'droit'
+      : (noeud.closest('main.volet') ? 'stuff' : null));
+  if (!zone) return false;
+
+  // Sur telephone, les trois zones sont trois ecrans : c'est l'onglet qui
+  // commande. Ailleurs, seuls les deux volets se replient.
+  const quai = document.getElementById('quai');
+  if (quai && !quai.hidden) {
+    document.getElementById(`onglet-${zone}`)?.click();
+    return true;
   }
+
+  if (zone === 'stuff') return false;
+  const bascule = document.getElementById(`bascule-${zone}`);
+  if (bascule?.getAttribute('aria-pressed') === 'false') { bascule.click(); return true; }
   return false;
 }
 
@@ -75,10 +92,12 @@ function ouvrirLeVolet(cible) {
  * @param {(texte: string) => void} [liens.message]
  */
 export function ouvrirVisite({ message } = {}) {
+  // La visite du telephone n'est pas la version courte de l'autre : elle
+  // raconte une autre application, celle qui tient en trois ecrans.
   const etapes = etapesVisibles((cible) => {
     const noeud = document.querySelector(cible);
     return noeud instanceof HTMLElement && noeud.closest('[hidden]') === null;
-  });
+  }, visitePour(window.innerWidth));
 
   if (etapes.length === 0) {
     message?.('La visite n\'a rien a montrer sur cet ecran.');
@@ -112,9 +131,9 @@ export function ouvrirVisite({ message } = {}) {
   /** Pose la lucarne et la bulle sur l'etape courante. */
   function poser() {
     const etape = etapes[index];
-    // Un volet replie cache sa commande : il s'ouvre d'abord, et la mesure
-    // attend l'image suivante, sinon elle porte sur un volet encore absent.
-    if (ouvrirLeVolet(etape.cible)) { requestAnimationFrame(poser); return undefined; }
+    // Une zone absente de l'ecran cache sa commande : on l'amene d'abord, et
+    // la mesure attend l'image suivante — sinon elle porte sur du vide.
+    if (montrerLaZone(etape.cible)) { requestAnimationFrame(poser); return undefined; }
     const cible = document.querySelector(etape.cible);
 
     titre.textContent = etape.titre;

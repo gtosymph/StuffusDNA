@@ -280,6 +280,10 @@ button.pleine-largeur { width: 100%; margin-top: 6px; }
   max-height: calc(100vh - 210px); overflow-y: auto;
   padding-right: 2px;
 }
+/* La vignette porte son nom et son niveau pour la LISTE du telephone.
+   Dans la grille, l'image suffit et l'infobulle dit le reste. */
+.case-item .case-nom, .case-item .case-niveau { display: none; }
+
 .case-item {
   aspect-ratio: 1; display: grid; place-items: center;
   background: var(--champ); border: 1px solid var(--bord); border-radius: 3px;

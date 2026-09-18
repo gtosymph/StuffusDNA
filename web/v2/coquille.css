@@ -1090,8 +1090,33 @@ table.conditions .mini:hover { color: var(--texte); border-color: var(--filet); 
    reglage comme un autre, il peut rendre la recherche impossible. */
 table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color: var(--ambre); }
 
-.rangee-ajout { display: flex; gap: 7px; margin-top: 14px; }
+.rangee-ajout { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 14px; }
 .rangee-ajout select { flex: 1; min-width: 0; height: 28px; }
+
+/* Les deux gestes de la liste d'essais gardaient l'habillage de v1 :
+   « Garder cette simulation » sortait en bouton du systeme, bleu et carre, et
+   « Comparer » en bouton nu. Ils ne portent pas les classes de v2 —
+   `simulations-panel.mjs` sert aussi v1 — donc c'est ici qu'ils prennent la
+   forme des autres boutons : le premier en plein, le second en creux. */
+.rangee-ajout > button {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: 540 12px/1 var(--ui);
+}
+.rangee-ajout > button:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.rangee-ajout > button.primaire {
+  background: var(--iris); border-color: var(--iris); color: var(--sur-iris);
+}
+.rangee-ajout > button.primaire:hover { background: var(--iris-vif); border-color: var(--iris-vif); }
+/* « Comparer » attend deux essais coches : tant qu'il n'en a pas, il le dit
+   par sa forme, pas seulement par son infobulle. */
+.rangee-ajout > button:disabled {
+  background: var(--surface); border-color: var(--filet);
+  color: var(--texte-3); cursor: default;
+}
+.rangee-ajout > button:disabled:hover { background: var(--surface); border-color: var(--filet); }
 
 /* ================= Le combo et l'arme : d'ou viennent les degats ===
 
@@ -1292,8 +1317,17 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 .verdict .options-mesure .option { font-size: 10.5px; }
 .verdict .options-mesure .option.nombre input { width: 60px; height: 20px; font-size: 10.5px; }
 
-/* Le plateau garde sa taille ; c'est lui qui fixe la largeur des deux cotes. */
-.plateau { gap: 8px; }
+/* Le plateau garde sa taille ; c'est lui qui fixe la largeur des deux cotes.
+
+   `justify-items` n'est pas un detail ici. La rangee des artefacts traverse
+   les trois colonnes et elle est la plus large : six vignettes contre une
+   colonne, un personnage, une colonne. Les colonnes se partagent donc le
+   surplus, et chaque enfant, qui a une largeur fixe, se collait a gauche de
+   sa piste. Le personnage se retrouvait treize pixels a gauche du milieu, et
+   les deux colonnes de pieces a des distances differentes des bords : un
+   decalage qui se voit sans s'expliquer. Centre dans sa piste, chacun
+   retombe sur l'axe. */
+.plateau { gap: 8px; justify-items: center; }
 .avatar-v2 { width: 168px; height: 226px; }
 
 /* Le verdict encadre le personnage tant que la SCENE est large. Pas la
@@ -1461,6 +1495,9 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
   font-size: 12px; color: var(--texte-2);
 }
 #reglages-moteur .reglage-moteur input { width: 64px; }
+/* Un million de generations fait sept caracteres : le champ de la limite est
+   le seul a en demander autant. */
+#reglages-moteur .reglage-moteur input#limite-generations { width: 88px; }
 #reglages-moteur .reglage-moteur select { width: 132px; }
 #reglages-moteur .btn { justify-content: center; margin-top: 2px; }
 
@@ -1870,7 +1907,7 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 
      Une boite centree de six cents pixels sur un telephone ne montre que ses
      bords. Le corps defile, la tete reste : c'est elle qui porte « Fermer ». */
-  .feuille, .feuille.large, .compare-boite, .palette {
+  .feuille, .feuille.large, .compare-boite, .palette, .picker {
     width: 100%; max-width: none; min-width: 0; height: 100%; max-height: 100%;
     border-radius: 0;
   }
@@ -1880,12 +1917,32 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
      la feuille entiere sortait de l'ecran par la droite. Une colonne bornee
      a la largeur disponible ferme la porte a ce genre de debordement, quel
      que soit le contenu. */
-  .feuille-fond, .compare-fond, .palette-fond {
+  .feuille-fond, .compare-fond, .palette-fond, .picker-fond {
     padding: 0;
     grid-template-columns: minmax(0, 1fr);
   }
   .feuille-tete, .palette-tete { position: sticky; top: 0; z-index: 3; }
   .feuille-tete .btn, .palette-tete .btn { height: 38px; padding: 0 14px; }
+
+  /* --- Le choix des sorts ---
+
+     Les deux rangees de filtres etaient posees sans retour a la ligne : la
+     recherche, deux cases a cocher, cinq elements et deux boutons tenaient
+     sur une seule ligne de quatre cent soixante pixels. La boite entiere
+     sortait de l'ecran par la droite, et le premier sort se lisait a moitie.
+     Elles s'enroulent maintenant, et les deux boutons d'ajout passent en
+     dessous plutot que de pousser le reste dehors. */
+  .picker-filtres { flex-wrap: wrap; padding: 10px 12px; }
+  .picker-filtres input[type="search"] { flex: 1 1 100%; min-height: 38px; }
+  .picker-filtres .option { font-size: 11.5px; }
+  .picker-elements .espace { flex-basis: 100%; height: 0; }
+  .picker-tete .mini, .picker-filtres .mini { min-height: 32px; }
+  /* Le « × » est le seul moyen de sortir de cette feuille : il se touche. */
+  .picker-tete .mini { min-width: 38px; min-height: 38px; justify-content: center; }
+  .picker-liste { padding: 10px 12px 14px; }
+  /* Une variante est une cible tactile, pas une etiquette : c'est elle qui
+     retient le sort. */
+  .variante { min-height: 34px; padding: 5px 10px; }
 
   /* --- Les cibles tactiles ---
 

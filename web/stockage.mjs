@@ -85,6 +85,8 @@ const BASES = Object.freeze({
   disposition: 'copyroxx_disposition',
   catalogue: 'copyroxx_catalogue',
   plie: 'copyroxx_plie',
+  visite: 'copyroxx_v2_visite',
+  volets: 'copyroxx_v2_volets',
 });
 
 export const CLES = Object.freeze(Object.fromEntries(

@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 
 import {
   appliquerBuild, autoriserPieces, bannirPieces, basculerBanni, basculerVerrou,
-  equiper, posseder, retirer,
+  casesDeLaFamille, equiper, equiperDans, posseder, remplacementAuChoix, retirer,
 } from '../web/equipement.mjs';
 import { etatInitial } from '../web/reglages.mjs';
 
@@ -209,5 +209,76 @@ test('remplacer', async (t) => {
   await t.test('une piece introuvable retombe sur une pose ordinaire', () => {
     const patch = remplacer(etatInitial(), ANNEAU_B, ANNEAU_C);
     assert.equal(patch.equipped.get('anneau:0'), ANNEAU_C);
+  });
+});
+
+/* ==================================== Quelle case remplacer ===
+
+   Passe la sixieme, `equiper` ecrasait TOUJOURS la derniere case : le joueur
+   posait un dofus et en voyait disparaitre un autre sans savoir lequel. La
+   question ne se pose que quand elle a une reponse a plusieurs choix. */
+
+test('le choix de la case a remplacer', async (t) => {
+  const item = (id, slot) => ({ id, slot, fr: `piece ${id}` });
+  const etatAvec = (paires) => ({
+    equipped: new Map(paires), posees: new Set(paires.map(([cle]) => cle)),
+    verrous: new Set(), bannis: new Set(), possedees: new Set(),
+  });
+
+  await t.test('une famille a une seule case ne demande rien', () => {
+    const etat = etatAvec([['amulette:0', item(1, 'amulette')]]);
+    assert.equal(remplacementAuChoix(etat, item(2, 'amulette')), false);
+  });
+
+  await t.test('une case libre ne demande rien non plus', () => {
+    const etat = etatAvec([['anneau:0', item(1, 'anneau')]]);
+    assert.equal(remplacementAuChoix(etat, item(2, 'anneau')), false);
+  });
+
+  await t.test('six artefacts pris posent la question', () => {
+    const etat = etatAvec(Array.from({ length: 6 },
+      (_, i) => [`artefact:${i}`, item(10 + i, 'artefact')]));
+    assert.equal(remplacementAuChoix(etat, item(99, 'artefact')), true);
+  });
+
+  await t.test('une piece deja portee se deplace, elle ne remplace rien', () => {
+    const etat = etatAvec(Array.from({ length: 6 },
+      (_, i) => [`artefact:${i}`, item(10 + i, 'artefact')]));
+    assert.equal(remplacementAuChoix(etat, item(12, 'artefact')), false);
+  });
+
+  await t.test('une famille inconnue ne pose pas de question', () => {
+    assert.equal(remplacementAuChoix(etatAvec([]), item(1, 'chapeau-magique')), false);
+  });
+
+  await t.test('les cases d\'une famille se listent avec ce qu\'elles portent', () => {
+    const etat = etatAvec([['anneau:1', item(7, 'anneau')]]);
+    assert.deepEqual(casesDeLaFamille(etat, item(8, 'anneau')).map((c) => c.cle),
+      ['anneau:0', 'anneau:1']);
+    assert.equal(casesDeLaFamille(etat, item(8, 'anneau'))[1].porte.id, 7);
+    assert.equal(casesDeLaFamille(etat, item(8, 'anneau'))[0].porte, null);
+  });
+
+  await t.test('poser dans une case nommee remplace ce qu\'elle portait', () => {
+    const etat = etatAvec(Array.from({ length: 6 },
+      (_, i) => [`artefact:${i}`, item(10 + i, 'artefact')]));
+    const patch = equiperDans(etat, item(99, 'artefact'), 'artefact:2');
+
+    assert.equal(patch.equipped.get('artefact:2').id, 99);
+    assert.equal(patch.equipped.get('artefact:5').id, 15, 'la derniere case ne bouge plus');
+    assert.equal(patch.equipped.size, 6);
+    assert.ok(patch.posees.has('artefact:2'));
+  });
+
+  await t.test('une case etrangere a la famille se refuse', () => {
+    const etat = etatAvec([]);
+    assert.equal(equiperDans(etat, item(1, 'anneau'), 'artefact:0'), null);
+    assert.equal(equiperDans(etat, item(1, 'anneau'), 'anneau:9'), null);
+  });
+
+  await t.test('l\'etat de depart ne bouge pas', () => {
+    const etat = etatAvec([['anneau:0', item(1, 'anneau')]]);
+    equiperDans(etat, item(2, 'anneau'), 'anneau:0');
+    assert.equal(etat.equipped.get('anneau:0').id, 1);
   });
 });

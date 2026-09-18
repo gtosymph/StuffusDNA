@@ -192,21 +192,22 @@ export function echantillonner(history) {
 /**
  * Enregistre la courbe et le compteur : un rechargement garde le resultat.
  *
- * @param {{generationMax: number, fils: number, intensite: string,
+ * @param {{generationMax: number, fils: number, intensite: string, limite?: any,
  *   historiques: {seed: number, history: number[]}[]}} resultat
  */
-export function sauverResultat({ generationMax, fils, intensite, historiques }) {
+export function sauverResultat({ generationMax, fils, intensite, limite, historiques }) {
   ecrireJson(CLES.resultat, {
     generationMax,
     fils,
     intensite,
+    limite,
     historiques: historiques.map(({ seed, history }) => ({ seed, history: echantillonner(history) })),
   });
 }
 
 /**
  * Dernier resultat range, courbes nettoyees.
- * @returns {{generationMax: number, fils: number, intensite: any,
+ * @returns {{generationMax: number, fils: number, intensite: any, limite: any,
  *   historiques: {seed: number, history: number[]}[]}|null}
  */
 export function lireResultat() {

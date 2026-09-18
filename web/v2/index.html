@@ -351,6 +351,12 @@
       <option value="0.4">Basse</option>
     </select>
   </label>
+  <label class="reglage-moteur" for="limite-generations">
+    <span>Arret apres (generations)</span>
+    <input id="limite-generations" type="number" min="0" max="1000000" step="1000"
+      value="20000" class="n"
+      title="Generations a faire avant l'arret automatique, comptees depuis le lancement. 0 : jamais.">
+  </label>
   <button class="btn" id="recommencer" type="button"
     title="Coupe la recherche en cours et repart d'une population neuve, sans le stuff courant en graine">Recommencer de zero</button>
 </div>

@@ -229,7 +229,10 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
             <option value="0.7">Menagee</option>
             <option value="0.4">Basse</option>
           </select></div>
-        <div class="compteur-generations note" id="compteur-generations">La recherche continue jusqu'a la pause.</div>
+        <div><label for="limite-generations">Arret apres</label>
+          <input id="limite-generations" type="number" min="0" max="1000000" step="1000" value="20000"
+            title="Generations a faire avant l'arret automatique, comptees depuis le lancement. 0 : jamais."></div>
+        <div class="compteur-generations note" id="compteur-generations">La recherche s'arrete d'elle-meme apres le nombre de generations regle ci-contre.</div>
         <button class="primaire" id="lancer" type="button">Lancer</button>
         <button id="recommencer" type="button"
           title="Repart de zero : coupe la recherche en cours, population neuve, sans le build courant en graine">Recommencer</button>

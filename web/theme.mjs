@@ -104,6 +104,40 @@ function themeImpose() {
 }
 
 /**
+ * Le dernier habillage DEMANDE, pose ou non.
+ *
+ * Survoler huit cartes en demande huit en une seconde, et une feuille met un
+ * instant a se lire. Sans cette memoire, la feuille d'un habillage abandonne
+ * arrivait apres celle du suivant : elle se posait par-dessus et gagnait la
+ * cascade, parce qu'une feuille posee plus tard passe devant. On choisissait
+ * « Neige » et l'ecran montrait « Braise ».
+ *
+ * C'est la CLE qui departage, pas un numero d'ordre : revenir sur un
+ * habillage deja demande est frequent — un survol qui repart, un choix qui
+ * confirme ce que le survol montrait — et un numero ferait alors jeter la
+ * bonne feuille.
+ */
+let themeDemande = null;
+
+/** Toutes les feuilles d'habillage posees : celle de l'amorce, et les notres. */
+const feuillesPosees = () => document.querySelectorAll(
+  `link#${ID_FEUILLE}, link[data-theme-feuille]`);
+
+/**
+ * N'en garde qu'une.
+ *
+ * Chaque pose enlevait « la » feuille precedente, trouvee par son
+ * identifiant. Deux poses rapprochees designaient donc la meme, et les
+ * autres restaient : sept feuilles se sont empilees dans l'en-tete en huit
+ * survols. Une seule regle vaut ici — a la fin, il en reste une.
+ *
+ * @param {Element|null} gardee
+ */
+function nettoyerFeuilles(gardee) {
+  for (const lien of [...feuillesPosees()]) if (lien !== gardee) lien.remove();
+}
+
+/**
  * Pose le theme demande.
  *
  * L'evenement `copyroxx:theme` part une fois la feuille lue : le graphe, qui
@@ -113,30 +147,46 @@ function themeImpose() {
 export function appliquerTheme(cle) {
   const theme = trouver(cle);
   document.documentElement.dataset.theme = theme.cle;
-
-  const ancienne = document.getElementById(ID_FEUILLE);
+  themeDemande = theme.cle;
   const prevenir = () => window.dispatchEvent(new CustomEvent('copyroxx:theme', { detail: theme.cle }));
 
+  // L'habillage de base n'a pas de feuille a poser : il faut seulement
+  // enlever celle qui couvrait la feuille de base.
   if (!theme.fichier) {
-    ancienne?.remove();
+    nettoyerFeuilles(null);
     prevenir();
     return;
   }
 
-  // La feuille peut deja etre posee par le script d'amorce du document.
-  if (ancienne && ancienne.getAttribute('href') === theme.fichier) {
+  // La feuille voulue est peut-etre deja la : posee par le script d'amorce du
+  // document, ou par un survol qui revient sur ses pas.
+  const deja = [...feuillesPosees()].find((lien) => lien.getAttribute('href') === theme.fichier);
+  if (deja) {
+    nettoyerFeuilles(deja);
     prevenir();
     return;
   }
 
   const feuille = document.createElement('link');
-  feuille.id = ID_FEUILLE;
+  // La nouvelle feuille ne reprend PAS l'identifiant de l'amorce : deux
+  // elements de meme identifiant rendent `getElementById` indecidable, et
+  // c'est exactement ce qui empilait les feuilles.
+  feuille.dataset.themeFeuille = theme.cle;
   feuille.rel = 'stylesheet';
   feuille.href = theme.fichier;
-  // La feuille remplace la precedente une fois lue : sans cela, la page
+  // La feuille remplace les precedentes une fois lue : sans cela, la page
   // clignote sur le theme de base entre les deux.
-  feuille.addEventListener('load', () => { ancienne?.remove(); prevenir(); }, { once: true });
-  feuille.addEventListener('error', () => { feuille.remove(); prevenir(); }, { once: true });
+  feuille.addEventListener('load', () => {
+    // Un survol plus recent a demande autre chose : cette feuille n'a plus
+    // rien a dire, et surtout rien a enlever.
+    if (themeDemande !== theme.cle) { feuille.remove(); return; }
+    nettoyerFeuilles(feuille);
+    prevenir();
+  }, { once: true });
+  feuille.addEventListener('error', () => {
+    feuille.remove();
+    if (themeDemande === theme.cle) prevenir();
+  }, { once: true });
   document.head.append(feuille);
 }
 

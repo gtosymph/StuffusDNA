@@ -7,113 +7,94 @@
  * partage porte le reglage ENTIER en sept cents caracteres. Un defaut signale
  * avec son lien se reproduit d'un clic ; sans lui, il se devine.
  *
- * Rien n'est envoye dans le dos de personne : le rapport se montre en entier
- * avant de partir, et il ne part que par un geste du joueur — un ticket qu'il
- * ouvre, ou un texte qu'il colle ou il veut.
+ * Le rapport part vers un formulaire, PAS vers un ticket : un joueur de Dofus
+ * n'a aucune raison d'avoir un compte GitHub, et demander un compte perd la
+ * plupart des retours avant le premier mot. Le formulaire ne demande rien, et
+ * il n'y a aucun secret a cacher dans la page — c'est ce qui permet de s'en
+ * tenir a un site sans serveur.
+ *
+ * Rien n'est envoye dans le dos de personne : ce que le lien emporte se
+ * montre en entier avant de partir.
  */
 
-/** Ou vont les tickets. */
+/** Ou les retours arrivent. Le formulaire ne demande aucun compte. */
+export const FORMULAIRE = 'https://tally.so/r/2E2xLe';
+
+/** Ou se lisent les defauts deja connus, pour qui veut regarder. */
 export const DEPOT = 'https://github.com/gtosymph/TheBestRoxxeur';
 
 /**
- * Longueur au-dela de laquelle GitHub refuse l'adresse.
+ * Le contexte, en une ligne.
  *
- * Il rend alors une page « 414 URI Too Long », sans rien expliquer. La borne
- * reelle depend du serveur ; six mille laisse de la marge sous toutes celles
- * qu'on rencontre, et un rapport plus long que cela n'est de toute facon plus
- * lu.
- */
-export const LONGUEUR_MAX = 6000;
-
-/** Les deux natures de retour, et ce qu'elles deviennent chez GitHub. */
-export const NATURES = Object.freeze([
-  { cle: 'probleme', nom: 'Un probleme', etiquette: 'bug',
-    aide: 'Quelque chose ne marche pas, ou ne dit pas la verite.' },
-  { cle: 'amelioration', nom: 'Une amelioration', etiquette: 'enhancement',
-    aide: 'Quelque chose manque, ou pourrait mieux se faire.' },
-]);
-
-/**
- * Le contexte que l'outil ajoute de lui-meme.
+ * Il voyage dans un champ cache du formulaire, et un champ cache porte du
+ * texte, pas une mise en page. Les quatre faits se separent donc par un point
+ * median plutot que par des retours a la ligne, qui survivent mal a un
+ * aller-retour dans une adresse.
  *
- * Il tient en cinq lignes, et chacune a deja servi a expliquer un defaut :
- * la version dit quel code tourne, le navigateur quelles limites il pose, la
- * classe et le niveau quel catalogue est en jeu, l'adresse si le joueur est
- * en ligne ou sur sa machine.
+ * Chacun a deja servi a expliquer un defaut : le navigateur dit quelles
+ * limites la machine pose, la classe et le niveau quel catalogue est en jeu,
+ * la page si le joueur est en ligne ou chez lui.
  *
  * @param {object} liens
- * @param {string} liens.version
  * @param {string} liens.navigateur
- * @param {string} liens.adresse
+ * @param {string} liens.page
  * @param {string} liens.personnage
  * @param {number} liens.pieces
  * @param {number} liens.sorts
  * @returns {string}
  */
-export function contexte({ version, navigateur, adresse, personnage, pieces, sorts }) {
+export function contexteEnLigne({ navigateur, page, personnage, pieces, sorts }) {
   return [
-    `- Version : ${version}`,
-    `- Page : ${adresse}`,
-    `- Navigateur : ${navigateur}`,
-    `- Personnage : ${personnage}`,
-    `- Stuff : ${pieces} piece(s), ${sorts} sort(s)`,
-  ].join('\n');
+    navigateur,
+    personnage,
+    `${pieces} piece(s), ${sorts} sort(s)`,
+    page,
+  ].join(' · ');
 }
 
 /**
- * Compose le rapport, tel qu'il partira.
+ * Le lien du formulaire, ses champs caches deja remplis.
+ *
+ * Les noms des trois champs sont ceux poses dans le formulaire, et ils sont
+ * sensibles a la casse : un nom mal ecrit ne fait pas d'erreur, il fait
+ * arriver un rapport vide. Le test les tient.
  *
  * @param {object} liens
- * @param {string} liens.nature Cle d'une des `NATURES`.
- * @param {string} liens.texte Ce que le joueur a ecrit.
- * @param {string} liens.contexte Sortie de `contexte()`.
+ * @param {string} liens.version
+ * @param {string} liens.contexte Sortie de `contexteEnLigne`.
  * @param {string|null} liens.lien Lien de partage, ou null.
- * @returns {{titre: string, corps: string}}
- */
-export function composerRapport({ nature, texte, contexte: faits, lien }) {
-  const dit = (texte ?? '').trim();
-  const quoi = NATURES.find((n) => n.cle === nature) ?? NATURES[0];
-
-  // Le titre reprend la premiere ligne de ce que le joueur a ecrit : c'est
-  // lui qui sait nommer son probleme, pas nous.
-  const premiere = dit.split('\n')[0].trim();
-  const titre = premiere.length > 0
-    ? `${premiere.slice(0, 72)}${premiere.length > 72 ? '…' : ''}`
-    : `${quoi.nom} sans titre`;
-
-  const corps = [
-    dit.length > 0 ? dit : '(rien n\'a ete ecrit)',
-    '',
-    '---',
-    faits,
-    ...(lien ? ['', `Le reglage exact : ${lien}`] : []),
-  ].join('\n');
-
-  return { titre, corps };
-}
-
-/**
- * Le lien qui ouvre le ticket, deja rempli.
- *
- * Le corps se coupe plutot que de fabriquer une adresse que GitHub refuse :
- * un rapport ampute vaut mieux qu'une page d'erreur.
- *
- * @param {object} liens
- * @param {string} liens.titre
- * @param {string} liens.corps
- * @param {string} liens.etiquette
- * @param {string} [liens.depot]
+ * @param {string} [liens.formulaire]
  * @returns {string}
  */
-export function lienTicket({ titre, corps, etiquette, depot = DEPOT }) {
-  const adresse = (texte) => `${depot}/issues/new?`
-    + new URLSearchParams({ title: titre, body: texte, labels: etiquette }).toString();
+export function lienFormulaire({ version, contexte, lien, formulaire = FORMULAIRE }) {
+  const champs = new URLSearchParams({
+    version,
+    contexte,
+    // Un champ absent vaut mieux qu'un champ portant le mot « null ».
+    ...(lien ? { lien } : {}),
+  });
+  return `${formulaire}?${champs.toString()}`;
+}
 
-  let texte = corps;
-  while (adresse(texte).length > LONGUEUR_MAX && texte.length > 0) {
-    texte = `${texte.slice(0, Math.max(0, texte.length - 200)).trimEnd()}\n[…]`;
-  }
-  return adresse(texte);
+/**
+ * Le meme rapport en clair, a coller ailleurs.
+ *
+ * Tout le monde n'ira pas sur un formulaire : beaucoup diront la chose sur le
+ * Discord, ou elle se discute mieux. Le texte porte alors les memes faits,
+ * pour que la reponse ne commence pas par trois questions.
+ *
+ * @param {object} liens
+ * @param {string} liens.version
+ * @param {string} liens.contexte
+ * @param {string|null} liens.lien
+ * @returns {string}
+ */
+export function rapportACopier({ version, contexte, lien }) {
+  return [
+    `The Best Roxxeur ${version}`,
+    contexte,
+    ...(lien ? [`Mon reglage : ${lien}`] : []),
+  ].join('\n');
 }
 
 /**

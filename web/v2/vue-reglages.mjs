@@ -81,6 +81,9 @@ export function ouvrirReglages({ lireEtat, onOption }) {
       el('p', { class: 'aide',
         text: 'Plus de fils cherchent plus vite et chauffent plus. L\'intensite '
           + 'dit quelle part du temps ils calculent : basse, la machine souffle. '
+          + 'L\'arret automatique compte les generations depuis le lancement : la '
+          + 'recherche se met en pause toute seule, et « Chercher » repart d\'ou '
+          + 'elle en etait. Mettez 0 pour ne jamais vous arreter. '
           + 'Repartir de zero jette la population en cours — a faire quand vous '
           + 'avez beaucoup change de reglages.' }),
 

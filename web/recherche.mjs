@@ -11,6 +11,7 @@ import { lireResultat, sauverResultat } from './etat-stockage.mjs';
 import { objectif } from './objectif.mjs';
 import { runSearch } from './solver-client.mjs';
 import { normaliserIntensite } from '../src/solver/intensite.mjs';
+import { limiteAtteinte, normaliserLimite, phraseArretAuto } from './limite-generations.mjs';
 import { configPassifsDefaut } from '../src/data/passives-defaults.mjs';
 import { el } from './render.mjs';
 
@@ -73,6 +74,7 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
 
   const enregistrer = (generationMax, fils) => sauverResultat({
     generationMax, fils, intensite: $('intensite').value, historiques,
+    limite: $('limite-generations')?.value,
   });
 
   const montrerFils = (suivi) => {
@@ -90,6 +92,9 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     historiques = data.historiques;
     if (Number.isFinite(data.fils) && data.fils >= 1) $('fils').value = String(data.fils);
     if (data.intensite != null) $('intensite').value = String(data.intensite);
+    if (data.limite != null && $('limite-generations')) {
+      $('limite-generations').value = String(data.limite);
+    }
     if (Number.isFinite(data.generationMax) && data.generationMax > 0) {
       $('compteur-generations').textContent = `generation ${nombre(data.generationMax)} — en pause`;
     }
@@ -183,6 +188,13 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
 
     const fils = Math.max(1, Math.min(FILS_MAX, Number($('fils').value) || 1));
     const intensite = normaliserIntensite($('intensite').value);
+    // La limite se lit au lancement, pas a chaque vague : la changer en cours
+    // de route ne doit pas couper une recherche deja partie.
+    const limite = normaliserLimite($('limite-generations')?.value);
+    // Une pause demandee n'est demandee qu'une fois : sans ce drapeau, chaque
+    // vague qui arrive apres la limite en redemanderait une, et le message
+    // se repeterait a l'ecran pendant que les fils concluent.
+    let arretDemande = false;
 
     $('lancer').disabled = true;
     // « Recommencer » reste actif : il coupe la recherche en cours et repart.
@@ -268,6 +280,16 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
             enregistrer(generationMax, fils);
           }
 
+          // Le compte part du lancement : une reprise a la generation 40 000
+          // avec une limite de 20 000 s'arrete a 60 000. L'arret est une
+          // PAUSE, pas un abandon — chaque fil rend son meilleur build, et le
+          // clic suivant repart d'ici.
+          if (!arretDemande && limiteAtteinte(generationMax - decalage, limite)) {
+            arretDemande = true;
+            message(phraseArretAuto(limite), 'info');
+            recherche?.stop();
+          }
+
           // Le meilleur build du moment s'applique en direct au personnage,
           // tant que le joueur n'a pas pose son propre choix.
           if (suiviAuto && vague.resume && vague.resume.score > meilleurApplique) {
@@ -289,7 +311,11 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
       // Une recherche mise en pause laisse une trace : c'est la version que
       // l'on voudra comparer au prochain essai.
       garderSimulation();
-      message(`Recherche en pause apres ${nombre(generationMax)} generations sur ${fils} fil(s).`, 'info');
+      // L'arret automatique a deja dit pourquoi il s'arretait : le repeter
+      // effacerait la seule phrase qui nomme la limite.
+      if (!arretDemande) {
+        message(`Recherche en pause apres ${nombre(generationMax)} generations sur ${fils} fil(s).`, 'info');
+      }
       $('compteur-generations').textContent = `generation ${nombre(generationMax)} — en pause`;
     } catch (error) {
       message(`La recherche a echoue : ${error.message}`, 'erreur');

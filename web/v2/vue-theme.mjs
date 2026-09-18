@@ -22,12 +22,26 @@ import { THEMES_V2 } from './catalogue-themes.mjs';
  * @param {HTMLElement} hote
  */
 export function renderChoixTheme(hote) {
-  const courant = themeGarde();
+  /**
+   * L'habillage RETENU, pas celui qui est pose.
+   *
+   * Il ne peut pas vivre dans la fermeture d'un dessin : choisir redessine
+   * les cartes, ce qui enleve du document la carte qu'on vient de cliquer.
+   * Une carte enlevee perd le focus, son gestionnaire de sortie part, et il
+   * remettait alors l'habillage PRECEDENT — celui que sa fermeture avait
+   * capture. L'ecran gardait l'ancien theme, le stockage le nouveau, et la
+   * page se retrouvait avec la feuille de l'un et l'attribut de l'autre.
+   */
+  let retenu = themeGarde();
 
   /** Pose un theme sans le garder : l'essai ne decide de rien. */
   const essayer = (cle) => appliquerTheme(cle);
 
+  /** Remet l'habillage retenu : un survol ne decide de rien. */
+  const revenir = () => appliquerTheme(retenu);
+
   const retenir = (cle) => {
+    retenu = cle;
     ecrire(CLE_THEME_V2, cle);
     appliquerTheme(cle);
     dessiner(cle);
@@ -45,8 +59,8 @@ export function renderChoixTheme(hote) {
         onFocus: () => essayer(theme.cle),
         // Repartir sans choisir remet l'habillage en place : un survol ne
         // doit jamais laisser l'ecran dans un etat que personne n'a demande.
-        onMouseLeave: () => essayer(actif),
-        onBlur: () => essayer(actif),
+        onMouseLeave: revenir,
+        onBlur: revenir,
       },
         el('span', { class: 'apercu-theme',
           style: `--a:${fond};--b:${surface};--c:${accent}` }),
@@ -54,5 +68,5 @@ export function renderChoixTheme(hote) {
     }));
   }
 
-  dessiner(courant);
+  dessiner(retenu);
 }

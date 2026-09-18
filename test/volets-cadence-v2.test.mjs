@@ -16,7 +16,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { creerCadence } from '../web/v2/cadence.mjs';
-import { basculer, classesDeVolets, ouvertureDepart } from '../web/v2/volets.mjs';
+import {
+  basculer, choisirOnglet, classesDeVolets, ongletCourant, ouvertureDepart,
+} from '../web/v2/volets.mjs';
 import {
   contexteEnLigne, FORMULAIRE, lienFormulaire, navigateurLisible, rapportACopier,
 } from '../web/v2/rapport.mjs';
@@ -137,6 +139,51 @@ test('les volets', async (t) => {
     assert.deepEqual(classesDeVolets({ gauche: false, droit: true }, false), ['gauche-replie']);
     assert.deepEqual(classesDeVolets({ gauche: false, droit: false }, true),
       ['gauche-replie', 'droit-replie', 'volets-flottants']);
+  });
+});
+
+/* ============================================ Les trois ecrans === */
+
+/*
+ * Sur telephone, les deux memes etats disent TROIS ecrans : un volet ouvert
+ * nomme le sien, aucun volet ouvert nomme le milieu. Rien de nouveau a
+ * garder, donc rien qui puisse se contredire.
+ */
+test('les onglets du telephone', async (t) => {
+  await t.test('l\'etat des volets nomme l\'ecran', () => {
+    assert.equal(ongletCourant({ gauche: false, droit: false }), 'stuff');
+    assert.equal(ongletCourant({ gauche: true, droit: false }), 'gauche');
+    assert.equal(ongletCourant({ gauche: false, droit: true }), 'droit');
+  });
+
+  await t.test('un etat abime retombe sur le milieu', () => {
+    assert.equal(ongletCourant(null), 'stuff');
+    assert.equal(ongletCourant({}), 'stuff');
+  });
+
+  await t.test('un onglet n\'est pas un interrupteur', () => {
+    // Appuyer sur l'onglet ou l'on est deja doit y rester. `basculer`
+    // ramenerait ailleurs, ce qui est exactement ce qu'un onglet ne fait pas.
+    const gauche = { gauche: true, droit: false };
+    assert.deepEqual(choisirOnglet(gauche, 'gauche'), gauche);
+  });
+
+  await t.test('un onglet ferme les deux autres', () => {
+    assert.deepEqual(choisirOnglet({ gauche: true, droit: false }, 'droit'),
+      { gauche: false, droit: true });
+    assert.deepEqual(choisirOnglet({ gauche: true, droit: false }, 'stuff'),
+      { gauche: false, droit: false });
+  });
+
+  await t.test('un onglet inconnu ne change rien', () => {
+    const depart = { gauche: true, droit: false };
+    assert.equal(choisirOnglet(depart, 'ailleurs'), depart);
+  });
+
+  await t.test('l\'aller-retour est stable', () => {
+    for (const onglet of ['gauche', 'stuff', 'droit']) {
+      assert.equal(ongletCourant(choisirOnglet({ gauche: false, droit: false }, onglet)), onglet);
+    }
   });
 });
 

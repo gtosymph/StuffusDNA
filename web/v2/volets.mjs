@@ -93,6 +93,50 @@ export function classesDeVolets(etat, etroit) {
   ];
 }
 
+/**
+ * Largeur en dessous de laquelle l'ecran n'en montre plus qu'UN a la fois.
+ *
+ * Sur un telephone, les trois zones ne cohabitent pas : elles deviennent
+ * trois ecrans, et une barre d'onglets dit lequel on regarde. Un volet pose
+ * par-dessus le milieu marchait sur une tablette ; sur trois cent quatre-vingt
+ * dix pixels, il recouvrait sa propre commande de fermeture.
+ */
+export const LARGEUR_TELEPHONE = 720;
+
+/** Les trois ecrans du telephone, dans l'ordre de la barre d'onglets. */
+export const ONGLETS = Object.freeze(['gauche', 'stuff', 'droit']);
+
+/**
+ * Quel ecran l'etat des volets designe.
+ *
+ * Les deux etats existants suffisent a en dire trois : un volet ouvert nomme
+ * son ecran, aucun volet ouvert nomme le milieu. Rien de nouveau a garder, et
+ * rien qui puisse se contredire.
+ *
+ * @param {{gauche: boolean, droit: boolean}} etat
+ * @returns {'gauche'|'stuff'|'droit'}
+ */
+export function ongletCourant(etat) {
+  if (etat?.gauche) return 'gauche';
+  if (etat?.droit) return 'droit';
+  return 'stuff';
+}
+
+/**
+ * Va sur un ecran, sans passer par une bascule.
+ *
+ * Un onglet n'est pas un interrupteur : appuyer sur celui ou l'on est deja ne
+ * doit pas ramener ailleurs. C'est ce que `basculer` ferait.
+ *
+ * @param {{gauche: boolean, droit: boolean}} etat
+ * @param {'gauche'|'stuff'|'droit'} onglet
+ * @returns {{gauche: boolean, droit: boolean}}
+ */
+export function choisirOnglet(etat, onglet) {
+  if (!ONGLETS.includes(onglet)) return etat;
+  return { gauche: onglet === 'gauche', droit: onglet === 'droit' };
+}
+
 /** Lit ce qui a ete garde, ou null. */
 export const lireVolets = () => lireJson(CLE_VOLETS, null);
 

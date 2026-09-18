@@ -179,7 +179,11 @@ function vignette(item, extra = '') {
     title: `${item.fr} — niveau ${item.level}${item.criteria ? `\nCondition : ${item.criteria}` : ''}`,
   }, item.img
     ? el('img', { 'data-src': item.img, alt: item.fr, decoding: 'async' })
-    : el('span', { text: item.fr.slice(0, 2) }));
+    : el('span', { class: 'case-initiales', text: item.fr.slice(0, 2) }),
+  // Le nom et le niveau ne se voient qu'en liste — sur telephone, ou il n'y
+  // a pas de survol pour montrer l'infobulle. La grille les cache.
+  el('span', { class: 'case-nom', text: item.fr }),
+  el('span', { class: 'case-niveau n', text: `niv. ${item.level}` }));
 }
 
 /** Remplit la grille du catalogue. */
@@ -307,15 +311,19 @@ export function renderConditions(root, conditions, stats, libelles, options) {
           el('span', { text: libelles[condition.stat] ?? condition.stat })),
         el('div', { class: `barre-ecart ${tenue ? '' : 'manque'}`.trim() },
           el('span', { style: `width:${Math.round(part * 100)}%` }))),
-      el('td', {}, champ('target', 'Objectif')),
-      el('td', {}, champ('weight', 'Poids')),
-      el('td', {}, champ('max', 'Maximum', 'Max')),
-      el('td', {}, el('button', {
+      // Chaque cellule porte le nom de sa colonne. En large il ne sert a
+      // rien — l'en-tete du tableau le dit. Sur telephone, ou la ligne
+      // devient une carte, c'est LUI qui nomme le chiffre : sans lui on lit
+      // « 12 · 250 · 12 » sans savoir lequel est l'objectif.
+      el('td', { 'data-libelle': 'Objectif' }, champ('target', 'Objectif')),
+      el('td', { 'data-libelle': 'Poids' }, champ('weight', 'Poids')),
+      el('td', { 'data-libelle': 'Max' }, champ('max', 'Maximum', 'Max')),
+      el('td', { 'data-libelle': 'Absolu' }, el('button', {
         class: 'mini', type: 'button', 'aria-pressed': String(Boolean(condition.absolute)),
         title: 'Maximum absolu : le solveur ne le franchit pas', text: 'A',
         onClick: () => onChange(index, 'absolute', !condition.absolute),
       })),
-      el('td', { class: 'etat' }, valeur == null
+      el('td', { class: 'etat', 'data-libelle': 'Atteint' }, valeur == null
         ? el('span', { class: 'nul', text: '—' })
         : el('span', {
             style: `color:${tenue ? 'var(--positif)' : 'var(--alerte)'}`,

@@ -619,6 +619,10 @@ tr.titre th, tr.titre td {
      devient un rectangle haut, et l'icone flotte au milieu du vide. */
   grid-auto-rows: min-content; align-items: start;
 }
+/* La vignette porte son nom et son niveau pour la LISTE du telephone.
+   Dans la grille, l'image suffit et l'infobulle dit le reste. */
+.case-item .case-nom, .case-item .case-niveau { display: none; }
+
 .case-item {
   aspect-ratio: 1; display: grid; place-items: center; position: relative;
   padding: 0; overflow: hidden; cursor: pointer;
@@ -1526,50 +1530,7 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
    qui se decale a l'horizontale n'est pas une page dense, c'est une page
    fausse. */
 
-@media (max-width: 720px) {
-  /* La barre passe a DEUX lignes nettes, pas a un pavage : l'identite et les
-     volets en haut, les commandes de la recherche en dessous. Un retour a la
-     ligne libre coupait le groupe des commandes n'importe ou. */
-  .barre { position: static; padding: 8px 10px; gap: 8px 10px; }
-  .barre-identite { flex: 1 1 auto; }
-  .barre-recherche { flex: 1 1 100%; margin-left: 0; justify-content: flex-start; }
-  .score-vif b { font-size: 17px; }
 
-  /* Un volet flottant prend l'ecran : une colonne de trois cent trente
-     pixels sur un telephone ne montre que ses bords. */
-  .appli .volet-gauche, .appli .volet-droit { width: 100%; }
-  .volets-voile { inset: 0; }
-
-  .appli { height: auto; }
-  .scene { padding: 16px 12px 32px; }
-  .section { padding: 12px 12px 14px; }
-
-  /* --- Les deux traces ---
-
-     Un canvas prend la largeur qu'on lui donne. Sur quatre cents pixels, une
-     proportion de deux et demi pour un donnerait encore un fil : les deux
-     traces se rapprochent du carre, seule forme ou une pente se lit a cette
-     largeur. */
-  /* Trois pour deux redonne une pente lisible sur quatre cents pixels. La
-     borne haute evite qu'une tablette en portrait n'y consacre un tiers de
-     l'ecran : passe deux cent soixante pixels, le trace n'apprend plus rien. */
-  .graphe-v2 { aspect-ratio: 3 / 2; max-height: 260px; }
-  .melange-courbe { height: 200px; }
-  .bloc-graphe { padding: 10px 10px 6px; }
-  .tete-graphe { flex-wrap: wrap; gap: 6px; }
-  .tete-graphe .fils { justify-content: flex-start; }
-
-  /* Les feuilles prennent l'ecran : une boite centree de six cents pixels
-     sur un telephone ne montre que ses bords. */
-  .feuille, .feuille.large, .compare-boite, .palette {
-    width: 100%; max-width: none; max-height: 100%; height: 100%;
-    border-radius: 0;
-  }
-  .feuille-fond, .compare-fond, .palette-fond { padding: 0; }
-
-  /* Le message passager se met au-dessus du pouce, pas sous lui. */
-  .message-v2 { left: 10px; right: 10px; max-width: none; text-align: center; }
-}
 
 /* ==================================== La barre du haut ===
 
@@ -1734,6 +1695,49 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 .bouton-reglage-nom { font-weight: 560; color: var(--texte); }
 .bouton-reglage-etat { font-size: 11px; font-weight: 400; color: var(--texte-2); }
 
+/* ==================================== Le quai du telephone ===
+
+   Le haut de l'ecran est l'endroit le plus loin du pouce, et c'est la que la
+   barre empilait treize commandes sur trois rangees. Le quai prend le bas :
+   une rangee d'action, puis les trois ecrans en onglets.
+
+   Il n'existe que sous 720 px. Plus haut, la feuille de style le cache et
+   app.mjs rend ses boutons a la barre — ce sont les memes noeuds. */
+.quai { display: none; }
+
+.quai-onglet {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; flex: 1; min-width: 0;
+  padding: 0; border: 0; background: transparent; cursor: pointer;
+  color: var(--texte-3); font: 540 10.5px/1 var(--ui);
+}
+.quai-dessin {
+  width: 20px; height: 15px; border-radius: 3px;
+  border: 1.5px solid currentColor; opacity: .75;
+}
+/* Chaque onglet porte le PLAN de son ecran : une colonne a gauche, le milieu
+   plein, une colonne a droite. Trois pictogrammes abstraits demanderaient de
+   les apprendre ; ces trois-la se lisent. */
+#onglet-gauche .quai-dessin { border-left-width: 6px; }
+#onglet-droit .quai-dessin { border-right-width: 6px; }
+#onglet-stuff .quai-dessin { border-width: 1.5px; background: currentColor; opacity: .4; }
+.quai-onglet[aria-selected="true"] { color: var(--iris-vif); }
+.quai-onglet[aria-selected="true"] .quai-dessin { opacity: 1; }
+
+/* ==================================== « ••• » ===
+
+   Ce que le quai ne porte pas : les gestes d'une fois par seance. */
+.plus-lignes { display: grid; gap: 8px; }
+.plus-ligne {
+  display: grid; gap: 2px; width: 100%;
+  padding: 12px 14px; cursor: pointer; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  color: var(--texte); font: inherit;
+}
+.plus-ligne:hover { background: var(--surface-3); border-color: var(--filet-clair); }
+.plus-nom { font: 600 14px/1.3 var(--ui); }
+.plus-aide { font-size: 12px; color: var(--texte-2); }
+
 /* ==================================== Le signalement ===
 
    Le rapport se montre en entier avant de partir. C'est la raison d'etre de
@@ -1771,3 +1775,209 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
 .case-rang { width: 16px; color: var(--texte-3); font-size: 11px; flex: none; }
 .case-nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .case-geste { color: var(--iris); font-size: 11px; flex: none; }
+
+/* ============================================ Le telephone ===
+
+   Ici, l'application change de nature. Les trois zones ne cohabitent plus :
+   elles deviennent trois ECRANS, et le quai du bas dit lequel on regarde. Une
+   page large repliee n'est pas une application mobile — c'est une page large
+   ou l'on defile quatre fois plus.
+
+   Trois regles tiennent tout le reste :
+
+     1. le haut ne garde que l'identite et le score ;
+     2. tout ce qui se touche fait au moins 44 px ;
+     3. rien d'important ne part avec le defilement.
+*/
+
+@media (max-width: 720px) {
+  :root {
+    /* Hauteur du quai : la rangee d'action (44 + 16 de marge + 1 de filet)
+       et les onglets. Elle sert a rendre exactement ce qui reste a
+       l'atelier, et a poser le message passager au-dessus du quai. */
+    --quai-h: 113px;
+    --barre-h: 46px;
+  }
+
+  /* --- La barre du haut : identite et score, rien d'autre ---
+
+     Les commandes sont descendues dans le quai (voir placerCommandes, dans
+     app.mjs), et ce qui sert une fois par seance vit derriere « ••• ». La
+     barre reste collante : le score est ce qu'on surveille. */
+  .barre {
+    position: sticky; top: 0;
+    flex-wrap: nowrap; padding: 6px 12px; gap: 10px;
+    height: var(--barre-h); min-height: var(--barre-h);
+  }
+  .barre-identite { flex: 0 1 auto; min-width: 0; }
+  .barre-recherche { margin-left: auto; gap: 10px; }
+
+  /* Ce qui a demenage dans le quai, ou derriere « ••• ». Les boutons
+     restent dans la page : « ••• » appuie dessus. */
+  #vider, #signaler, #visite, #reglages, .kofi, .barre-volets, .marque .version {
+    display: none;
+  }
+  .score-vif b { font-size: 19px; }
+  #identite { height: 34px; }
+
+  /* --- Un seul ecran a la fois --- */
+  .appli {
+    grid-template-columns: minmax(0, 1fr);
+    height: calc(100dvh - var(--barre-h) - var(--quai-h));
+  }
+  .appli .volet-gauche, .appli .volet-droit {
+    position: static; width: 100%; max-height: none;
+    border: 0; box-shadow: none;
+  }
+  /* Le milieu se replie quand un volet est ouvert : c'est ce qui fait de
+     trois colonnes trois ecrans, sans une ligne de script. */
+  .appli:not(.gauche-replie) main.volet,
+  .appli:not(.droit-replie) main.volet { display: none; }
+  .volets-voile { display: none; }
+
+  .scene { padding: 14px 12px 24px; }
+  .section { padding: 12px 12px 14px; }
+  .volet-gauche, .volet-droit { padding-bottom: 12px; }
+
+  /* --- Le quai --- */
+  .quai {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: block;
+    background: var(--surface);
+    border-top: 1px solid var(--filet);
+    /* La barre de geste d'un telephone mange le bas de l'ecran : sans cette
+       marge, le dernier onglet passe dessous et ne se touche plus. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .quai-actions {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--filet);
+  }
+  .quai-actions .btn { height: 44px; padding: 0 14px; font-size: 13px; }
+  .quai-actions #lancer { flex: 1; justify-content: center; }
+  .quai-actions #arreter, .quai-actions #annuler, .quai-actions #partager,
+  .quai-plus { flex: none; width: 44px; padding: 0; justify-content: center; }
+  .quai-plus { height: 44px; font-size: 15px; letter-spacing: 1px; }
+  /* Dans le quai, ces trois-la n'ont que leur dessin : la place va au geste
+     principal, et l'infobulle porte le mot. */
+  .quai-actions #arreter span, .quai-actions #annuler span,
+  .quai-actions #partager span { display: none; }
+
+  .quai-onglets { display: flex; height: 52px; }
+
+  /* --- Les feuilles prennent l'ecran ---
+
+     Une boite centree de six cents pixels sur un telephone ne montre que ses
+     bords. Le corps defile, la tete reste : c'est elle qui porte « Fermer ». */
+  .feuille, .feuille.large, .compare-boite, .palette {
+    width: 100%; max-width: none; min-width: 0; height: 100%; max-height: 100%;
+    border-radius: 0;
+  }
+  /* Le fond est une grille a colonne automatique : elle se cale sur le
+     contenu le plus large. Les dix-sept filtres du catalogue, mis sur une
+     seule rangee qui defile, la faisaient gonfler a onze cents pixels — et
+     la feuille entiere sortait de l'ecran par la droite. Une colonne bornee
+     a la largeur disponible ferme la porte a ce genre de debordement, quel
+     que soit le contenu. */
+  .feuille-fond, .compare-fond, .palette-fond {
+    padding: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feuille-tete, .palette-tete { position: sticky; top: 0; z-index: 3; }
+  .feuille-tete .btn, .palette-tete .btn { height: 38px; padding: 0 14px; }
+
+  /* --- Les cibles tactiles ---
+
+     Quarante-quatre pixels est le minimum admis pour un doigt. En dessous, on
+     vise a cote une fois sur cinq, et l'outil parait casse alors qu'il a
+     seulement des boutons de souris. */
+  .btn { min-height: 38px; }
+  .btn.mini { min-height: 32px; padding: 0 12px; }
+  .segmente button { min-height: 38px; padding: 6px 12px; }
+  .avoir-ligne, .ligne, .case-choix, .plus-ligne { min-height: 44px; }
+  .chip { min-height: 32px; }
+
+  /* --- Les deux traces ---
+
+     Un canvas prend la largeur qu'on lui donne. Trois pour deux redonne une
+     pente lisible sur trois cent quatre-vingt-dix pixels ; la borne haute
+     evite qu'une tablette en portrait n'y consacre un tiers de l'ecran. */
+  .graphe-v2 { aspect-ratio: 3 / 2; max-height: 260px; }
+  .melange-courbe { height: 200px; }
+  .bloc-graphe { padding: 10px 10px 6px; }
+  .tete-graphe { flex-wrap: wrap; gap: 6px; }
+  .tete-graphe .fils { justify-content: flex-start; }
+
+  /* Le message passager se met au-dessus du quai, jamais dessous. */
+  .message-v2 {
+    left: 10px; right: 10px; max-width: none; text-align: center;
+    bottom: calc(var(--quai-h) + 12px);
+  }
+
+  /* --- Les minimums deviennent des cartes ---
+
+     Six colonnes sur trois cent quatre-vingt-dix pixels : la colonne du nom
+     s'ecrasait a zero et son texte debordait sous la voisine. On lisait
+     « 12 · 250 · 12 · A · 12 » sans savoir s'il s'agissait des PA ou de la
+     Sagesse — un reglage qu'on pose a l'aveugle.
+
+     Le tableau garde sa structure ; c'est la mise en page qui change. Chaque
+     cellule porte deja le nom de sa colonne (voir renderConditions, dans
+     render.mjs) : il devient l'etiquette du chiffre. */
+  table.conditions, table.conditions tbody, table.conditions tr, table.conditions td {
+    display: block; width: auto;
+  }
+  table.conditions colgroup, table.conditions thead { display: none; }
+  table.conditions tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+    padding: 12px; margin-bottom: 10px;
+    background: var(--surface-2); border: 1px solid var(--filet); border-radius: var(--r);
+  }
+  /* La mesure fait le titre de la carte, et tient la ligne entiere. */
+  table.conditions td:first-child { grid-column: 1 / -1; }
+  table.conditions td[data-libelle] { display: grid; gap: 3px; }
+  table.conditions td[data-libelle]::before {
+    content: attr(data-libelle);
+    font: 640 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase;
+    color: var(--texte-3);
+  }
+  table.conditions td input { width: 100%; height: 38px; }
+  /* Le bouton « A » garde la taille d'un bouton : etire sur toute la
+     colonne, il ressemblait a un champ, et le « × » de la ligne suivante
+     paraissait tomber dedans. */
+  table.conditions td .mini { min-height: 38px; width: 44px; }
+  /* Le « × » quitte le coin : sur une carte, il se met en bas a droite avec
+     les autres, et devient touchable. */
+  table.conditions td:last-child { display: flex; align-items: flex-end; justify-content: flex-end; }
+
+  /* --- Le catalogue devient une liste ---
+
+     Une vignette de quarante pixels sans nom se reconnait au survol. Un
+     doigt ne survole rien : la liste ecrit le nom. */
+  .palette-grille { display: block; }
+  .palette-grille .case-item {
+    display: flex; align-items: center; gap: 12px;
+    aspect-ratio: auto; width: 100%; min-height: 52px;
+    padding: 6px 10px; margin-bottom: 6px; text-align: left;
+  }
+  .palette-grille .case-item img { width: 38px; height: 38px; flex: none; }
+  .palette-grille .case-item .case-nom {
+    display: block; flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 13.5px; color: var(--texte);
+  }
+  .palette-grille .case-item .case-niveau {
+    display: block; flex: none; font-size: 11px; color: var(--texte-3);
+  }
+  /* Les dix-sept filtres prenaient quatre rangees avant la premiere piece :
+     ils defilent maintenant sur une seule. */
+  .palette-onglets {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    min-width: 0; padding-bottom: 2px;
+  }
+  .palette-onglets::-webkit-scrollbar { display: none; }
+  .palette-onglets button { flex: none; min-height: 34px; }
+  .palette-filtres { flex-wrap: wrap; }
+}

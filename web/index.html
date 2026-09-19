@@ -334,5 +334,25 @@ Une piece possedee ne compte pas dans les pieces a acheter.">J'ai ces pieces</bu
   installerRappelScore();
 </script>
 <script type="module" src="app.mjs"></script>
+
+<!-- ================================ La mesure d'audience ===
+
+     Un site sans serveur ne sait rien de ses visiteurs. Sans un chiffre,
+     chaque choix se fait a l'aveugle : le travail sur le telephone valait-il
+     la peine ? Personne ne pouvait le dire.
+
+     Cloudflare Web Analytics ne pose AUCUN cookie et ne suit personne d'un
+     site a l'autre. Il n'y a donc ni banniere de consentement a ajouter, ni
+     donnee personnelle a garder — ce qui est la seule facon acceptable de
+     compter des visites sur un outil offert.
+
+     Le jeton n'est pas un secret : il voyage dans la page, que tout visiteur
+     peut lire. Il nomme le site, il n'ouvre rien.
+
+     Le compte sera toujours en dessous de la verite : les bloqueurs de
+     publicite refusent ce script, et un public de joueurs en a beaucoup. Le
+     chiffre montre une tendance, jamais un total. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+  data-cf-beacon='{"token": "1c99edbd20284f9391e52addd037641d"}'></script>
 </body>
 </html>

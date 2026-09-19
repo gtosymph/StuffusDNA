@@ -59,7 +59,7 @@ function vignette(piece, classe) {
   return el('img', {
     class: `piece-simulation ${classe}`.trim(),
     src: piece.img, alt: piece.fr, title: piece.fr, decoding: 'async',
-    onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+    onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY, { ancre: ev.currentTarget }),
     onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
     onMouseleave: cacherBulle,
   });
@@ -123,7 +123,7 @@ export function ouvrirComparaison(gauche, droite, options) {
       el('button', { class: 'mini large', type: 'button', text: 'Remettre celle-ci',
         onClick: () => { fermerComparaison(); onRestaurer(simulation); } }),
       onFiger ? el('button', { class: 'mini', type: 'button', text: 'Figer',
-        title: 'Prend ce stuff comme stuff porte en jeu, sans toucher au build pose',
+        title: 'Prend ce stuff comme stuff porté en jeu, sans toucher au build pose',
         onClick: () => { fermerComparaison(); onFiger(simulation); } }) : null));
 
   // Les pdv effectifs ont leur bandeau en tete : les repeter ici n'apprend rien.
@@ -138,7 +138,7 @@ export function ouvrirComparaison(gauche, droite, options) {
       el('div', {},
         el('div', { class: 'picker-titre', text: 'Comparaison' }),
         el('div', { class: 'picker-sous',
-          text: `${bilan.communes} piece(s) en commun · ${bilan.ajoutees.length} changement(s)` })),
+          text: `${bilan.communes} pièce(s) en commun · ${bilan.ajoutees.length} changement(s)` })),
       el('button', { class: 'mini', type: 'button', text: '×', title: 'Fermer',
         onClick: fermerComparaison })),
 
@@ -152,12 +152,12 @@ export function ouvrirComparaison(gauche, droite, options) {
 
     // Les deux mesures qui decident d'un build, avant tout le detail.
     el('div', { class: 'compare-mesures' },
-      bandeauMesure('Degats totaux', combat.total),
+      bandeauMesure('Dégâts totaux', combat.total),
       bandeauMesure('Pdv effectifs', combat.endurance)),
 
     el('div', { class: 'picker-liste' },
       lignesCombat.length === 0 ? null
-        : el('h3', { class: 'sous-titre', text: 'Degats par sort' }),
+        : el('h3', { class: 'sous-titre', text: 'Dégâts par sort' }),
       lignesCombat.length === 0 ? null
         : el('table', { class: 'compare-table' },
             el('tbody', {}, lignesCombat.map((ligne) => el('tr', {},
@@ -167,9 +167,9 @@ export function ouvrirComparaison(gauche, droite, options) {
               el('td', { class: `chiffre ${ligne.ecart >= 0 ? 'pos' : 'neg'}`,
                 text: signe(ligne.ecart) }))))),
 
-      el('h3', { class: 'sous-titre', text: 'Pieces changees' }),
+      el('h3', { class: 'sous-titre', text: 'Pièces changées' }),
       bilan.ajoutees.length === 0 && bilan.enlevees.length === 0
-        ? el('p', { class: 'note', text: 'Le meme stuff des deux cotes.' })
+        ? el('p', { class: 'note', text: 'Le même stuff des deux cotes.' })
         : el('div', { class: 'compare-pieces' },
             el('span', { class: 'candidat-legende', text: 'enlevees' }),
             bilan.enlevees.map((p) => vignette(itemById.get(p.id), 'sortante')),
@@ -178,7 +178,7 @@ export function ouvrirComparaison(gauche, droite, options) {
 
       el('h3', { class: 'sous-titre', text: 'Chiffres qui changent' }),
       lignesStats.length === 0
-        ? el('p', { class: 'note', text: 'Aucun ecart sur les statistiques.' })
+        ? el('p', { class: 'note', text: 'Aucun écart sur les statistiques.' })
         : el('table', { class: 'compare-table' },
             el('tbody', {}, lignesStats.map((ligne) => el('tr', {},
               el('td', { text: libelles[ligne.cle] ?? ligne.cle }),
@@ -189,7 +189,7 @@ export function ouvrirComparaison(gauche, droite, options) {
 
       // Meme stuff et memes chiffres peuvent donner deux scores : le niveau,
       // une condition de plus ou une option cochee suffisent a tout changer.
-      bilan.reglages.length === 0 ? null : el('h3', { class: 'sous-titre', text: 'Reglages changes' }),
+      bilan.reglages.length === 0 ? null : el('h3', { class: 'sous-titre', text: 'Réglages changes' }),
       bilan.reglages.length === 0 ? null : el('table', { class: 'compare-table' },
         el('tbody', {}, bilan.reglages.map((ligne) => el('tr', {},
           el('td', { text: libellesOptions[ligne.quoi] ?? ligne.quoi }),
@@ -240,7 +240,7 @@ export function installerSimulations(racine, options) {
     if (!comparer_) return;
     comparer_.disabled = cochees.size !== 2;
     comparer_.title = cochees.size === 2
-      ? 'Compare les deux simulations cochees'
+      ? 'Compare les deux simulations cochées'
       : 'Cochez deux simulations';
   };
 
@@ -289,7 +289,7 @@ export function installerSimulations(racine, options) {
     return el('div', { class: marques, 'data-simulation': simulation.id },
       el('label', { class: 'simulation-coche',
         title: selection
-          ? 'Comparer cet essai avec les autres stuffs choisis'
+          ? 'Comparer cet essai avec les autrès stuffs choisis'
           : 'Cocher deux simulations pour les comparer' },
         selection
           ? el('input', { type: 'checkbox',
@@ -305,7 +305,7 @@ export function installerSimulations(racine, options) {
         'aria-pressed': simulation.favori ? 'true' : 'false',
         title: simulation.favori
           ? 'Enlever des favoris'
-          : 'Mettre en favori : la simulation remonte en tete et reste gardee',
+          : 'Mettre en favori : la simulation remonte en tête et reste gardée',
         onClick: () => { basculerFavori(simulation.id); dessiner(); } }),
 
       el('img', { class: 'simulation-embleme', src: embleme(simulation.classe),
@@ -313,14 +313,14 @@ export function installerSimulations(racine, options) {
 
       el('div', { class: 'simulation-corps' },
         el('div', { class: 'simulation-tete' },
-          el('span', { class: 'simulation-nom', text: nom, title: 'Cliquer pour renommer',
+          el('span', { class: 'simulation-nom', text: nom, title: 'Cliquer pour renommér',
             onClick: () => renommer(simulation) }),
           // Le crayon dit que le nom se change. Le clic sur le texte marche
           // toujours, mais rien ne l'annoncait : un essai garde restait
           // « Iop 190 » parmi dix autres « Iop 190 ».
           el('button', { class: 'mini simulation-renommer', type: 'button', text: '✎',
-            title: 'Renommer cette simulation',
-            'aria-label': `Renommer ${nom}`,
+            title: 'Renommér cette simulation',
+            'aria-label': `Renommér ${nom}`,
             onClick: () => renommer(simulation) }),
           el('span', { class: `simulation-score ${simulation.tenu ? 'pos' : 'neg'}`,
             text: entier(simulation.score ?? 0),
@@ -329,7 +329,7 @@ export function installerSimulations(racine, options) {
               : `${simulation.manquantes ?? 0} minimum(s) non tenu(s)` })),
         el('div', { class: 'simulation-sous',
           text: `${nomDeClasse(simulation.classe)} ${simulation.niveau}`
-            + ` · ${pieces.length} piece(s) · ${quand(simulation.date)}` }),
+            + ` · ${pieces.length} pièce(s) · ${quand(simulation.date)}` }),
         // Le stuff se lit sur la ligne meme : sans lui, deux essais au meme
         // score restent indiscernables.
         el('div', { class: 'simulation-stuff' },
@@ -337,7 +337,7 @@ export function installerSimulations(racine, options) {
             const piece = catalogue.get(id);
             return piece ? el('img', {
               src: piece.img, alt: '', title: piece.fr, decoding: 'async', loading: 'lazy',
-              onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+              onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY, { ancre: ev.currentTarget }),
               onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
               onMouseleave: cacherBulle,
             }) : null;
@@ -345,12 +345,12 @@ export function installerSimulations(racine, options) {
 
       el('div', { class: 'simulation-actions' },
         el('button', { class: 'mini large', type: 'button', text: 'Remettre',
-          title: 'Remet ce build, ses conditions, ses sorts et ses reglages',
+          title: 'Remet ce build, ses conditions, ses sorts et ses réglages',
           onClick: () => onRestaurer(simulation) }),
         // Figer ne touche pas au build pose : le joueur garde son essai en
         // cours et change seulement le point de comparaison des achats.
         onFiger ? el('button', { class: 'mini', type: 'button', text: 'Figer',
-          title: 'Prend ce stuff comme stuff porte en jeu, sans toucher au build pose',
+          title: 'Prend ce stuff comme stuff porté en jeu, sans toucher au build pose',
           onClick: () => onFiger(simulation) }) : null,
         el('button', { class: 'mini', type: 'button', text: '×', title: 'Enlever cette simulation',
           onClick: () => {
@@ -385,12 +385,12 @@ export function installerSimulations(racine, options) {
     racine.replaceChildren(
       el('div', { class: 'rangee-ajout' },
         el('button', { class: 'primaire', type: 'button', text: 'Garder cette simulation',
-          title: 'Range le build porte, son score et tous ses reglages',
+          title: 'Range le build porté, son score et tous ses réglages',
           onClick: onGarder }),
         el('button', { type: 'button', text: 'Comparer', 'data-role': 'comparer',
           disabled: cochees.size !== 2,
           title: cochees.size === 2
-            ? 'Compare les deux simulations cochees'
+            ? 'Compare les deux simulations cochées'
             : 'Cochez deux simulations',
           onClick: () => comparerLesDeux(liste) }),
         favoris.length === 0 ? null : el('label', {
@@ -400,23 +400,23 @@ export function installerSimulations(racine, options) {
             onChange: () => { favorisSeuls = !favorisSeuls; dessiner(); } }),
           ' Favoris'),
         aEnlever === 0 ? null : el('button', { class: 'mini', type: 'button',
-          text: favoris.length > 0 ? 'Enlever les autres' : 'Tout enlever',
+          text: favoris.length > 0 ? 'Enlever les autrès' : 'Tout enlever',
           title: favoris.length > 0
             ? 'Enleve les simulations qui ne sont pas en favori'
-            : 'Enleve toutes les simulations gardees',
+            : 'Enleve toutes les simulations gardées',
           onClick: () => {
-            if (!window.confirm(`Enlever ${aEnlever} simulation(s) gardees ?`)) return;
+            if (!window.confirm(`Enlever ${aEnlever} simulation(s) gardées ?`)) return;
             viderSimulations();
             cochees.clear();
             dessiner();
             onMessage(favoris.length > 0
-              ? 'Simulations enlevees. Les favoris restent.'
-              : 'Simulations enlevees.');
+              ? 'Simulations enlevées. Les favoris restent.'
+              : 'Simulations enlevées.');
           } })),
 
       liste.length === 0
         ? el('p', { class: 'note',
-            text: 'Aucune simulation gardee. Chaque recherche mise en pause en range une.' })
+            text: 'Aucune simulation gardée. Chaque recherche mise en pause en range une.' })
         : el('div', { class: 'simulations' }, liste.map(ligne)),
     );
   }

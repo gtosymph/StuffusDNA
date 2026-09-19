@@ -63,7 +63,7 @@ export function renderPaires(root, liste, stats, options = {}) {
     const nom = el('dt', {
       class: `${onPick ? 'cliquable' : ''} ${suivie ? 'suivie' : ''}`.trim(),
       title: onPick
-        ? (suivie ? `${libelle} — deja dans les conditions` : `${libelle} — cliquez pour en faire une condition`)
+        ? (suivie ? `${libelle} — déjà dans les conditions` : `${libelle} — cliquez pour en faire une condition`)
         : libelle,
       ...(onPick ? { role: 'button', tabindex: '0' } : {}),
       ...(onPick ? { onClick: () => onPick(cle) } : {}),
@@ -199,7 +199,8 @@ export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(
     // Le titre natif laisserait sa place : l'infobulle le remplace au survol.
     noeud.removeAttribute('title');
     noeud.addEventListener('click', () => { cacherBulle(); onPick(item); });
-    noeud.addEventListener('mouseenter', (ev) => montrerBulle(item, ev.clientX, ev.clientY));
+    noeud.addEventListener('mouseenter', (ev) => montrerBulle(item, ev.clientX, ev.clientY,
+      { ancre: noeud }));
     noeud.addEventListener('mousemove', (ev) => suivreBulle(ev.clientX, ev.clientY));
     noeud.addEventListener('mouseleave', cacherBulle);
     return noeud;
@@ -210,7 +211,7 @@ export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(
   chargerVisibles(root);
   requestAnimationFrame(() => chargerVisibles(root));
   compteur.textContent = items.length > MAX_CASES
-    ? `${nombre(items.length)} pieces — ${MAX_CASES} montrees`
+    ? `${nombre(items.length)} pièces — ${MAX_CASES} montrées`
     : `${nombre(items.length)} piece${items.length > 1 ? 's' : ''}`;
 }
 
@@ -226,7 +227,7 @@ export function renderCatalogue(root, compteur, items, onPick, bannis = new Set(
  */
 export function renderBannis(root, items, onUnban, textes = {}) {
   const {
-    vide = 'Aucune piece bannie. Ouvrez la fiche d\'une piece pour la bannir.',
+    vide = 'Aucune pièce bannie. Ouvrez la fiche d\'une pièce pour la bannir.',
     aide = 'cliquez pour autoriser de nouveau',
   } = textes;
 
@@ -270,7 +271,8 @@ export function renderCases(root, cles, equipped, posees, onPick, verrous = new 
       onClick: () => onPick(cle, item),
       // Le survol montre l'infobulle ; le clic ouvre la fiche complete.
       // Les stats du build permettent le calcul des degats de l'arme portee.
-      onMouseenter: (ev) => montrerBulle(item, ev.clientX, ev.clientY, { stats }),
+      onMouseenter: (ev) => montrerBulle(item, ev.clientX, ev.clientY,
+        { stats, ancre: ev.currentTarget }),
       onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
       onMouseleave: cacherBulle,
       onFocus: cacherBulle,
@@ -380,7 +382,7 @@ function detailSort(detail) {
             el('b', { text: entier(detail.perAp) }), ' par PA')
         : null,
       detail.comptes > 1
-        ? el('span', { title: `${detail.comptes} lancer(s) comptes dans le score.\n`
+        ? el('span', { title: `${detail.comptes} lancer(s) comptés dans le score.\n`
             + `Le tour en permet ${detail.casts}.` },
             el('b', { text: entier(detail.total) }), ` au total (×${detail.comptes})`)
         : null,
@@ -457,7 +459,7 @@ export function renderArme(root, attaque, detail) {
       attaque.icon ? el('img', { class: 'icone-sort', src: attaque.icon, alt: '', decoding: 'async' }) : null,
       el('span', { class: 'nom-arme', text: attaque.name }),
       el('span', { class: 'meta-arme',
-        title: 'Cout, cadence et portee de l\'arme',
+        title: 'Coût, cadence et portée de l\'arme',
         text: `${attaque.apCost ?? '?'} PA · ${attaque.castsPerTurn}/tour`
           + (Number(attaque.portee) > 0
             ? ` · ${attaque.portee} PO`
@@ -525,14 +527,14 @@ export function renderSorts(root, sorts, degats, {
           onClick: () => onRemove(index) }),
       ),
       el('div', { class: 'sort-grille' },
-        champ('apCost', 'PA', 'Cout du sort en points d\'action'),
+        champ('apCost', 'PA', 'Coût du sort en points d\'action'),
         // Deux nombres voisins mais distincts : « Max/tour » borne
         // l'optimisateur de combo, « Lancers » compte les degats.
         champ('castsPerTurn', 'Max/tour',
           'Nombre maximal de lancers par tour.\n'
-          + 'L\'optimisateur de combo ne depasse jamais cette limite.'),
+          + 'L\'optimisateur de combo ne dépasse jamais cette limite.'),
         champ('repeats', 'Lancers',
-          'Nombre de lancers comptes dans les degats.\n'
+          'Nombre de lancers comptes dans les dégâts.\n'
           + '« Appliquer aux sorts » y met le nombre retenu par le combo.', 1),
         champ('baseCrit', 'Crit +%', 'Bonus de critique propre au sort'),
         cellule('1 max au combo', el('input', {
@@ -546,32 +548,32 @@ export function renderSorts(root, sorts, degats, {
           ligne.differe > 0 && !compterDiffere ? 'differee' : '',
           ligne.differe > 0 && compterDiffere ? 'differee-comptee' : '',
           onEnleverLigne && sort.lines.length > 1 ? 'otable' : ''].filter(Boolean).join(' ') },
-        cellule(ligne.differe > 0 ? `Element · T+${ligne.differe}` : 'Element',
+        cellule(ligne.differe > 0 ? `Élément · T+${ligne.differe}` : 'Element',
           el('select', {
             onChange: (ev) => onChange(index, `line.${rang}.element`, ev.target.value) },
             ['neutre', 'terre', 'feu', 'eau', 'air'].map((e) => el('option', {
               value: e, ...(ligne.element === e ? { selected: true } : {}), text: e }))),
           ligne.differe > 0
-            ? `Ligne differee : touche ${ligne.differe} tour(s) apres le lancer.`
+            ? `Ligne différée : touche ${ligne.differe} tour(s) après le lancer.`
               + (compterDiffere
-                ? ' Elle compte dans le score : l\'option « sorts des tours suivants » est cochee.'
+                ? ' Elle compte dans le score : l\'option « sorts des tours suivants » est cochée.'
                 : ' Elle ne compte pas dans le score : cochez « sorts des tours suivants ».')
-            : 'Element de la ligne de degats'),
-        champLigne(rang, ligne, 'min', 'Min', 'Degats de base minimaux'),
-        champLigne(rang, ligne, 'max', 'Max', 'Degats de base maximaux'),
-        champLigne(rang, ligne, 'critMin', 'Crit min', 'Degats de base minimaux en critique'),
-        champLigne(rang, ligne, 'critMax', 'Crit max', 'Degats de base maximaux en critique'),
+            : 'Élément de la ligne de dégâts'),
+        champLigne(rang, ligne, 'min', 'Min', 'Dégâts de base minimaux'),
+        champLigne(rang, ligne, 'max', 'Max', 'Dégâts de base maximaux'),
+        champLigne(rang, ligne, 'critMin', 'Crit min', 'Dégâts de base minimaux en critique'),
+        champLigne(rang, ligne, 'critMax', 'Crit max', 'Dégâts de base maximaux en critique'),
         // Le sort garde toujours une ligne : la derniere ne s'enleve pas.
         onEnleverLigne && sort.lines.length > 1
           ? el('button', { class: 'mini oter-ligne', type: 'button', text: '×',
-              title: 'Enlever cette ligne de degats',
+              title: 'Enlever cette ligne de dégâts',
               onClick: () => onEnleverLigne(index, rang) })
           : null,
       )),
       onAjouterLigne
         ? el('div', { class: 'ajout-ligne' },
-            el('button', { class: 'mini large', type: 'button', text: '+ ligne de degats',
-              title: 'Ajoute une ligne de degats, dans le meme element ou dans un autre',
+            el('button', { class: 'mini large', type: 'button', text: '+ ligne de dégâts',
+              title: 'Ajoute une ligne de dégâts, dans le même élément ou dans un autre',
               onClick: () => onAjouterLigne(index) }))
         : null,
       detail ? detailSort(detail) : null,
@@ -609,18 +611,19 @@ export function renderAnalyse(racineApports, racineSensibilite, analyse) {
       title: apport.casseCondition
         ? `${apport.fr} — sans elle, ces conditions tombent : `
           + `${(apport.conditionsPerdues ?? []).map((stat) => libelles[stat] ?? stat).join(', ')}`
-        : `${apport.fr} — sans elle, le build perd ${entier(apport.degats ?? 0)} degats`,
+        : `${apport.fr} — sans elle, le build perd ${entier(apport.degats ?? 0)} dégâts`,
     },
       piece?.img
         ? el('img', { class: 'apport-icone', src: piece.img, alt: '', decoding: 'async',
-            onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+            onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY,
+              { ancre: ev.currentTarget }),
             onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
             onMouseleave: cacherBulle })
         : null,
       el('span', { class: 'apport-nom', text: apport.fr }),
       el('span', { class: 'apport-jauge' }, el('i', { style: `width:${part}%` })),
       apport.casseCondition
-        ? el('span', { class: 'apport-marque', title: 'Sans cette piece, une condition tombe', text: '!' })
+        ? el('span', { class: 'apport-marque', title: 'Sans cette pièce, une condition tombe', text: '!' })
         : null,
       el('span', { class: `apport-valeur ${ton(apport.degats ?? 0)}`,
         text: `+${entier(apport.degats ?? 0)}` }));
@@ -629,7 +632,7 @@ export function renderAnalyse(racineApports, racineSensibilite, analyse) {
   // Une statistique sans effet n'apprend rien : seules les utiles restent.
   const utiles = sensibilite.filter((mesure) => mesure.gain > 0).slice(0, 8);
   if (utiles.length === 0) {
-    fill(racineSensibilite, el('p', { class: 'note', text: 'Aucun sort retenu : rien a conseiller.' }));
+    fill(racineSensibilite, el('p', { class: 'note', text: 'Aucun sort retenu : rien à conseiller.' }));
     return;
   }
 
@@ -640,7 +643,7 @@ export function renderAnalyse(racineApports, racineSensibilite, analyse) {
     // Les libelles portent deja leur unite : « % Dommages Melee », « % Critique ».
     const unite = '';
 
-    return el('div', { class: 'mesure', title: `${mesure.pas}${unite} de plus sur cette statistique rend ${entier(mesure.gain)} degats` },
+    return el('div', { class: 'mesure', title: `${mesure.pas}${unite} de plus sur cette statistique rend ${entier(mesure.gain)} dégâts` },
       icone ? el('img', { class: 'mesure-icone', src: icone, alt: '', decoding: 'async' }) : null,
       el('span', { class: 'mesure-nom', text: `+${mesure.pas}${unite} ${libelles[mesure.stat] ?? mesure.stat}` }),
       el('span', { class: 'apport-jauge' }, el('i', { style: `width:${part}%` })),
@@ -690,7 +693,8 @@ export function renderCandidats(root, candidats, { portes, itemById, porte, onPo
       return el('img', {
         class: `piece-candidat ${classe}`,
         src: piece.img, alt: piece.fr, title: piece.fr, decoding: 'async',
-        onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+        onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY,
+          { ancre: ev.currentTarget }),
         onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
         onMouseleave: cacherBulle,
       });
@@ -708,18 +712,18 @@ export function renderCandidats(root, candidats, { portes, itemById, porte, onPo
                 onChange: () => selection.onBasculer(candidat),
               }))
           : null,
-        el('span', { class: 'candidat-score', title: 'Degats de ce build',
+        el('span', { class: 'candidat-score', title: 'Dégâts de ce build',
           text: entier(candidat.damage ?? 0) }),
         ecart === null || identique
           ? null
           : el('span', {
               class: `candidat-ecart ${ecart >= 0 ? 'pos' : 'neg'}`,
               text: `${ecart >= 0 ? '+' : ''}${entier(ecart)}`,
-              title: 'Degats en plus ou en moins, face au build porte',
+              title: 'Dégâts en plus ou en moins, face au build porté',
             }),
         redresse
           ? el('span', { class: 'candidat-marque',
-              title: 'Le stuff porte laisse un minimum non tenu ; celui-ci les tient tous',
+              title: 'Le stuff porté laisse un minimum non tenu ; celui-ci les tient tous',
               text: 'minimums tenus' })
           : null,
         casse
@@ -728,11 +732,11 @@ export function renderCandidats(root, candidats, { portes, itemById, porte, onPo
               text: 'minimums non tenus' })
           : null,
         el('span', { class: 'candidat-changements',
-          text: identique ? 'build porte' : `${aMettre.length} piece(s) a changer` }),
+          text: identique ? 'build porté' : `${aMettre.length} pièce(s) à changer` }),
         identique
           ? null
           : el('button', { class: 'mini large', type: 'button', text: 'Porter',
-              title: 'Remplace le build porte par celui-ci',
+              title: 'Remplace le build porté par celui-ci',
               onClick: () => onPorter(candidat) })),
 
       identique ? null : el('div', { class: 'candidat-pieces' },
@@ -774,7 +778,8 @@ export function renderPanoplies(root, panoplies, setById, libelles, contexte = {
         class: `piece-panoplie ${equippedIds.has(piece.id) ? 'portee' : 'absente'}`,
         src: piece.img, alt: piece.fr, title: piece.fr, decoding: 'async',
         // Le survol montre l'infobulle de la piece ; le clic ouvre sa fiche.
-        onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY),
+        onMouseenter: (ev) => montrerBulle(piece, ev.clientX, ev.clientY,
+          { ancre: ev.currentTarget }),
         onMousemove: (ev) => suivreBulle(ev.clientX, ev.clientY),
         onMouseleave: cacherBulle,
         ...(contexte.onPick ? { onClick: () => { cacherBulle(); contexte.onPick(piece); } } : {}),
@@ -783,7 +788,7 @@ export function renderPanoplies(root, panoplies, setById, libelles, contexte = {
     return el('div', { class: 'panoplie' },
       el('div', { class: 'panoplie-tete' },
         el('span', { text: fr }),
-        el('span', { class: 'pieces', text: `${pieces} pieces` })),
+        el('span', { class: 'pieces', text: `${pieces} pièces` })),
       vignettes.length > 0 ? el('div', { class: 'pieces-panoplie' }, vignettes) : null,
       el('dl', {}, lignes.flatMap(([cle, valeur]) => {
         const icone = iconeStat(cle);
@@ -903,7 +908,7 @@ export function renderCombo(root, combo, actions = {}) {
           text: combo.elementsMin > 0
             ? `${couverts.length}/${combo.elementsMin} element(s) demandes`
               + (manque > 0 ? ' — budget insuffisant' : '')
-            : `${couverts.length} element(s)` }))
+            : `${couverts.length} élément(s)` }))
     : null;
 
   fill(root, [el('div', { class: 'carte-combo' },
@@ -915,7 +920,7 @@ export function renderCombo(root, combo, actions = {}) {
       : el('p', { class: 'note', text: 'Aucun lancer ne tient dans le budget de PA.' }),
     ligneElements,
     el('div', { class: 'total-combo' },
-      el('span', { text: 'Degats du combo' }),
+      el('span', { text: 'Dégâts du combo' }),
       el('span', { class: 'deg', text: entier(combo.total) })),
     combo.lancers.length > 0 && (actions.onAppliquer || actions.onGarder)
       ? el('div', { class: 'actions-combo' },
@@ -926,7 +931,7 @@ export function renderCombo(root, combo, actions = {}) {
             onClick: () => actions.onAppliquer(combo) }) : null,
           actions.onGarder ? el('button', { class: 'mini large', type: 'button',
             text: 'Garder en jeu de sorts',
-            title: 'Enregistre les sorts du combo comme un jeu nomme',
+            title: 'Enregistre les sorts du combo comme un jeu nommé',
             onClick: () => actions.onGarder(combo) }) : null)
       : null,
   )]);

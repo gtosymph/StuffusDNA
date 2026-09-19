@@ -41,7 +41,7 @@ function blocArmeCalculee(item, stats) {
 
   const detail = computeSpellDetail(attaque, stats);
   return el('div', { class: 'bulle-arme-calc' },
-    el('div', { class: 'titre-arme-calc', text: 'Avec vos caracteristiques' }),
+    el('div', { class: 'titre-arme-calc', text: 'Avec vos caractéristiques' }),
     detail.parLigne.map((ligne) =>
       ligneArme(ligne, `${entier(ligne.normalMin)}–${entier(ligne.normalMax)}`
         + ` (${entier(ligne.critMin)}–${entier(ligne.critMax)} crit)`)),
@@ -94,7 +94,7 @@ function garnir(noeud, item, contexte = {}) {
           ];
         })),
 
-    restant > 0 ? el('div', { class: 'bulle-reste', text: `+ ${restant} autres` }) : null,
+    restant > 0 ? el('div', { class: 'bulle-reste', text: `+ ${restant} autrès` }) : null,
 
     passifDe(item.id)
       ? el('div', { class: 'bulle-passif' },
@@ -102,7 +102,7 @@ function garnir(noeud, item, contexte = {}) {
           ...Object.entries(passifDe(item.id).stats).map(([cle, valeur]) =>
             el('div', { text: `+${valeur} ${STAT_LABELS[cle] ?? cle}` })))
       : null,
-    el('div', { class: 'bulle-aide', text: 'Cliquez pour la fiche complete' }),
+    el('div', { class: 'bulle-aide', text: 'Cliquez pour la fiche complète' }),
   ];
 
   // Un enfant null deviendrait le texte "null" : il est ecarte.
@@ -124,15 +124,52 @@ function placer(noeud, x, y) {
 }
 
 /**
+ * La piece survolee, telle qu'elle etait au moment du survol.
+ *
+ * Elle sert de temoin : tant qu'elle est la meme, l'infobulle parle bien de
+ * ce que le pointeur designe. Voir `surveiller`.
+ */
+let ancre = null;
+
+/**
+ * Le filet qui rattrape les infobulles orphelines.
+ *
+ * L'infobulle s'ouvre sur `mouseenter` et se ferme sur `mouseleave`. Ce
+ * couple ne tient que si le noeud survole reste en place — or l'application
+ * se repeint quatre fois par seconde pendant une recherche, et chaque
+ * repeinte REMPLACE les cases du plateau. Le noeud sous le pointeur
+ * disparait donc sans jamais recevoir son `mouseleave`, et son infobulle
+ * restait a l'ecran indefiniment, par-dessus le reste.
+ *
+ * Un seul ecouteur, pose sur le document, suffit a fermer la porte : des que
+ * le pointeur bouge, l'infobulle doit pouvoir montrer l'element qui l'a
+ * ouverte, et ce dernier doit encore appartenir a la page.
+ *
+ * @param {MouseEvent} ev
+ */
+function surveiller(ev) {
+  if (!bulle || bulle.hidden) return;
+  // L'ancre a ete remplacee par une repeinte : plus rien ne la justifie.
+  if (!ancre || !ancre.isConnected) { cacherBulle(); return; }
+  // Le pointeur a quitte la piece sans que le `mouseleave` arrive.
+  if (!ancre.contains(ev.target)) cacherBulle();
+}
+
+/**
  * Montre l'infobulle d'une piece.
+ *
  * @param {any} item
  * @param {number} x
  * @param {number} y
+ * @param {object} [contexte]
+ * @param {Element} [contexte.ancre] L'element survole. Sans lui, l'infobulle
+ *   ne peut pas savoir qu'elle a survecu a ce qui l'a ouverte.
  */
 export function montrerBulle(item, x, y, contexte = {}) {
   if (!item) return;
   const noeud = assurerBulle();
   garnir(noeud, item, contexte);
+  ancre = contexte.ancre ?? null;
   noeud.hidden = false;
   placer(noeud, x, y);
 }
@@ -145,4 +182,11 @@ export function suivreBulle(x, y) {
 /** Cache l'infobulle. */
 export function cacherBulle() {
   if (bulle) bulle.hidden = true;
+  ancre = null;
+}
+
+// Le filet se pose une fois, en capture : un gestionnaire qui arrete la
+// propagation plus bas ne doit pas empecher l'infobulle de se fermer.
+if (typeof document !== 'undefined') {
+  document.addEventListener('mousemove', surveiller, true);
 }

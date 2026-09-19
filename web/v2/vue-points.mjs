@@ -75,17 +75,17 @@ export function ouvrirPoints({ lireEtat, setEtat, lireStats }) {
 
   racine.replaceChildren(el('div', {
     class: 'feuille large', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Repartir mes points',
+    'aria-label': 'Répartir mes points',
   },
     el('div', { class: 'feuille-tete' },
-      el('h2', { text: 'Repartir mes points' }),
+      el('h2', { text: 'Répartir mes points' }),
       el('div', { class: 'pousse' }),
       el('button', { class: 'btn fantome', type: 'button', text: 'Fermer',
         onClick: fermerPoints })),
     el('div', { class: 'feuille-corps' }, corps,
       el('p', { class: 'aide',
-        text: 'Un parchemin monte la caracteristique de 100 sans couter de point. '
-          + 'Une limite empeche la recherche d\'aller au-dela ; elle ne bride '
+        text: 'Un parchemin monte la caractéristique de 100 sans coûter de point. '
+          + 'Une limite empeche la recherche d\'aller au-delà ; elle ne bride '
           + 'jamais votre saisie.' })),
   ));
 

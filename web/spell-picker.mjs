@@ -42,7 +42,7 @@ function pastilleVariante(sort, variante, choisi, onPick) {
     type: 'button',
     style: `--teinte:${couleur}`,
     title: `Niveau ${variante.level} — ${variante.element}\n`
-      + `${variante.min} a ${variante.max} (critique ${variante.critMin} a ${variante.critMax})\n`
+      + `${variante.min} à ${variante.max} (critique ${variante.critMin} à ${variante.critMax})\n`
       + `${variante.critRate} % de critique propre`,
     onClick: () => onPick(sort, variante),
   },
@@ -92,7 +92,7 @@ export function ouvrirPicker({ classe, niveau, pris, onAjouter, onAjouterPlusieu
         sort.icon ? el('img', { src: sort.icon, alt: '', decoding: 'async' }) : null,
         el('div', { class: 'ident' },
           el('div', { class: 'nom', text: sort.fr }),
-          el('div', { class: 'meta', text: `${sort.apCost} PA · portee ${sort.minRange}–${sort.range}`
+          el('div', { class: 'meta', text: `${sort.apCost} PA · portée ${sort.minRange}–${sort.range}`
             + (sort.maxCast > 0 ? ` · ${sort.maxCast}/tour` : '')
             + (sort.zone ? ` · ${sort.zone}` : '') })),
         sort.generatesTelefrag ? el('span', { class: 'marque-tf', text: 'TF+' }) : null,
@@ -200,7 +200,7 @@ export function ouvrirPicker({ classe, niveau, pris, onAjouter, onAjouterPlusieu
         }),
         el('span', { class: 'espace' }),
         el('button', { class: 'mini large', type: 'button', text: 'Ajouter les visibles',
-          title: 'Ajoute tous les sorts qui passent les filtres, sur leur variante la plus haute',
+          title: 'Ajoute tous les sorts qui passent les filtrès, sur leur variante la plus haute',
           onClick: () => ajouterEnMasse(visibles) }),
         el('button', { class: 'mini large', type: 'button', text: 'Ajouter tout',
           title: 'Ajoute tous les sorts de la classe, sur leur variante la plus haute',

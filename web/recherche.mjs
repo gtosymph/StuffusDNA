@@ -61,6 +61,21 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
   let enCours = false;
 
   /**
+   * Vrai entre la demande de pause et la conclusion.
+   *
+   * Un fil ne lit l'ordre d'arret qu'entre deux vagues : la pause met donc un
+   * instant a prendre, et parfois plusieurs secondes quand les fils se
+   * partagent les coeurs. Pendant ce temps, les vagues deja parties
+   * continuaient d'arriver, de reecrire « en cours » sous le compteur et de
+   * reposer un build sur le personnage.
+   *
+   * L'ecran contredisait donc le geste : on demandait la pause, le compteur
+   * montait toujours, le bouton restait gris. La seule lecture possible etait
+   * « mon clic n'a rien fait ».
+   */
+  let enPause = false;
+
+  /**
    * Vrai tant que le personnage suit le meilleur build de la recherche.
    *
    * Chaque vague qui ameliore le score repose son build sur le personnage. Un
@@ -120,10 +135,24 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     }
   }
 
-  /** Met la recherche en pause : chaque fil rend son meilleur build avant de conclure. */
+  /** Vrai entre la demande de pause et la conclusion. */
+  const sePause = () => enPause;
+
+  /**
+   * Met la recherche en pause : chaque fil rend son meilleur build avant de
+   * conclure.
+   *
+   * L'attente se DIT, et elle se dit la ou le joueur regarde deja — sous le
+   * compteur, pas dans un message qui s'efface. Elle dit aussi la sortie :
+   * « Arreter » coupe net, sans attendre les fils.
+   */
   function arreter() {
+    if (!enCours || enPause) return;
+    enPause = true;
     $('arreter').disabled = true;
-    message('Mise en pause…', 'info');
+    $('compteur-generations').textContent = 'mise en pause…';
+    message('Mise en pause : chaque fil termine sa vague et rend son meilleur '
+      + 'stuff. « Arrêter » coupe net, sans rien garder.', 'info');
     recherche?.stop();
   }
 
@@ -222,7 +251,7 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     let dernierEnregistrement = 0;
     let generationMax = decalage;
     $('compteur-generations').textContent = decalage > 0
-      ? `reprise a la generation ${nombre(decalage)}…`
+      ? `reprise à la génération ${nombre(decalage)}…`
       : 'demarrage…';
 
     const etat = lireEtat();
@@ -250,6 +279,19 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
         onWave: (vague) => {
           suivi.set(vague.seed, { seed: vague.seed, best: vague.best });
           generationMax = Math.max(generationMax, decalage + vague.generation);
+
+          // Une vague partie avant l'ordre d'arret arrive encore apres lui.
+          // Son travail se garde — c'est tout l'interet d'une pause — mais
+          // elle ne touche plus a l'ecran : le compteur doit continuer de
+          // dire « mise en pause », et le personnage ne doit plus bouger
+          // sous les yeux de quelqu'un qui vient de demander l'arret.
+          if (enPause) {
+            if (!courbes.has(vague.seed)) courbes.set(vague.seed, []);
+            courbes.get(vague.seed).push(...(vague.history ?? []));
+            historiques = [...courbes.entries()].map(([seed, history]) => ({ seed, history }));
+            return;
+          }
+
           $('compteur-generations').textContent = `generation ${nombre(generationMax)} — en cours`;
 
           // La courbe du fil s'allonge de la vague ecoulee.
@@ -286,8 +328,11 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
           // clic suivant repart d'ici.
           if (!arretDemande && limiteAtteinte(generationMax - decalage, limite)) {
             arretDemande = true;
+            // Le meme chemin que le bouton : l'arret automatique doit poser
+            // l'etat de pause, sinon le compteur continue d'annoncer « en
+            // cours » pendant que les fils concluent.
+            arreter();
             message(phraseArretAuto(limite), 'info');
-            recherche?.stop();
           }
 
           // Le meilleur build du moment s'applique en direct au personnage,
@@ -314,14 +359,15 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
       // L'arret automatique a deja dit pourquoi il s'arretait : le repeter
       // effacerait la seule phrase qui nomme la limite.
       if (!arretDemande) {
-        message(`Recherche en pause apres ${nombre(generationMax)} generations sur ${fils} fil(s).`, 'info');
+        message(`Recherche en pause après ${nombre(generationMax)} générations sur ${fils} fil(s).`, 'info');
       }
       $('compteur-generations').textContent = `generation ${nombre(generationMax)} — en pause`;
     } catch (error) {
-      message(`La recherche a echoue : ${error.message}`, 'erreur');
+      message(`La recherche a échoué : ${error.message}`, 'erreur');
     } finally {
       recherche = null;
       enCours = false;
+      enPause = false;
       $('lancer').disabled = false;
       $('recommencer').disabled = false;
       $('arreter').disabled = true;
@@ -331,5 +377,5 @@ export function creerRecherche({ $, lireEtat, setEtat, appliquer, message, garde
     }
   }
 
-  return { lancer, arreter, abandonner, tourne, porterAlaMain, reprendre, dessiner };
+  return { lancer, arreter, abandonner, tourne, sePause, porterAlaMain, reprendre, dessiner };
 }

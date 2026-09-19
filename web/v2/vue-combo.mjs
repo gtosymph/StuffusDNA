@@ -58,24 +58,24 @@ export function ouvrirCombo({ lireEtat, onOption }) {
 
   racine.replaceChildren(el('div', {
     class: 'feuille', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Enchainement des sorts',
+    'aria-label': 'Enchaînement des sorts',
   },
     el('div', { class: 'feuille-tete' },
-      el('h2', { text: 'Enchainement des sorts' }),
+      el('h2', { text: 'Enchaînement des sorts' }),
       el('div', { class: 'pousse' }),
       el('button', { class: 'btn fantome', type: 'button', text: 'Fermer',
         onClick: fermerCombo })),
     el('div', { class: 'feuille-corps' },
       el('p', { class: 'aide',
-        text: 'Sans enchainement, chaque sort de la liste compte une fois, '
+        text: 'Sans enchaînement, chaque sort de la liste compte une fois, '
           + 'quels que soient vos PA. Avec, l\'outil cherche le meilleur tour '
           + 'possible sous votre budget de PA : il relance un sort qui vaut le '
           + 'coup, et en laisse tomber un qui n\'entre pas.' }),
       corps,
       el('p', { class: 'aide',
-        text: 'Le budget de PA vient du stuff trouve : montez vos PA, et le '
+        text: 'Le budget de PA vient du stuff trouvé : montez vos PA, et le '
           + 'tour se remplit tout seul. Gardez-en quelques-uns si vous voulez '
-          + 'vous deplacer ou lancer un sort utilitaire dans le meme tour.' })),
+          + 'vous déplacer ou lancer un sort utilitaire dans le même tour.' })),
   ));
 
   dessiner();

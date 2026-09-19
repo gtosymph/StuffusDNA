@@ -86,17 +86,17 @@ test('le resume de l\'enchainement', async (t) => {
   await t.test('l\'enchainement seul ne recite pas ses valeurs nulles', () => {
     assert.equal(
       resumeCombo({ combo: true, paReserves: 0, comboElements: 0, comboUnLancer: false }),
-      'Meilleur enchainement');
+      'Meilleur enchaînement');
   });
 
   await t.test('chaque restriction posee se lit sur le bouton', () => {
     assert.equal(
       resumeCombo({ combo: true, paReserves: 2, comboElements: 3, comboUnLancer: true }),
-      'Meilleur enchainement · 2 PA gardes · 3 elements au moins · 1 lancer par sort');
+      'Meilleur enchaînement · 2 PA gardés · 3 éléments au moins · 1 lancer par sort');
   });
 
   await t.test('une valeur abimee ne fabrique pas un libelle abime', () => {
-    assert.equal(resumeCombo({ combo: true, paReserves: -4 }), 'Meilleur enchainement');
-    assert.equal(resumeCombo({ combo: true, comboElements: 'deux' }), 'Meilleur enchainement');
+    assert.equal(resumeCombo({ combo: true, paReserves: -4 }), 'Meilleur enchaînement');
+    assert.equal(resumeCombo({ combo: true, comboElements: 'deux' }), 'Meilleur enchaînement');
   });
 });

@@ -36,12 +36,12 @@ export const plusOuvert = () => racine !== null;
  * disparaitre sa ligne : mieux vaut une ligne en moins qu'une ligne morte.
  */
 const LIGNES = Object.freeze([
-  { cible: 'vider', nom: 'Vider le stuff', aide: 'Enleve toutes les pieces portees' },
+  { cible: 'vider', nom: 'Vider le stuff', aide: 'Enleve toutes les pièces portées' },
   { cible: 'partager', nom: 'Partager', aide: 'Un lien, ou l\'envoi vers Dofusbook' },
-  { cible: 'signaler', nom: 'Signaler', aide: 'Un defaut, une idee' },
-  { cible: 'visite', nom: 'Visite guidee', aide: 'A quoi sert chaque ecran' },
+  { cible: 'signaler', nom: 'Signaler', aide: 'Un défaut, une idée' },
+  { cible: 'visite', nom: 'Visite guidée', aide: 'A quoi sert chaque écran' },
   { cible: 'reglages', nom: 'Reglages', aide: 'Calcul, moteur et habillage' },
-  { cible: 'kofi', nom: 'Offrir un cafe', aide: 'Le site est gratuit et sans publicite' },
+  { cible: 'kofi', nom: 'Offrir un café', aide: 'Le site est gratuit et sans publicité' },
 ]);
 
 /**

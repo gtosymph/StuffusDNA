@@ -30,14 +30,14 @@ export const THEMES_V2 = Object.freeze([
     nom: 'Studio',
     fichier: null,
     apercu: ['#0d1017', '#1b2030', '#7f74ff'],
-    phrase: 'Bleu-noir et iris. L\'habillage de depart.',
+    phrase: 'Bleu-noir et iris. L\'habillage de départ.',
   },
   {
     cle: 'ardoise',
     nom: 'Ardoise',
     fichier: 'themes/ardoise.css',
     apercu: ['#0e0f11', '#1e2024', '#5b9dd9'],
-    phrase: 'Graphite neutre, acier froid. Pour les longues seances.',
+    phrase: 'Graphite neutre, acier froid. Pour les longues séances.',
   },
   {
     cle: 'braise',
@@ -51,14 +51,14 @@ export const THEMES_V2 = Object.freeze([
     nom: 'Abysse',
     fichier: 'themes/abysse.css',
     apercu: ['#061014', '#11242c', '#2bb9d4'],
-    phrase: 'Bleu profond et cyan. Le fond lui-meme est colore.',
+    phrase: 'Bleu profond et cyan. Le fond lui-même est colore.',
   },
   {
     cle: 'vigne',
     nom: 'Vigne',
     fichier: 'themes/vigne.css',
     apercu: ['#120b18', '#23172d', '#a855c7'],
-    phrase: 'Nuit violacee, pourpre et laiton. Le plus orne.',
+    phrase: 'Nuit violacée, pourpre et laiton. Le plus orne.',
   },
   {
     cle: 'parchemin',
@@ -86,6 +86,6 @@ export const THEMES_V2 = Object.freeze([
     nom: 'Terminal',
     fichier: 'themes/terminal.css',
     apercu: ['#000000', '#101512', '#3ee07f'],
-    phrase: 'Noir absolu et phosphore. Tout y est chiffre.',
+    phrase: 'Noir absolu et phosphore. Tout y est chiffré.',
   },
 ]);

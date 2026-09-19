@@ -93,14 +93,14 @@ const MESURES = Object.freeze({
   endurance: {
     unite: 'pdv eff.',
     long: 'pdv effectifs',
-    titreColonne: 'Degats bruts que ce build encaisse avant de tomber',
+    titreColonne: 'Dégâts bruts que ce build encaisse avant de tomber',
     titreTete: 'Endurance de ce build',
   },
   damage: {
     unite: 'degats',
     long: 'degats',
-    titreColonne: 'Degats de ce build',
-    titreTete: 'Degats de ce build',
+    titreColonne: 'Dégâts de ce build',
+    titreTete: 'Dégâts de ce build',
   },
 });
 
@@ -116,7 +116,7 @@ function vignettes(palier, { portees, itemById }) {
     .filter(Boolean)
     .map((piece) => el('img', {
       src: piece.img, alt: '', decoding: 'async', loading: 'lazy',
-      title: `${piece.fr} — differe de votre build`,
+      title: `${piece.fr} — diffère de votre build`,
     }));
 }
 
@@ -139,7 +139,7 @@ function courbe(hote, vue) {
   const canvas = el('canvas', { class: 'courbe-survie',
     role: 'img',
     'aria-label': `Courbe ${vue.libelles.y} contre ${vue.libelles.x}, `
-      + `${vue.lignes.length} point(s). Le detail se lit dans la liste dessous.` });
+      + `${vue.lignes.length} point(s). Le détail se lit dans la liste dessous.` });
 
   let traces = [];
   let survole = null;
@@ -222,10 +222,10 @@ export function renderSurvie(racine, paliers, options) {
     if (!Number.isFinite(palier.pdv) || palier.pdv <= 0) return null;
     const apport = Math.round((palier.endurance / palier.pdv - 1) * 100);
     return el('div', { class: 'palier-vie',
-      title: 'Points de vie du jeu, puis ce que vos resistances leur ajoutent',
+      title: 'Points de vie du jeu, puis ce que vos résistances leur ajoutent',
       text: apport > 0
-        ? `${entier(palier.pdv)} pdv, +${apport} % par vos resistances`
-        : `${entier(palier.pdv)} pdv, aucune resistance` });
+        ? `${entier(palier.pdv)} pdv, +${apport} % par vos résistances`
+        : `${entier(palier.pdv)} pdv, aucune résistance` });
   };
 
   const ligneDepart = () => el('div', { class: 'palier depart' },
@@ -250,21 +250,21 @@ export function renderSurvie(racine, paliers, options) {
         el('span', { class: 'palier-degats', title: maximisee.titreTete,
           text: `${entier(palier[axe.valeur])} ${maximisee.unite}` }),
         rang === retenu ? el('span', { class: 'palier-marque retenu',
-          title: 'Le point que votre reglage de part des degats retient',
-          text: 'votre reglage' }) : null,
+          title: 'Le point que votre réglage de part des dégâts retient',
+          text: 'votre réglage' }) : null,
         gain === null ? null : el('span', {
           class: `palier-gain ${gain >= 0 ? 'pos' : 'neg'}`,
-          title: `${maximisee.long} gagnes ou perdus face a votre build`,
+          title: `${maximisee.long} gagnés ou perdus face à votre build`,
           text: `${signe(gain)} ${maximisee.unite}` }),
         ecart === null ? null : el('span', {
           class: 'palier-ecart',
-          title: `${trancheeSur.long} gagnes ou perdus face a votre build`,
+          title: `${trancheeSur.long} gagnés ou perdus face à votre build`,
           text: `${signe(ecart)} ${trancheeSur.unite}` })),
       ...(ligneVie(palier) ? [ligneVie(palier)] : []),
       el('div', { class: 'palier-pieces' }, vignettes(palier, contexte))),
 
     el('button', { class: 'mini large', type: 'button', text: 'Porter',
-      title: 'Pose ce build et sa repartition de points',
+      title: 'Pose ce build et sa répartition de points',
       onClick: () => onPorter(palier) }));
 
   // Rien sous le build porte : la condition de vie ne coute rien, et le
@@ -272,12 +272,12 @@ export function renderSurvie(racine, paliers, options) {
   const sousLeBuild = lignes.some((ligne) => ligne.ecart !== null && ligne.ecart < 0);
 
   const entete = axe.cle === 'endurance'
-    ? 'Le build le plus fort trouve pour chaque tranche d\'endurance, points de '
-      + 'caracteristique au service des degats. L\'endurance compte la vie ET les '
-      + 'resistances : elle dit combien de degats bruts vous encaissez avant de '
-      + 'tomber. De haut en bas : moins de survie, plus de degats.'
-    : 'Le build le plus resistant trouve pour chaque tranche de degats. De haut '
-      + 'en bas : moins de degats, plus d\'endurance.';
+    ? 'Le build le plus fort trouvé pour chaque tranche d\'endurance, points de '
+      + 'caractéristique au service des dégâts. L\'endurance compte la vie ET les '
+      + 'résistances : elle dit combien de dégâts bruts vous encaissez avant de '
+      + 'tomber. De haut en bas : moins de survie, plus de dégâts.'
+    : 'Le build le plus résistant trouve pour chaque tranche de dégâts. De haut '
+      + 'en bas : moins de dégâts, plus d\'endurance.';
 
   const trace = courbe(racine, { lignes, axe, retenu,
     libelles: { x: trancheeSur.long, y: maximisee.long } });
@@ -292,10 +292,10 @@ export function renderSurvie(racine, paliers, options) {
     ...(porte && !sousLeBuild
       ? [el('p', { class: 'note',
           text: axe.cle === 'endurance'
-            ? 'Aucun build trouve avec moins de survie et plus de degats : lacher '
-              + 'de la vie ou des resistances ne vous rapporterait rien ici.'
-            : 'Aucun build trouve avec moins de degats et plus d\'endurance : '
-              + 'lacher des degats ne vous rapporterait rien ici.' })]
+            ? 'Aucun build trouve avec moins de survie et plus de dégâts : lâcher '
+              + 'de la vie ou des résistances ne vous rapporterait rien ici.'
+            : 'Aucun build trouve avec moins de dégâts et plus d\'endurance : '
+              + 'lâcher des dégâts ne vous rapporterait rien ici.' })]
       : []),
   );
 

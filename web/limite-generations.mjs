@@ -69,7 +69,7 @@ const nombreLisible = (n) => n.toLocaleString('fr-FR');
  * @returns {string}
  */
 export function phraseArretAuto(limite) {
-  return `Arret automatique apres ${nombreLisible(limite)} generations. `
+  return `Arrêt automatique après ${nombreLisible(limite)} générations. `
     + 'Le meilleur stuff trouve est garde : « Chercher » repart d\'ici, et la '
-    + 'limite se regle dans les reglages du moteur.';
+    + 'limite se règle dans les réglages du moteur.';
 }

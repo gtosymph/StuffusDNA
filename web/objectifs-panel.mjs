@@ -27,10 +27,10 @@ const nombre = (v) => Math.round(v).toLocaleString('fr-FR');
  * La phrase dit ce que le nombre veut dire, avec la valeur dedans.
  */
 export const MESURES_VISEES = Object.freeze([
-  { stat: 'degatsTotaux', libelle: 'Degats totaux', mode: 'degats',
-    phrase: (v) => `Vos sorts envoient ${nombre(v)} degats sur un tour.` },
+  { stat: 'degatsTotaux', libelle: 'Dégâts totaux', mode: 'degats',
+    phrase: (v) => `Vos sorts envoient ${nombre(v)} dégâts sur un tour.` },
   { stat: 'pdvEffectifs', libelle: 'Pdv effectifs', mode: 'endurance',
-    phrase: (v) => `Vous encaissez ${nombre(v)} degats bruts avant de tomber.` },
+    phrase: (v) => `Vous encaissez ${nombre(v)} dégâts bruts avant de tomber.` },
 ]);
 
 /**
@@ -81,7 +81,7 @@ export function renderObjectifs(racine, options) {
   const ligne = (vue) => {
     const icone = iconeStat(vue.stat);
     const titre = vue.enCondition
-      ? `${vue.phrase} Elle est deja dans les minimums.`
+      ? `${vue.phrase} Elle est déjà dans les minimums.`
       : `${vue.phrase} Cliquez pour en faire un minimum.`;
 
     return el('div', { class: `objectif ${vue.maximisee ? 'maximisee' : ''}`.trim() },
@@ -106,7 +106,7 @@ export function renderObjectifs(racine, options) {
     ...lignesObjectifs(valeurs, mode, conditions).map(ligne),
     el('p', { class: 'note',
       text: 'La recherche fait monter une mesure et tient l\'autre au minimum '
-        + 'demande. Cliquez un nombre pour en faire un minimum, a partir de sa '
+        + 'demande. Cliquez un nombre pour en faire un minimum, à partir de sa '
         + 'valeur actuelle.' }),
   );
 }

@@ -63,7 +63,7 @@ export function ouvrirMinimums({ lireEtat, setEtat, message, lireMesures }) {
     const etat = lireEtat();
     const stat = choix.value;
     if (etat.conditions.some((c) => c.stat === stat)) {
-      message(`Un minimum porte deja sur « ${STAT_LABELS[stat] ?? stat} ».`, 'erreur');
+      message(`Un minimum porte déjà sur « ${STAT_LABELS[stat] ?? stat} ».`, 'erreur');
       return;
     }
     regler({ conditions: [...etat.conditions, MINIMUM_NEUF(stat)] });
@@ -87,7 +87,7 @@ export function ouvrirMinimums({ lireEtat, setEtat, message, lireMesures }) {
       { cle: STAT_DEGATS, libelle: STAT_LABELS[STAT_DEGATS] });
     const garde = choix.value;
     choix.replaceChildren(...(libres.length === 0
-      ? [el('option', { value: '', text: 'toutes les mesures sont posees' })]
+      ? [el('option', { value: '', text: 'toutes les mesures sont posées' })]
       : libres.map(([cle, nom]) => el('option', { value: cle, text: nom }))));
     if (garde && libres.some(([cle]) => cle === garde)) choix.value = garde;
     choix.disabled = libres.length === 0;
@@ -130,9 +130,9 @@ export function ouvrirMinimums({ lireEtat, setEtat, message, lireMesures }) {
         el('button', { class: 'btn', type: 'button', text: 'Ajouter', onClick: ajouter })),
 
       el('p', { class: 'aide' },
-        'Le ', el('b', { text: 'poids' }), ' dit ce qu\'une unite manquante coute au '
-        + 'score : a 1 c\'est une preference, a 500 un couperet. Le ',
-        el('b', { text: 'maximum' }), ' borne ce que le solveur investit au-dela ; ',
+        'Le ', el('b', { text: 'poids' }), ' dit ce qu\'une unité manquante coûte au '
+        + 'score : a 1 c\'est une préférence, a 500 un couperet. Le ',
+        el('b', { text: 'maximum' }), ' borne ce que le solveur investit au-delà ; ',
         el('b', { text: 'Abs' }), ' le rend infranchissable.'),
     ),
   ));

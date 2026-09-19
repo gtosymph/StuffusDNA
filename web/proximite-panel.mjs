@@ -38,8 +38,8 @@ function vignettes(palier, { aReference, possedees, itemById }) {
       class: possedees.has(id) ? 'en-banque' : '',
       src: piece.img, alt: '', decoding: 'async', loading: 'lazy',
       title: possedees.has(id)
-        ? `${piece.fr} — deja dans votre inventaire, rien a acheter`
-        : `${piece.fr} — a acheter`,
+        ? `${piece.fr} — déjà dans votre inventaire, rien à acheter`
+        : `${piece.fr} — à acheter`,
     }));
 }
 const signe = (v) => `${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v)).toLocaleString('fr-FR')}`;
@@ -76,44 +76,44 @@ export function renderReglageProximite(racine, etat, actions) {
         el('button', { class: 'primaire', type: 'button', text: 'Figer mon stuff actuel',
           disabled: portees === 0,
           title: portees === 0
-            ? 'Posez d\'abord les pieces que vous portez en jeu'
-            : 'Fige les pieces portees comme reference. Le solveur comptera\n'
+            ? 'Posez d\'abord les pièces que vous portez en jeu'
+            : 'Fige les pièces portées comme référence. Le solveur comptera\n'
               + 'ensuite ce que chaque build demande d\'acheter.',
           onClick: actions.onFiger }),
         el('span', { class: 'note',
           text: portees === 0
             ? 'Posez votre stuff en jeu, puis figez-le.'
-            : `${portees} piece(s) posee(s). Une fois figees, elles ne bougent plus.` })),
+            : `${portees} pièce(s) posée(s). Une fois figées, elles ne bougent plus.` })),
     );
     return;
   }
 
   racine.replaceChildren(
     el('div', { class: 'proximite-barre' },
-      el('span', { class: 'jeton', title: `Reference figee le ${quand(reference.date)}`,
-        text: `${reference.itemIds.length} piece(s) de reference` }),
+      el('span', { class: 'jeton', title: `Référence figée le ${quand(reference.date)}`,
+        text: `${reference.itemIds.length} pièce(s) de référence` }),
 
       el('label', { class: 'proximite-max', title:
-        'Pieces que le solveur peut vous demander d\'acheter, au plus.\n'
-        + 'Zero : aucune limite. Une piece deja portee ou marquee comme\n'
-        + 'possedee ne compte pas.' },
-        el('span', { text: 'A changer (max)' }),
+        'Pièces que le solveur peut vous demander d\'acheter, au plus.\n'
+        + 'Zéro : aucune limite. Une pièce déjà portée ou marquee comme\n'
+        + 'possédée ne compte pas.' },
+        el('span', { text: 'À changer (max)' }),
         el('input', { type: 'number', min: '0', max: '16', value: String(max),
           onChange: (ev) => actions.onMax(Math.max(0, Number(ev.target.value) || 0)) })),
 
       possedees > 0
         ? el('span', { class: 'jeton banque',
-            title: `${possedees} piece(s) marquees comme possedees : elles ne comptent `
-              + 'pas parmi les pieces a acheter',
+            title: `${possedees} pièce(s) marquees comme possédées : elles ne comptent `
+              + 'pas parmi les pièces à acheter',
             text: `${possedees} en banque` })
         : null,
 
       el('button', { class: 'mini', type: 'button', text: 'Reprendre',
-        title: 'Repose le stuff de reference sur le personnage',
+        title: 'Repose le stuff de référence sur le personnage',
         onClick: actions.onReprendre }),
 
       el('button', { class: 'mini', type: 'button', text: 'Oublier',
-        title: 'Enleve la reference. Le solveur cherche de nouveau librement.',
+        title: 'Enleve la référence. Le solveur cherche de nouveau librement.',
         onClick: actions.onOublier })),
   );
 }
@@ -218,36 +218,36 @@ export function renderPaliers(racine, paliers, options) {
         : null,
       el('div', { class: `palier-cout ${palier.changements === 0 ? 'gratuit' : ''}`.trim(),
         title: palier.changements === 0
-          ? 'Aucun achat : vos pieces, mieux reparties ou mieux placees'
-          : `${palier.changements} piece(s) a acheter` },
+          ? 'Aucun achat : vos pièces, mieux réparties ou mieux placées'
+          : `${palier.changements} pièce(s) à acheter` },
         el('strong', { text: String(palier.changements) }),
         el('span', { text: palier.changements > 1 ? 'pieces' : 'piece' })),
 
       el('div', { class: 'palier-corps' },
         el('div', { class: 'palier-tete' },
-          el('span', { class: 'palier-degats', title: 'Degats de ce build',
-            text: `${entier(palier.damage ?? 0)} degats` }),
+          el('span', { class: 'palier-degats', title: 'Dégâts de ce build',
+            text: `${entier(palier.damage ?? 0)} dégâts` }),
 
           gain === null ? null : el('span', {
             class: `palier-gain ${gain >= 0 ? 'pos' : 'neg'}`,
-            title: 'Degats gagnes face a votre stuff de reference.\n'
-              + 'Les points de caracteristique sont reoptimises pour chaque\n'
-              + 'build : une partie du gain peut ne rien couter du tout.',
-            text: `${signe(gain)} degats` }),
+            title: 'Dégâts gagnes face à votre stuff de référence.\n'
+              + 'Les points de caractéristique sont réoptimisés pour chaque\n'
+              + 'build : une partie du gain peut ne rien coûter du tout.',
+            text: `${signe(gain)} dégâts` }),
 
           redresse
             ? el('span', { class: 'palier-marque',
                 title: 'Votre stuff laisse un minimum non tenu ; ce stuff les tient tous',
-                text: 'minimums redresses' })
+                text: 'minimums redressés' })
             : null),
 
         aAcheter.length === 0
           ? el('div', { class: 'note',
-              text: 'Aucun achat : vos pieces, avec une meilleure repartition des points.' })
+              text: 'Aucun achat : vos pièces, avec une meilleure répartition des points.' })
           : el('div', { class: 'palier-pieces' }, aAcheter)),
 
       el('button', { class: 'mini large', type: 'button', text: 'Porter',
-        title: 'Pose ce build et sa repartition de points',
+        title: 'Pose ce build et sa répartition de points',
         onClick: () => onPorter(palier) }),
     );
   };
@@ -265,8 +265,8 @@ export function renderPaliers(racine, paliers, options) {
 
   racine.replaceChildren(
     el('p', { class: 'note',
-      text: 'Chaque ligne montre les degats que vous gagnez en achetant ce nombre '
-        + 'de pieces. Les points de caracteristique suivent le build.' }),
+      text: 'Chaque ligne montre les dégâts que vous gagnez en achetant ce nombre '
+        + 'de pièces. Les points de caractéristique suivent le build.' }),
     el('div', { class: 'paliers' },
       // La premiere ligne est le point de depart : votre stuff tel que vous le
       // portez aujourd'hui. Sans elle, les gains n'ont pas d'origine lisible.
@@ -278,13 +278,13 @@ export function renderPaliers(racine, paliers, options) {
             el('div', { class: 'palier-corps' },
               el('div', { class: 'palier-tete' },
                 el('span', { class: 'palier-degats',
-                  text: `${entier(reference.damage ?? 0)} degats` }),
+                  text: `${entier(reference.damage ?? 0)} dégâts` }),
                 reference.satisfied
                   ? null
                   : el('span', { class: 'palier-marque defaut',
                       title: 'Un minimum au moins n\'est pas tenu par votre stuff',
                       text: 'minimums non tenus' })),
-              el('div', { class: 'note', text: 'Votre stuff de reference, points actuels.' })),
+              el('div', { class: 'note', text: 'Votre stuff de référence, points actuels.' })),
             el('span', {}))
         : null,
       utiles.map(ligne)),
@@ -305,7 +305,7 @@ export function renderPaliers(racine, paliers, options) {
 function diagnostic(paliers, reference, max) {
   if (paliers.length === 0) {
     return el('p', { class: 'note',
-      text: 'Aucun palier trouve. Figez votre stuff, puis lancez une recherche.' });
+      text: 'Aucun palier trouvé. Figez votre stuff, puis lancez une recherche.' });
   }
 
   // La limite mord vraiment quand le solveur butait dessus : le palier le plus
@@ -313,13 +313,13 @@ function diagnostic(paliers, reference, max) {
   const plusCher = Math.max(...paliers.map((p) => p.changements ?? 0));
   if (max > 0 && plusCher >= max) {
     return el('p', { class: 'note',
-      text: `Aucun build a ${max} piece(s) changee(s) ou moins ne fait mieux que `
+      text: `Aucun build a ${max} pièce(s) changée(s) ou moins ne fait mieux que `
         + 'votre stuff. Montez la limite pour ouvrir le choix.' });
   }
 
   return el('p', { class: 'note',
-    text: 'Votre stuff de reference est deja le meilleur build que la recherche ait '
-      + 'trouve : il n\'y a rien a acheter. Pour voir ce que chaque achat '
+    text: 'Votre stuff de référence est déjà le meilleur build que la recherche ait '
+      + 'trouve : il n\'y a rien à acheter. Pour voir ce que chaque achat '
       + 'rapporterait, figez votre stuff de jeu AVANT de lancer une recherche.' });
 }
 
@@ -346,30 +346,30 @@ function equivalences(paliers, reference, contexte) {
   if (proches.length === 0) return el('span', {});
 
   return el('div', {},
-    el('h3', { class: 'sous-titre', text: 'Alternatives a valeur egale' }),
+    el('h3', { class: 'sous-titre', text: 'Alternatives a valeur égale' }),
     el('p', { class: 'note',
-      text: 'Elles ne rapportent pas de degats, mais elles changent les pieces : '
-        + 'utile quand une piece est trop chere ou introuvable.' }),
+      text: 'Elles ne rapportent pas de dégâts, mais elles changent les pièces : '
+        + 'utile quand une pièce est trop chère ou introuvable.' }),
     el('div', { class: 'paliers' }, proches.map((palier) => {
       const aAcheter = vignettes(palier, contexte);
       const { gain } = apport(palier, reference);
 
       return el('div', { class: 'palier' },
-        el('div', { class: 'palier-cout', title: `${palier.changements} piece(s) a acheter` },
+        el('div', { class: 'palier-cout', title: `${palier.changements} pièce(s) à acheter` },
           el('strong', { text: String(palier.changements) }),
           el('span', { text: palier.changements > 1 ? 'pieces' : 'piece' })),
 
         el('div', { class: 'palier-corps' },
           el('div', { class: 'palier-tete' },
-            el('span', { class: 'palier-degats', text: `${entier(palier.damage ?? 0)} degats` }),
+            el('span', { class: 'palier-degats', text: `${entier(palier.damage ?? 0)} dégâts` }),
             gain === null ? null : el('span', {
               class: `palier-gain ${gain >= 0 ? 'pos' : 'neg'}`,
-              title: 'Degats perdus face a votre stuff de reference',
-              text: `${signe(gain)} degats` })),
+              title: 'Dégâts perdus face à votre stuff de référence',
+              text: `${signe(gain)} dégâts` })),
           el('div', { class: 'palier-pieces' }, aAcheter)),
 
         el('button', { class: 'mini large', type: 'button', text: 'Porter',
-          title: 'Pose ce build et sa repartition de points',
+          title: 'Pose ce build et sa répartition de points',
           onClick: () => onPorter(palier) }));
     })));
 }

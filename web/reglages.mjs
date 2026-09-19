@@ -30,80 +30,80 @@ export const GROUPES_OPTIONS = Object.freeze([
 
 /** Options de calcul proposees. */
 export const OPTIONS = Object.freeze([
-  { cle: 'distance', groupe: 'degats', libelle: 'Degats a distance',
-    aide: 'Coche : les coups comptent a distance. Decoche : ils comptent en melee.' },
-  { cle: 'arme', groupe: 'arme', libelle: 'Degats de l\'arme',
-    aide: 'Ajoute les degats de l\'arme equipee au total optimise.\n'
+  { cle: 'distance', groupe: 'degats', libelle: 'Dégâts à distance',
+    aide: 'Coche : les coups comptent à distance. Décoche : ils comptent en mêlée.' },
+  { cle: 'arme', groupe: 'arme', libelle: 'Dégâts de l\'arme',
+    aide: 'Ajoute les dégâts de l\'arme équipée au total optimise.\n'
       + 'L\'arme frappe autant de fois que ses utilisations par tour.' },
   { cle: 'armePaMin', groupe: 'arme', libelle: 'PA de l\'arme (min)', type: 'nombre', min: 0, max: 12,
-    aide: 'Le solveur ne propose que des armes qui coutent au moins ce nombre de PA.\n'
-      + 'Zero : aucune limite. Une arme chere frappe fort : ce plancher ecarte\n'
+    aide: 'Le solveur ne propose que des armes qui coûtent au moins ce nombre de PA.\n'
+      + 'Zéro : aucune limite. Une arme chère frappe fort : ce plancher ecarte\n'
       + 'les petites armes quand les PA sont la pour elle.' },
   { cle: 'armePaMax', groupe: 'arme', libelle: 'PA de l\'arme (max)', type: 'nombre', min: 0, max: 12,
-    aide: 'Le solveur ne propose que des armes qui coutent au plus ce nombre de PA.\n'
-      + 'Zero : aucune limite. Une arme chere prend le tour aux sorts.' },
+    aide: 'Le solveur ne propose que des armes qui coûtent au plus ce nombre de PA.\n'
+      + 'Zéro : aucune limite. Une arme chère prend le tour aux sorts.' },
   { cle: 'armeLancersMin', groupe: 'arme', libelle: 'Lancers de l\'arme (min)', type: 'nombre', min: 0, max: 4,
     aide: 'Le solveur ne propose que des armes qui frappent au moins ce nombre\n'
-      + 'de fois par tour. Zero ou un : aucune limite.' },
-  { cle: 'armePortee', groupe: 'arme', libelle: 'Portee de l\'arme', type: 'liste',
+      + 'de fois par tour. Zéro ou un : aucune limite.' },
+  { cle: 'armePortee', groupe: 'arme', libelle: 'Portée de l\'arme', type: 'liste',
     choix: [
       { valeur: '', nom: 'Indifferente' },
-      { valeur: 'melee', nom: 'Corps a corps' },
+      { valeur: 'melee', nom: 'Corps à corps' },
       { valeur: 'distance', nom: 'A distance' },
     ],
-    aide: 'Le solveur ne propose que des armes de cette portee.\n'
-      + 'Une arme de portee superieure a une case frappe a distance :\n'
-      + 'arcs, baguettes et dagues longues. Le calcul suit deja l\'arme choisie,\n'
-      + 'ce reglage ne fait que restreindre le choix.' },
-  { cle: 'armePorteeMin', groupe: 'arme', libelle: 'Portee de l\'arme (min)', type: 'nombre', min: 0, max: 20,
+    aide: 'Le solveur ne propose que des armes de cette portée.\n'
+      + 'Une arme de portée supérieure a une case frappe à distance :\n'
+      + 'arcs, baguettes et dagues longues. Le calcul suit déjà l\'arme choisie,\n'
+      + 'ce réglage ne fait que restreindre le choix.' },
+  { cle: 'armePorteeMin', groupe: 'arme', libelle: 'Portée de l\'arme (min)', type: 'nombre', min: 0, max: 20,
     aide: 'Le solveur ne propose que des armes qui atteignent au moins ce nombre\n'
       + 'de cases. Trois pour une arme qui frappe jusqu\'a 3 PO.\n'
-      + 'Zero : aucune limite.' },
-  { cle: 'armeElementsMin', groupe: 'arme', libelle: 'Elements de l\'arme (min)', type: 'nombre', min: 0, max: 5,
+      + 'Zéro : aucune limite.' },
+  { cle: 'armeElementsMin', groupe: 'arme', libelle: 'Éléments de l\'arme (min)', type: 'nombre', min: 0, max: 5,
     aide: 'Le solveur ne propose que des armes qui frappent au moins ce nombre\n'
-      + 'd\'elements differents. Trois pour une arme feu, eau et air.\n'
-      + 'Zero : aucune limite.' },
-  { cle: 'armeElementsMax', groupe: 'arme', libelle: 'Elements de l\'arme (max)', type: 'nombre', min: 0, max: 5,
+      + 'd\'éléments différents. Trois pour une arme feu, eau et air.\n'
+      + 'Zéro : aucune limite.' },
+  { cle: 'armeElementsMax', groupe: 'arme', libelle: 'Éléments de l\'arme (max)', type: 'nombre', min: 0, max: 5,
     aide: 'Le solveur ne propose que des armes qui frappent au plus ce nombre\n'
-      + 'd\'elements differents. Un pour une arme mono-element, qui profite\n'
-      + 'pleinement d\'une seule caracteristique. Zero : aucune limite.' },
-  { cle: 'maitriseArme', groupe: 'degats', libelle: 'Maitrise d\'arme',
-    aide: 'Compte le bonus de maitrise d\'arme : de 300 a 360 de puissance\n'
+      + 'd\'éléments différents. Un pour une arme mono-élément, qui profite\n'
+      + 'pleinement d\'une seule caractéristique. Zéro : aucune limite.' },
+  { cle: 'maitriseArme', groupe: 'degats', libelle: 'Maîtrise d\'arme',
+    aide: 'Compte le bonus de maîtrise d\'arme : de 300 a 360 de puissance\n'
       + 'sur les coups d\'arme, selon le taux critique.' },
-  { cle: 'passifs', groupe: 'degats', libelle: 'Passifs Dofus & Legendaires',
-    aide: 'Compte les passifs en combat des Dofus et objets legendaires' },
+  { cle: 'passifs', groupe: 'degats', libelle: 'Passifs Dofus & Légendaires',
+    aide: 'Compte les passifs en combat des Dofus et objets légendaires' },
   { cle: 'cibleTelefrag', groupe: 'degats', libelle: 'Cible telefrag (Xelor)',
     aide: 'Compte les bonus des sorts quand la cible est telefrag :\n'
-      + 'Horloge et Rayon Obscur frappent plus fort, Fletrissement monte a chaque\n'
+      + 'Horloge et Rayon Obscur frappent plus fort, Flétrissement monte a chaque\n'
       + 'lancer, Ralentissement vole 1 PA (dans le combo).' },
   { cle: 'toursSuivants', groupe: 'degats', libelle: 'Sorts des tours suivants',
-    aide: 'Compte les degats qui touchent aux tours suivants (Gousset, Sablier de Xelor,\n'
-      + 'Fleche Devorante…). Decoche : seuls les degats du tour courant comptent.' },
+    aide: 'Compte les dégâts qui touchent aux tours suivants (Gousset, Sablier de Xelor,\n'
+      + 'Flèche Dévorante…). Décoche : seuls les dégâts du tour courant comptent.' },
   { cle: 'combo', groupe: 'combo', libelle: 'Optimisateur de combo de sorts',
-    aide: 'Choisit le meilleur enchainement de lancers sous le budget de PA du build.\n'
-      + 'Le premier lancer d\'un sort qui genere un telefrag rend 2 PA.' },
+    aide: 'Choisit le meilleur enchaînement de lancers sous le budget de PA du build.\n'
+      + 'Le premier lancer d\'un sort qui génère un telefrag rend 2 PA.' },
   { cle: 'paReserves', groupe: 'combo', libelle: 'PA a enlever', type: 'nombre', min: 0, max: 11,
-    aide: 'PA gardes hors du combo (deplacement, sorts utilitaires).\n'
+    aide: 'PA gardés hors du combo (déplacement, sorts utilitaires).\n'
       + 'Exemple : 12 PA et 2 PA enleves donnent un budget de 10 PA.' },
-  { cle: 'comboElements', groupe: 'combo', libelle: 'Elements distincts (min)', type: 'nombre', min: 0, max: 4,
-    aide: 'Le combo doit toucher au moins ce nombre d\'elements differents.\n'
+  { cle: 'comboElements', groupe: 'combo', libelle: 'Éléments distincts (min)', type: 'nombre', min: 0, max: 4,
+    aide: 'Le combo doit toucher au moins ce nombre d\'éléments différents.\n'
       + 'Si le budget ne le permet pas, le combo couvre le maximum possible.' },
   { cle: 'comboUnLancer', groupe: 'combo', libelle: '1 seul lancer par sort',
     aide: 'Coche : le combo lance chaque sort au plus une fois.\n'
-      + 'La case « 1 max au combo » d\'un sort donne la meme limite, sort par sort.' },
-  { cle: 'menaceCoup', groupe: 'defense', libelle: 'Coup de reference', type: 'nombre', min: 50, max: 2000,
-    aide: 'Degats bruts du coup type que vous prenez. Il sert a peser vos\n'
-      + 'resistances fixes dans les « Pdv effectifs » : 30 de resistance fixe\n'
+      + 'La case « 1 max au combo » d\'un sort donne la même limite, sort par sort.' },
+  { cle: 'menaceCoup', groupe: 'defense', libelle: 'Coup de référence', type: 'nombre', min: 50, max: 2000,
+    aide: 'Dégâts bruts du coup type que vous prenez. Il sert a peser vos\n'
+      + 'résistances fixes dans les « Pdv effectifs » : 30 de résistance fixe\n'
       + 'enleve 10 % d\'un coup de 300, mais 20 % d\'un coup de 150.\n'
       + 'Baissez-le si vous prenez beaucoup de petits coups.' },
-  { cle: 'menacePlafond', groupe: 'defense', libelle: 'Plafond de resistance (%)', type: 'nombre', min: 0, max: 100,
-    aide: 'Le jeu plafonne chaque resistance en pourcentage a 50 pour un joueur.\n'
-      + 'Au-dela, le calcul ignore le surplus. Montez-le a 60 si vous voulez\n'
-      + 'garder une marge contre les vulnerabilites.' },
-  { cle: 'menacePosition', groupe: 'defense', libelle: 'Compter melee et distance',
-    aide: 'Compte vos resistances melee et distance, moitie chacune : votre\n'
-      + 'adversaire frappe tantot au contact, tantot de loin.\n'
-      + 'Decoche : seuls les cinq elements comptent.' },
+  { cle: 'menacePlafond', groupe: 'defense', libelle: 'Plafond de résistance (%)', type: 'nombre', min: 0, max: 100,
+    aide: 'Le jeu plafonné chaque résistance en pourcentage a 50 pour un joueur.\n'
+      + 'Au-delà, le calcul ignore le surplus. Montez-le a 60 si vous voulez\n'
+      + 'garder une marge contre les vulnérabilités.' },
+  { cle: 'menacePosition', groupe: 'defense', libelle: 'Compter mêlée et distance',
+    aide: 'Compte vos résistances mêlée et distance, moitié chacune : votre\n'
+      + 'adversaire frappe tantôt au contact, tantôt de loin.\n'
+      + 'Décoche : seuls les cinq éléments comptent.' },
 ]);
 
 /** Options numeriques qui n'ont de sens que quand le combo est actif. */

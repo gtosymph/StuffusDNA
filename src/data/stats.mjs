@@ -21,12 +21,12 @@ export const ELEMENT_CHARACTERISTIC = Object.freeze({
  */
 export const STATS = Object.freeze([
   // Caracteristiques primaires
-  { key: 'vitalite', fr: 'Vitalite', category: 'caracteristiques' },
+  { key: 'vitalite', fr: 'Vitalité', category: 'caracteristiques' },
   { key: 'sagesse', fr: 'Sagesse', category: 'caracteristiques' },
   { key: 'force', fr: 'Force', category: 'caracteristiques' },
   { key: 'intelligence', fr: 'Intelligence', category: 'caracteristiques' },
   { key: 'chance', fr: 'Chance', category: 'caracteristiques' },
-  { key: 'agilite', fr: 'Agilite', category: 'caracteristiques' },
+  { key: 'agilite', fr: 'Agilité', category: 'caracteristiques' },
   { key: 'puissance', fr: 'Puissance', category: 'caracteristiques' },
 
   // Principales
@@ -60,32 +60,32 @@ export const STATS = Object.freeze([
   { key: 'dommagesEau', fr: 'Dommages Eau', category: 'dommages' },
   { key: 'dommagesAir', fr: 'Dommages Air', category: 'dommages' },
   { key: 'dommagesCritiques', fr: 'Dommages Critiques', category: 'dommages' },
-  { key: 'dommagesPoussee', fr: 'Dommages Poussee', category: 'dommages' },
+  { key: 'dommagesPoussee', fr: 'Dommages Poussée', category: 'dommages' },
 
   // Dommages en pourcentage
   { key: 'pctDommagesFinaux', fr: '% Dommages finaux', category: 'dommages' },
   { key: 'pctDommagesArmes', fr: '% Dommages Armes', category: 'dommages' },
   { key: 'pctDommagesSorts', fr: '% Dommages Sorts', category: 'dommages' },
-  { key: 'pctDommagesMelee', fr: '% Dommages Melee', category: 'dommages' },
+  { key: 'pctDommagesMelee', fr: '% Dommages Mêlée', category: 'dommages' },
   { key: 'pctDommagesDistance', fr: '% Dommages Distance', category: 'dommages' },
 
   // Resistances fixes
-  { key: 'resNeutre', fr: 'Resistance Neutre', category: 'resistances' },
-  { key: 'resTerre', fr: 'Resistance Terre', category: 'resistances' },
-  { key: 'resFeu', fr: 'Resistance Feu', category: 'resistances' },
-  { key: 'resEau', fr: 'Resistance Eau', category: 'resistances' },
-  { key: 'resAir', fr: 'Resistance Air', category: 'resistances' },
-  { key: 'resCritique', fr: 'Resistance Critique', category: 'resistances' },
-  { key: 'resPoussee', fr: 'Resistance Poussee', category: 'resistances' },
+  { key: 'resNeutre', fr: 'Résistance Neutre', category: 'resistances' },
+  { key: 'resTerre', fr: 'Résistance Terre', category: 'resistances' },
+  { key: 'resFeu', fr: 'Résistance Feu', category: 'resistances' },
+  { key: 'resEau', fr: 'Résistance Eau', category: 'resistances' },
+  { key: 'resAir', fr: 'Résistance Air', category: 'resistances' },
+  { key: 'resCritique', fr: 'Résistance Critique', category: 'resistances' },
+  { key: 'resPoussee', fr: 'Résistance Poussée', category: 'resistances' },
 
   // Resistances en pourcentage
-  { key: 'pctResNeutre', fr: '% Resistance Neutre', category: 'resistances' },
-  { key: 'pctResTerre', fr: '% Resistance Terre', category: 'resistances' },
-  { key: 'pctResFeu', fr: '% Resistance Feu', category: 'resistances' },
-  { key: 'pctResEau', fr: '% Resistance Eau', category: 'resistances' },
-  { key: 'pctResAir', fr: '% Resistance Air', category: 'resistances' },
-  { key: 'pctResMelee', fr: '% Resistance Melee', category: 'resistances' },
-  { key: 'pctResDistance', fr: '% Resistance Distance', category: 'resistances' },
+  { key: 'pctResNeutre', fr: '% Résistance Neutre', category: 'resistances' },
+  { key: 'pctResTerre', fr: '% Résistance Terre', category: 'resistances' },
+  { key: 'pctResFeu', fr: '% Résistance Feu', category: 'resistances' },
+  { key: 'pctResEau', fr: '% Résistance Eau', category: 'resistances' },
+  { key: 'pctResAir', fr: '% Résistance Air', category: 'resistances' },
+  { key: 'pctResMelee', fr: '% Résistance Mêlée', category: 'resistances' },
+  { key: 'pctResDistance', fr: '% Résistance Distance', category: 'resistances' },
 ]);
 
 /** Cles de toutes les statistiques. */
@@ -99,7 +99,7 @@ export const STAT_KEYS = Object.freeze(STATS.map((stat) => stat.key));
  * aucun item ne les donne, et le gabarit n'a pas a leur reserver une case.
  */
 export const LIBELLES_CALCULES = Object.freeze({
-  degatsTotaux: 'Degats totaux',
+  degatsTotaux: 'Dégâts totaux',
 });
 
 /** Libelle francais par cle. */

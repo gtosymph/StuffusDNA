@@ -50,7 +50,7 @@ import { creerGestesReference } from '../gestes-reference.mjs';
 import { creerPont } from './pont.mjs';
 import { icone } from './icones.mjs';
 import { renderClasses } from './accueil.mjs';
-import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
+import { FAMILLE_CARACTERISTIQUES, lignesCompletes, lignesEssentielles } from './fiche.mjs';
 import { garderSignature, reglagesChanges, reprendreSignature } from './peremption.mjs';
 import { ouvrirIdentite } from './identite.mjs';
 import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
@@ -166,7 +166,7 @@ function setEtat(patch) {
 function annuler() {
   const precedent = passe.pop();
   if (!precedent) {
-    message('Rien a annuler.');
+    message('Rien à annuler.');
     return;
   }
   etat = precedent;
@@ -177,7 +177,7 @@ function annuler() {
 /** Enleve toutes les pieces portees. L'annulation les repose. */
 function vider() {
   setEtat({ equipped: new Map(), posees: new Set() });
-  message('Toutes les pieces sont enlevees. Ctrl+Z les repose.');
+  message('Toutes les pièces sont enlevées. Ctrl+Z les repose.');
 }
 
 function message(texte, type = 'info') {
@@ -298,12 +298,12 @@ function renderArret() {
 
   bouton.disabled = cherche ? false : passe.length === 0;
   bouton.title = cherche
-    ? 'Coupe la recherche net. Contrairement a la pause, elle ne rend rien : '
+    ? 'Coupe la recherche net. Contrairement à la pause, elle ne rend rien : '
       + 'ce que les fils avaient en main est perdu.'
-    : 'Annule la derniere action (Ctrl+Z)';
+    : 'Annule la dernière action (Ctrl+Z)';
   bouton.replaceChildren(
     icone(cherche ? 'stop' : 'annuler'),
-    el('span', { text: cherche ? 'Arreter' : 'Annuler' }));
+    el('span', { text: cherche ? 'Arrêter' : 'Annuler' }));
 }
 
 function renderIdentite() {
@@ -341,12 +341,12 @@ function renderVerdict(stats, degats) {
   $('degats-sans-sorts').hidden = degats !== null;
   $('degats-avec-sorts').hidden = degats === null;
   if (degats !== null) {
-    $('degats-phrase').textContent = `Vos sorts envoient ${nombre(degats)} degats sur un tour.`;
+    $('degats-phrase').textContent = `Vos sorts envoient ${nombre(degats)} dégâts sur un tour.`;
   }
 
   const pdv = Number(stats.pdvEffectifs) || 0;
   $('v-pdv').textContent = nombre(pdv);
-  $('pdv-phrase').textContent = `Vous encaissez ${nombre(pdv)} degats bruts avant de tomber.`;
+  $('pdv-phrase').textContent = `Vous encaissez ${nombre(pdv)} dégâts bruts avant de tomber.`;
 
   const rangees = rangerOptions(optionsAffichees(etat.options));
   renderOptions($('options-degats'), rangees.degats, poserOption);
@@ -361,7 +361,7 @@ function renderVerdict(stats, degats) {
   $('v-achats').textContent = aAcheter === null ? '—' : nombre(aAcheter);
   $('achats-phrase').textContent = aAcheter === null
     ? 'Dites-moi quel stuff vous portez pour compter les achats.'
-    : 'face a votre stuff actuel';
+    : 'face à votre stuff actuel';
 }
 
 function renderObjectif() {
@@ -376,7 +376,7 @@ function renderObjectif() {
   }, texte)));
 
   $('aide-objectif').textContent = muet
-    ? 'Sans sort, la recherche monte vos caracteristiques. Choisissez des sorts '
+    ? 'Sans sort, la recherche monte vos caractéristiques. Choisissez des sorts '
       + 'pour arbitrer entre frapper et encaisser.'
     : 'La recherche fait monter cette mesure et tient les minimums demandes.';
 }
@@ -403,7 +403,7 @@ function renderMelangeOuPas(bilan, stats) {
     onPart: (part) => setEtat({ partDegats: part }),
     onChoisir: (palier, part) => {
       recherche.porterAlaMain(palier, { partDegats: part });
-      message(`Stuff porte : ${nombre(Math.floor(palier.damage))} de degats, `
+      message(`Stuff porté : ${nombre(Math.floor(palier.damage))} de dégâts, `
         + `${nombre(Math.floor(palier.endurance))} pdv effectifs.`);
     },
   });
@@ -424,7 +424,7 @@ function renderSorts() {
   $('etat-combo').textContent = resumeCombo(etat.options);
   $('aide-sorts').replaceChildren(
     ...(sorts.length ? [] : [
-      'Aucun sort. L\'outil n\'en pose aucun d\'office : un chiffre de degats '
+      'Aucun sort. L\'outil n\'en pose aucun d\'office : un chiffre de dégâts '
         + 'faux vaut moins que pas de chiffre.',
       el('br'),
     ]),
@@ -452,17 +452,17 @@ function renderAvoir(stats, degats) {
         : gestesReference.figerReference()),
       title: aUneReference
         ? 'Oublier ce stuff : le solveur cherchera sans compter les achats.'
-        : 'Figer le stuff porte comme celui que vous avez en jeu. Les pieces '
+        : 'Figer le stuff porté comme celui que vous avez en jeu. Les pièces '
           + 'que le solveur propose se comptent alors en achats.',
     }),
-    ligne('Pieces en banque', etat.possedees.size,
+    ligne('Pièces en banque', etat.possedees.size,
       { onClick: () => basculerPalette(liensPalette),
-        title: 'Marquer les pieces que vous avez deja.' }),
-    ligne('Pieces interdites', etat.bannis.size,
+        title: 'Marquer les pièces que vous avez déjà.' }),
+    ligne('Pièces interdites', etat.bannis.size,
       { onClick: () => basculerPalette(liensPalette),
-        title: 'Une piece interdite ne sera plus proposee.' }));
+        title: 'Une pièce interdite ne sera plus proposée.' }));
 
-  $('ouvrir-palette').replaceChildren('Toutes les pieces',
+  $('ouvrir-palette').replaceChildren('Toutes les pièces',
     el('span', { class: 'raccourci', text: raccourciPalette() }));
 
   // Un minimum se lit a cote de la valeur que le MOTEUR lui compare, pas de
@@ -515,7 +515,7 @@ function renderTrouves(bilan) {
     selection: {
       choisis,
       onBasculer: (candidat) => basculerChoisi(candidat,
-        `Trouve ${candidats.indexOf(candidat) + 1}`),
+        `Trouvé ${candidats.indexOf(candidat) + 1}`),
     },
   });
 }
@@ -525,7 +525,7 @@ function renderComparer() {
   const bouton = $('comparer');
   bouton.hidden = choisis.size === 0;
   bouton.textContent = `Comparer ${choisis.size + 1}`;
-  bouton.title = 'Compare le stuff porte et les stuffs coches, d\'ou qu\'ils viennent.';
+  bouton.title = 'Compare le stuff porté et les stuffs cochés, d\'où qu\'ils viennent.';
 }
 
 /**
@@ -561,13 +561,13 @@ function renderProximite() {
     possedees: etat.possedees,
     onPorter: (palier) => {
       recherche.porterAlaMain(palier);
-      message(`Stuff porte : ${palier.changements} piece(s) a acheter, `
-        + `${nombre(Math.floor(palier.damage))} de degats.`);
+      message(`Stuff porté : ${palier.changements} pièce(s) à acheter, `
+        + `${nombre(Math.floor(palier.damage))} de dégâts.`);
     },
     selection: {
       choisis,
       onBasculer: (palier) => basculerChoisi(palier,
-        `${palier.changements} piece(s)`),
+        `${palier.changements} pièce(s)`),
     },
   });
 }
@@ -620,7 +620,7 @@ function renderAnalyseDuStuff(bilan, stats) {
       },
       onRemplacer: (proposition) => {
         setEtat(remplacer(etat, proposition.actuel, proposition.remplacant));
-        message(`${proposition.remplacant.fr} posee`
+        message(`${proposition.remplacant.fr} posée`
           + `${proposition.actuel ? ` a la place de ${proposition.actuel.fr}` : ''}.`);
       },
     });
@@ -629,17 +629,18 @@ function renderAnalyseDuStuff(bilan, stats) {
 function renderInspecteur(stats, degats) {
   const minimums = etat.conditions.map((c) => c.stat);
   const lignes = toutVoir
-    ? lignesCompletes(stats, new Set(minimums))
-    : lignesEssentielles(stats, minimums, { degats, pdvEffectifs: Number(stats.pdvEffectifs) || 0 });
+    ? lignesCompletes(stats, new Set(minimums), etat.allocation)
+    : lignesEssentielles(stats, minimums,
+        { degats, pdvEffectifs: Number(stats.pdvEffectifs) || 0 }, etat.allocation);
 
   $('tete-quoi').textContent = toutVoir ? 'Tout voir' : 'La fiche';
-  $('tete-note').textContent = 'stuff porte';
+  $('tete-note').textContent = 'stuff porté';
 
   const noeud = (l) => (l.famille
     ? el('p', { class: 'famille' }, l.famille,
-        l.famille === 'Caracteristiques'
+        l.famille === FAMILLE_CARACTERISTIQUES
           ? el('button', {
-              class: 'btn mini fantome', type: 'button', text: 'Repartir mes points',
+              class: 'btn mini fantome', type: 'button', text: 'Répartir mes points',
               onClick: () => ouvrirPoints({
                 lireEtat, setEtat, lireStats: () => buildCourant(etat, catalogue)?.stats ?? null,
               }),
@@ -652,12 +653,25 @@ function renderInspecteur(stats, degats) {
         class: `ligne ${l.exigee || l.sousMinimum ? 'exigee' : ''}`.trim(), type: 'button',
         ...(l.muet ? { disabled: true } : {}),
         title: l.exigee || l.sousMinimum
-          ? `${l.libelle} est deja dans vos minimums.`
+          ? `${l.libelle} est déjà dans vos minimums.`
           : `Garder au moins ${nombre(l.valeur)} de ${l.libelle.toLowerCase()}.`,
         onClick: () => poserMinimum(l.cle, l.valeur),
       },
         el('img', { class: 'ligne-icone', src: iconeStat(l.cle) ?? '', alt: '', decoding: 'async' }),
         el('span', { class: 'ligne-nom', text: l.libelle }),
+        // Ce que la repartition des points apporte, juste devant le total.
+        // Une Force a 520 ne dit pas d'ou elle vient : le stuff en donne une
+        // part, les parchemins une autre, et les points le reste — et c'est
+        // ce dernier que le joueur a choisi, donc le seul qu'il peut reprendre.
+        // La colonne existe meme vide : sans elle, les totaux des lignes sans
+        // parenthese se calent une colonne plus tot, et la fiche perd son
+        // alignement au premier point investi.
+        el('span', { class: 'ligne-investi n',
+          ...(l.investi ? {
+            text: `(${nombre(l.investi)})`,
+            title: `${nombre(l.investi)} de ${l.libelle.toLowerCase()} viennent de `
+              + `votre répartition, pour ${nombre(l.coutInvesti)} point(s) dépensés.`,
+          } : {}) }),
         // Une resistance porte deux chiffres : le brut et le pourcentage. Ils
         // ne se lisent jamais l'un sans l'autre.
         l.pourcent === null || l.pourcent === undefined
@@ -720,7 +734,7 @@ function renderFraicheur() {
     ...(perime ? [el('span', { class: 'puce' })] : [icone('play')]),
     el('span', { text: perime ? 'Relancer' : 'Chercher' }));
   bouton.title = perime
-    ? 'Un reglage a bouge depuis la derniere recherche : ce qui est montre '
+    ? 'Un réglage a bougé depuis la dernière recherche : ce qui est montré '
       + 'repond a la question d\'avant.'
     : '';
 }
@@ -795,7 +809,7 @@ function remplirListesSets() {
     const jeux = lireSets(nature);
 
     noeud.replaceChildren(...(jeux.length === 0
-      ? [el('option', { value: '', text: 'aucun jeu enregistre' })]
+      ? [el('option', { value: '', text: 'aucun jeu enregistré' })]
       : jeux.map((j) => el('option', { value: j.nom, text: j.nom }))));
 
     if (choisi && jeux.some((j) => j.nom === choisi)) noeud.value = choisi;
@@ -811,7 +825,7 @@ function remplirListesSets() {
 function garderSimulation(choix = {}) {
   const build = buildCourant(etat, catalogue);
   if (!build) {
-    message('Rien a garder : le catalogue n\'est pas encore charge.');
+    message('Rien à garder : le catalogue n\'est pas encore charge.');
     return;
   }
 
@@ -827,7 +841,7 @@ function garderSimulation(choix = {}) {
 
   panneauSimulations?.rafraichir();
   if (choix.silencieux || !ajoutee) return;
-  message(`Essai garde a ${nombre(Math.floor(ajoutee.score))} degats.`);
+  message(`Essai gardé à ${nombre(Math.floor(ajoutee.score))} dégâts.`);
 }
 
 /** Repose un essai garde sur le personnage. */
@@ -836,8 +850,8 @@ function restaurerSimulation(simulation) {
   const { patch, manquantes } = patchDepuisSimulation(etat, simulation, catalogue.itemById);
   setEtat(patch);
   message(manquantes === 0
-    ? 'Essai repose. « Annuler » revient au stuff d\'avant.'
-    : `Essai repose. ${manquantes} piece(s) introuvable(s) au catalogue.`,
+    ? 'Essai reposé. « Annuler » revient au stuff d\'avant.'
+    : `Essai reposé. ${manquantes} pièce(s) introuvable(s) au catalogue.`,
   manquantes === 0 ? 'info' : 'erreur');
 }
 
@@ -867,7 +881,7 @@ function garderCombo(combo) {
     enregistrerSet('sorts', nom, sorts);
     remplirListesSets();
     $('sets-sorts').value = nom.trim();
-    message(`Jeu de sorts « ${nom.trim()} » enregistre depuis le combo.`);
+    message(`Jeu de sorts « ${nom.trim()} » enregistré depuis le combo.`);
   } catch (erreur) {
     message(erreur.message, 'erreur');
   }
@@ -896,13 +910,13 @@ function poserMinimum(stat, valeur) {
   }
 
   if (cible <= deja.target) {
-    message(`${STAT_LABELS[stat] ?? stat} est deja garde a ${nombre(deja.target)} au moins.`);
+    message(`${STAT_LABELS[stat] ?? stat} est déjà gardé à ${nombre(deja.target)} au moins.`);
     return;
   }
   setEtat({
     conditions: etat.conditions.map((c) => (c.stat === stat ? { ...c, target: cible } : c)),
   });
-  message(`${STAT_LABELS[stat] ?? stat} : le minimum monte a ${nombre(cible)}.`);
+  message(`${STAT_LABELS[stat] ?? stat} : le minimum monte à ${nombre(cible)}.`);
 }
 
 /** Forme d'un minimum pose a la main : la meme que dans la feuille. */
@@ -988,7 +1002,22 @@ const COMMANDES_DU_QUAI = ['lancer', 'arreter', 'annuler', 'partager'];
 /** Ou chaque commande retourne quand l'ecran s'elargit. */
 const attaches = new Map();
 
-/** Deplace les commandes vers le quai, ou les rend a la barre. */
+/**
+ * Deplace les commandes vers le quai, ou les rend a la barre.
+ *
+ * Le retour se fait dans l'ordre INVERSE, et ce n'est pas un detail. Chaque
+ * commande retient le frere devant lequel elle se remet — et ce frere est
+ * presque toujours une autre commande du meme lot. Les quatre quittent la
+ * barre ensemble ; en les rendant dans l'ordre, la premiere cherchait a se
+ * poser devant une voisine encore dans le quai, `insertBefore` levait une
+ * NotFoundError, et la boucle s'arretait la.
+ *
+ * La consequence se voyait : les quatre boutons restaient dans un quai que
+ * la feuille de style cache au-dessus de sept cent vingt pixels. « Chercher »,
+ * « Pause », « Annuler » et « Partager » DISPARAISSAIENT de l'ecran des qu'une
+ * fenetre etroite s'elargissait. A l'envers, chaque frere est deja rentre
+ * quand on en a besoin.
+ */
 function placerCommandes() {
   const quai = $('quai');
   const versLeQuai = surTelephone();
@@ -996,7 +1025,9 @@ function placerCommandes() {
   // commander, et une barre d'onglets y montrerait trois ecrans vides.
   quai.hidden = !versLeQuai || vierge;
 
-  for (const id of COMMANDES_DU_QUAI) {
+  const ordre = versLeQuai ? COMMANDES_DU_QUAI : [...COMMANDES_DU_QUAI].reverse();
+
+  for (const id of ordre) {
     const bouton = $(id);
     if (!attaches.has(id)) attaches.set(id, [bouton.parentNode, bouton.nextSibling]);
 
@@ -1004,7 +1035,10 @@ function placerCommandes() {
       $('quai-actions').insertBefore(bouton, $('plus'));
     } else {
       const [parent, suivant] = attaches.get(id);
-      parent.insertBefore(bouton, suivant);
+      // Le filet : un repere qu'un rendu aurait remplace ne doit pas faire
+      // disparaitre un bouton. A la pire place plutot que nulle part.
+      if (suivant && suivant.parentNode === parent) parent.insertBefore(bouton, suivant);
+      else parent.append(bouton);
     }
   }
 }
@@ -1127,9 +1161,9 @@ async function accueillirLien() {
       }
       const perdus = sorts.length - tenus.length;
       message(perdus > 0
-        ? `Reglage adopte, sans ${perdus} sort(s) que le catalogue ne connait pas. `
+        ? `Réglage adopte, sans ${perdus} sort(s) que le catalogue ne connaît pas. `
           + 'Ctrl+Z rend le votre.'
-        : 'Reglage adopte. Ctrl+Z rend le votre.');
+        : 'Réglage adopte. Ctrl+Z rend le votre.');
       render();
     },
   });
@@ -1242,7 +1276,7 @@ $('recommencer').addEventListener('click', () => {
 $('arreter').addEventListener('click', () => recherche.arreter());
 $('annuler').addEventListener('click', () => {
   if (recherche.abandonner()) {
-    message('Recherche coupee. Rien n\'en a ete garde.');
+    message('Recherche coupée. Rien n\'en a été gardé.');
     // L'arret solde la question posee : le bouton redevient « Chercher ».
     // Le depart de zero, lui, ne se perd pas — il passe par l'indicateur.
     signatureLancement = garderSignature(etat);

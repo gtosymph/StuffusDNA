@@ -30,51 +30,53 @@ export const ETAPES = Object.freeze([
   {
     cible: '#identite',
     titre: 'Votre personnage',
-    texte: 'Classe, niveau et sexe. Tout le calcul en depend : une amulette '
-      + 'de niveau 200 ne se propose pas a un personnage de 60.',
+    texte: 'Classe, niveau et sexe. Tout le calcul en dépend : une amulette '
+      + 'de niveau 200 ne se propose pas à un personnage de 60.',
   },
   {
     cible: '#objectif',
     titre: 'Ce que vous cherchez',
-    texte: 'Frapper fort, encaisser, ou un melange des deux. C\'est la mesure '
+    texte: 'Frapper fort, encaisser, ou un mélange des deux. C\'est la mesure '
       + 'que la recherche fait monter ; tout le reste ne fait que la borner.',
   },
   {
     cible: '#chips-sorts',
     titre: 'Vos sorts',
-    texte: 'Sans sort, l\'outil ne compte aucun degat et se contente de monter '
-      + 'vos caracteristiques. Choisissez ceux de votre tour habituel.',
+    texte: 'Sans sort, l\'outil ne compte aucun dégât et se contente de monter '
+      + 'vos caractéristiques. Choisissez ceux de votre tour habituel.',
   },
   {
     cible: '#regler-combo',
-    titre: 'Leur enchainement',
+    titre: 'Leur enchaînement',
     texte: 'Comment ces sorts partent : un lancer chacun, ou le meilleur tour '
       + 'possible sous votre budget de PA.',
   },
   {
     cible: '#limites',
     titre: 'Vos minimums',
-    texte: 'Douze PA, six PM, une vitalite. La recherche tient ces planchers '
-      + 'avant de chercher a marquer des points. Un point vert dit que le '
+    texte: 'Douze PA, six PM, une vitalité. La recherche tient ces planchers '
+      + 'avant de chercher à marquer des points. Un point vert dit que le '
       + 'minimum est tenu, un point rose qu\'il manque.',
   },
   {
     cible: '#regler-minimums',
     titre: 'En ajouter un',
-    texte: 'Vous pouvez aussi cliquer n\'importe quel chiffre de la fiche, a '
-      + 'droite, pour en exiger au moins autant.',
+    texte: 'Le raccourci est ailleurs : dans la fiche, à droite, CHAQUE '
+      + 'chiffre se clique. Un clic sur « Sagesse 320 » exige au moins 320 de '
+      + 'sagesse, à partir de ce que vous avez déjà. C\'est la façon la plus '
+      + 'rapide de dire « garde ça, et amélioré le reste ».',
   },
   {
     cible: '#avoir',
-    titre: 'Ce que vous avez deja',
-    texte: 'Votre stuff actuel, votre banque, et les pieces que vous refusez. '
-      + 'Une piece que vous possedez ne compte pas comme un achat.',
+    titre: 'Ce que vous avez déjà',
+    texte: 'Votre stuff actuel, votre banque, et les pièces que vous refusez. '
+      + 'Une pièce que vous possédez ne compte pas comme un achat.',
   },
   {
     cible: '#ouvrir-palette',
     titre: 'Le catalogue',
-    texte: 'Toutes les pieces du jeu, cherchables. Ctrl+K l\'ouvre de '
-      + 'n\'importe ou. Une piece posee a la main reste : la recherche cherche '
+    texte: 'Toutes les pièces du jeu, cherchables. Ctrl+K l\'ouvre de '
+      + 'n\'importe ou. Une pièce posée à la main reste : la recherche cherche '
       + 'autour d\'elle.',
   },
   {
@@ -87,80 +89,83 @@ export const ETAPES = Object.freeze([
     cible: '#score',
     titre: 'Le score',
     texte: 'La mesure que la recherche fait monter, celle de l\'objectif '
-      + 'choisi. Il ne se compare qu\'a lui-meme, d\'un essai a l\'autre.',
+      + 'choisi. Il ne se compare qu\'à lui-même, d\'un essai à l\'autre.',
   },
   {
     cible: '#plateau',
-    titre: 'Le stuff porte',
+    titre: 'Le stuff porté',
     texte: 'Ce que la recherche vous met sur le dos. Cliquez une case pour la '
-      + 'figer : la recherche gardera cette piece et cherchera autour.',
+      + 'figer : la recherche gardera cette pièce et cherchera autour.',
   },
   {
     cible: '#v-degats',
-    titre: 'Les degats',
+    titre: 'Les dégâts',
     texte: 'Ce que vos sorts envoient sur un tour. Les deux cases dessous '
-      + 'disent ce que ce chiffre veut dire : a distance ou au contact, avec '
+      + 'disent ce que ce chiffre veut dire : à distance ou au contact, avec '
       + 'ou sans l\'arme.',
   },
   {
     cible: '#v-pdv',
     titre: 'Les pdv effectifs',
-    texte: 'Les degats bruts que vous encaissez avant de tomber : vos pdv, '
-      + 'peses par vos resistances. Bien plus parlant que la vitalite seule.',
+    texte: 'Les dégâts bruts que vous encaissez avant de tomber : vos pdv, '
+      + 'pesés par vos résistances. Bien plus parlant que la vitalité seule.',
   },
   {
     cible: '#bloc-graphe',
     titre: 'Ce que la recherche trouve',
     texte: 'Un trait par fil de calcul. Quand les traits s\'aplatissent, la '
-      + 'recherche a fini de progresser : c\'est le moment de l\'arreter.',
+      + 'recherche a fini de progresser : c\'est le moment de l\'arrêter.',
   },
   {
     cible: '#trouves',
-    titre: 'Les autres stuffs',
+    titre: 'Les autrès stuffs',
     texte: 'La recherche en garde plusieurs, pas seulement le meilleur. '
-      + 'Cochez-en deux pour les comparer piece par piece.',
+      + 'Cochez-en deux pour les comparer pièce par pièce.',
   },
   {
     cible: '#paliers',
     titre: 'Proche de votre stuff',
-    texte: 'Si je n\'achete qu\'une a trois pieces, que puis-je gagner ? La '
-      + 'reponse chiffree, par nombre d\'achats.',
+    texte: 'Si je n\'achète qu\'une à trois pièces, que puis-je gagner ? La '
+      + 'réponse chiffrée, par nombre d\'achats.',
   },
   {
     cible: '#simulations',
-    titre: 'Vos essais gardes',
+    titre: 'Vos essais gardés',
     texte: 'Chaque pause garde une trace. Vous pouvez y revenir, les comparer, '
-      + 'ou en figer un comme stuff de reference.',
+      + 'ou en figer un comme stuff de référence.',
   },
   {
     cible: '#bloc-analyse',
     titre: 'D\'ou vient le score',
-    texte: 'Ce que chaque piece apporte, ou investir vos points pour gagner '
-      + 'des degats, et le meilleur remplacement possible case par case.',
+    texte: 'Ce que chaque pièce apporte, où investir vos points pour gagner '
+      + 'des dégâts, et le meilleur remplacement possible case par case.',
   },
   {
     cible: '#corps-inspecteur',
-    titre: 'La fiche',
-    texte: 'Toutes vos caracteristiques, a jour. Chaque chiffre se clique '
-      + 'pour en exiger au moins autant.',
+    titre: 'Un chiffre, un minimum',
+    texte: 'Toutes vos caractéristiques, à jour. Et voici le geste qui change '
+      + 'tout : cliquez n\'importe lequel de ces chiffres, il devient un '
+      + 'minimum que la recherche tiendra. Les dégâts et les pdv effectifs se '
+      + 'cliquent aussi — c\'est ainsi qu\'on dit « ne descends pas en '
+      + 'dessous de ce que j\'ai la ». Recliquez pour enlever l\'exigence.',
   },
   {
     cible: '#bascule-droit',
     titre: 'Replier un volet',
-    texte: 'Les deux volets s\'ouvrent et se replient d\'ici. Sur un ecran '
-      + 'etroit, replier rend toute la largeur au personnage.',
+    texte: 'Les deux volets s\'ouvrent et se replient d\'ici. Sur un écran '
+      + 'étroit, replier rend toute la largeur au personnage.',
   },
   {
     cible: '#partager',
     titre: 'Partager',
-    texte: 'Un lien qui porte tout votre reglage, ou l\'envoi du stuff vers '
-      + 'Dofusbook. Le lien se relance tel quel chez celui qui le recoit.',
+    texte: 'Un lien qui porte tout votre réglage, ou l\'envoi du stuff vers '
+      + 'Dofusbook. Le lien se relance tel quel chez celui qui le reçoit.',
   },
   {
     cible: '#signaler',
     titre: 'Signaler',
-    texte: 'Un defaut, une idee. Le rapport emporte votre reglage exact : le '
-      + 'probleme se reproduit d\'un clic au lieu de se deviner.',
+    texte: 'Un défaut, une idée. Le rapport emporte votre réglage exact : le '
+      + 'problème se reproduit d\'un clic au lieu de se deviner.',
   },
   {
     cible: '#menus',
@@ -171,16 +176,16 @@ export const ETAPES = Object.freeze([
   },
   {
     cible: '#reglages',
-    titre: 'Les reglages',
-    texte: 'Comment vous jouez : passifs, resistances, bornes de l\'arme, et '
+    titre: 'Les réglages',
+    texte: 'Comment vous jouez : passifs, résistances, bornes de l\'arme, et '
       + 'l\'habillage de la page. Ils changent ce que les chiffres veulent '
-      + 'dire, pas l\'ecran.',
+      + 'dire, pas l\'écran.',
   },
   {
     cible: '#kofi',
     titre: 'C\'est tout',
-    texte: 'Le site est gratuit, sans publicite et sans compte. Si l\'outil '
-      + 'vous sert, un cafe aide a le tenir. Bonne chasse.',
+    texte: 'Le site est gratuit, sans publicité et sans compte. Si l\'outil '
+      + 'vous sert, un café aide a le tenir. Bonne chasse.',
   },
 ]);
 
@@ -195,38 +200,39 @@ export const ETAPES = Object.freeze([
 export const ETAPES_TELEPHONE = Object.freeze([
   {
     cible: '#quai-onglets',
-    titre: 'Trois ecrans',
-    texte: 'Tout tient en trois ecrans, et cette barre dit lequel vous '
-      + 'regardez : vos reglages, votre stuff, votre fiche.',
+    titre: 'Trois écrans',
+    texte: 'Tout tient en trois écrans, et cette barre dit lequel vous '
+      + 'regardez : vos réglages, votre stuff, votre fiche.',
   },
   {
     cible: '#onglet-gauche',
-    titre: 'Vos reglages',
-    texte: 'Ce que vous cherchez, vos sorts, vos minimums, et les pieces que '
-      + 'vous possedez deja.',
+    titre: 'Vos réglages',
+    texte: 'Ce que vous cherchez, vos sorts, vos minimums, et les pièces que '
+      + 'vous possédez déjà.',
   },
   {
     cible: '#plateau',
     titre: 'Votre stuff',
     texte: 'Ce que la recherche vous met sur le dos, et juste dessous vos '
-      + 'degats et vos pdv effectifs. Touchez une case pour la figer.',
+      + 'dégâts et vos pdv effectifs. Touchez une case pour la figer.',
   },
   {
     cible: '#onglet-droit',
     titre: 'Votre fiche',
-    texte: 'Toutes vos caracteristiques. Touchez un chiffre pour en exiger au '
-      + 'moins autant.',
+    texte: 'Toutes vos caractéristiques. Touchez n\'importe quel chiffre et '
+      + 'il devient un minimum que la recherche tiendra — les dégâts et les '
+      + 'pdv effectifs compris. Retouchez-le pour enlever l\'exigence.',
   },
   {
     cible: '#lancer',
     titre: 'Chercher',
     texte: 'La recherche tourne tant que vous la laissez tourner. Elle reste '
-      + 'sous votre pouce, quel que soit l\'ecran.',
+      + 'sous votre pouce, quel que soit l\'écran.',
   },
   {
     cible: '#plus',
     titre: 'Le reste',
-    texte: 'Partager, signaler un defaut, les reglages de calcul, et de quoi '
+    texte: 'Partager, signaler un défaut, les réglages de calcul, et de quoi '
       + 'soutenir le projet. Bonne chasse.',
   },
 ]);

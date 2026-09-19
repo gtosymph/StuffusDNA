@@ -1944,6 +1944,29 @@ table.conditions .mini[aria-pressed="true"] { color: var(--ambre); border-color:
      retient le sort. */
   .variante { min-height: 34px; padding: 5px 10px; }
 
+  /* --- La liste des essais gardes ---
+
+     Cinq colonnes sur une rangee de trois cent cinquante-sept pixels : les
+     trois boutons gardaient leur taille et prenaient cent quarante-six
+     pixels, il en restait vingt-trois pour le nom. « Iop 190 » s'ecrivait
+     « Io… ». Un essai qu'on a pris la peine de renommer devient alors
+     impossible a reconnaitre — et c'est le nom qui fait tout l'interet de
+     garder un essai.
+
+     Les gestes passent donc sous la ligne, sur toute la largeur. Le nom
+     recupere la place, et les boutons deviennent touchables au passage. */
+  .simulation { grid-template-columns: auto auto auto minmax(0, 1fr); }
+  .simulation .simulation-actions {
+    grid-column: 1 / -1; justify-content: flex-end;
+  }
+  .simulation-actions .mini, .simulations .mini, .rangee-ajout .mini {
+    min-height: 32px; padding: 0 12px;
+  }
+  /* « Garder cette simulation » et « Comparer » n'ont pas les classes de v2 :
+     la regle des cibles tactiles les manquait, et ils restaient a vingt-huit
+     pixels au milieu d'une interface reglee sur trente-huit. */
+  .rangee-ajout > button { min-height: 38px; }
+
   /* --- Les cibles tactiles ---
 
      Quarante-quatre pixels est le minimum admis pour un doigt. En dessous, on

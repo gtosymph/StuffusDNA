@@ -63,5 +63,5 @@ test('l\'arret dit pourquoi il s\'arrete et ou repartir', () => {
   const phrase = phraseArretAuto(20000);
   assert.match(phrase, /20/);
   assert.match(phrase, /Chercher/);
-  assert.match(phrase, /reglages/);
+  assert.match(phrase, /réglages/);
 });

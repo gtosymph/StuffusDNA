@@ -100,7 +100,7 @@ export function ouvrirVisite({ message } = {}) {
   }, visitePour(window.innerWidth));
 
   if (etapes.length === 0) {
-    message?.('La visite n\'a rien a montrer sur cet ecran.');
+    message?.('La visite n\'a rien à montrer sur cet écran.');
     return;
   }
 
@@ -108,13 +108,13 @@ export function ouvrirVisite({ message } = {}) {
   const titre = el('h2', { class: 'visite-titre' });
   const texte = el('p', { class: 'visite-texte' });
   const compte = el('span', { class: 'visite-compte n' });
-  const precedent = el('button', { class: 'btn fantome', type: 'button', text: 'Precedent',
+  const precedent = el('button', { class: 'btn fantome', type: 'button', text: 'Précédent',
     onClick: () => aller(-1) });
   const suivant = el('button', { class: 'btn premier', type: 'button', text: 'Suivant',
     onClick: () => aller(1) });
 
   const bulle = el('div', { class: 'visite-bulle', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Visite guidee' },
+    'aria-label': 'Visite guidée' },
     titre, texte,
     el('div', { class: 'visite-pied' },
       compte,

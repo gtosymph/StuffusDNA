@@ -84,12 +84,12 @@ export async function ouvrirSignaler({ lireEtat, nomDeClasse, message }) {
     onClick: async () => {
       try {
         await navigator.clipboard.writeText(aCopier);
-        message('Informations copiees. Collez-les avec votre message.');
+        message('Informations copiées. Collez-les avec votre message.');
       } catch {
         // Hors HTTPS le presse-papier est refuse : le texte reste lisible et
         // se selectionne a la main.
         message('Le navigateur refuse le presse-papier. Le texte est '
-          + 'selectionne : copiez-le a la main.', 'info');
+          + 'sélectionné : copiez-le à la main.', 'info');
         const plage = document.createRange();
         plage.selectNodeContents(apercu);
         const choix = window.getSelection();
@@ -110,21 +110,21 @@ export async function ouvrirSignaler({ lireEtat, nomDeClasse, message }) {
           onClick: fermerSignaler })),
       el('div', { class: 'feuille-corps' },
         el('p', { class: 'aide',
-          text: 'Un defaut, une idee, un chiffre qui vous parait faux : dites-le. '
+          text: 'Un défaut, une idée, un chiffre qui vous paraît faux : dites-le. '
             + 'Le formulaire ne demande aucun compte, et prend une minute.' }),
         el('h3', { class: 'titre-reglage', text: 'Ce qui partira avec votre message' }),
         apercu,
         el('p', { class: 'aide',
           text: lien
-            ? 'Le lien porte votre reglage exact : un defaut se reproduit en '
+            ? 'Le lien porte votre réglage exact : un défaut se reproduit en '
               + 'l\'ouvrant, au lieu de se deviner. Rien d\'autre ne voyage — '
               + 'ni nom, ni adresse, ni compte.'
-            : 'Le lien de votre reglage n\'a pas pu etre fabrique : le rapport '
+            : 'Le lien de votre réglage n\'a pas pu être fabriqué : le rapport '
               + 'part sans lui.' }),
         el('div', { class: 'ligne-gestes' }, versFormulaire, copier),
         el('p', { class: 'aide' },
           'Vous pouvez aussi en parler sur le Discord : collez-y ces '
-          + 'informations avec votre message. Les defauts deja connus se '
+          + 'informations avec votre message. Les défauts déjà connus se '
           + 'lisent ici : ',
           el('a', { href: `${DEPOT}/issues`, target: '_blank', rel: 'noopener noreferrer',
             text: 'la liste des tickets' }),

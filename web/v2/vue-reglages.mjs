@@ -74,18 +74,18 @@ export function ouvrirReglages({ lireEtat, onOption }) {
       el('h3', { class: 'titre-reglage', text: 'Le calcul' }),
       corps,
       el('p', { class: 'aide',
-        text: 'Ces reglages disent comment vous jouez. Ceux qui changent ce '
-          + 'qu\'un nombre veut dire se lisent a cote de ce nombre, pas ici.' }),
+        text: 'Ces réglages disent comment vous jouez. Ceux qui changent ce '
+          + 'qu\'un nombre veut dire se lisent à côté de ce nombre, pas ici.' }),
       el('h3', { class: 'titre-reglage', text: 'Le moteur' }),
       moteur,
       el('p', { class: 'aide',
-        text: 'Plus de fils cherchent plus vite et chauffent plus. L\'intensite '
+        text: 'Plus de fils cherchent plus vite et chauffent plus. L\'intensité '
           + 'dit quelle part du temps ils calculent : basse, la machine souffle. '
-          + 'L\'arret automatique compte les generations depuis le lancement : la '
+          + 'L\'arrêt automatique compte les générations depuis le lancement : la '
           + 'recherche se met en pause toute seule, et « Chercher » repart d\'ou '
-          + 'elle en etait. Mettez 0 pour ne jamais vous arreter. '
-          + 'Repartir de zero jette la population en cours — a faire quand vous '
-          + 'avez beaucoup change de reglages.' }),
+          + 'elle en était. Mettez 0 pour ne jamais vous arrêter. '
+          + 'Repartir de zéro jette la population en cours — à faire quand vous '
+          + 'avez beaucoup change de réglages.' }),
 
       el('h3', { class: 'titre-reglage', text: 'L\'habillage' }),
       themes,

@@ -31,7 +31,7 @@ function blocArmeCalculee(item, stats) {
 
   const detail = computeSpellDetail(attaque, stats);
   return el('div', { class: 'fiche-arme calc' },
-    el('div', { class: 'titre-arme', text: 'Avec vos caracteristiques' }),
+    el('div', { class: 'titre-arme', text: 'Avec vos caractéristiques' }),
     el('div', { class: 'lignes-arme' },
       detail.parLigne.map((ligne) =>
         ligneArme(ligne, `${entier(ligne.normalMin)}–${entier(ligne.normalMax)}`
@@ -111,7 +111,7 @@ export function ouvrirFiche(item, actions = {}) {
 
     Array.isArray(item.weapon) && item.weapon.length > 0
       ? el('div', { class: 'fiche-arme' },
-          el('div', { class: 'titre-arme', text: `Degats de l'arme`
+          el('div', { class: 'titre-arme', text: `Dégâts de l'arme`
             + `${resumeArme(item) ? ` — ${resumeArme(item)}` : ''}` }),
           el('div', { class: 'lignes-arme' },
             item.weapon.map((ligne) => ligneArme(ligne, `${ligne.min}–${ligne.max}`))))
@@ -120,13 +120,13 @@ export function ouvrirFiche(item, actions = {}) {
     blocArmeCalculee(item, actions.stats ?? null),
 
     item.twoHanded
-      ? el('div', { class: 'fiche-note', text: 'Arme a deux mains : elle interdit le bouclier.' })
+      ? el('div', { class: 'fiche-note', text: 'Arme à deux mains : elle interdit le bouclier.' })
       : null,
 
     blocPassif(item),
 
     lignes.length === 0
-      ? el('p', { class: 'note', text: 'Cette piece ne porte aucune statistique.' })
+      ? el('p', { class: 'note', text: 'Cette pièce ne porte aucune statistique.' })
       : el('dl', { class: 'fiche-stats' }, lignes.flatMap(([cle, valeur]) => {
           const icone = iconeStat(cle);
           return [
@@ -151,8 +151,8 @@ export function ouvrirFiche(item, actions = {}) {
             type: 'button',
             text: actions.verrouille ? 'Ne plus garder' : 'Toujours garder',
             title: actions.verrouille
-              ? 'Le solveur pourra de nouveau remplacer cette piece'
-              : 'Le solveur garde cette piece dans chaque build',
+              ? 'Le solveur pourra de nouveau remplacer cette pièce'
+              : 'Le solveur garde cette pièce dans chaque build',
             onClick: () => { actions.onLock(); fermerFiche(); } })
         : null,
       actions.onBan
@@ -160,8 +160,8 @@ export function ouvrirFiche(item, actions = {}) {
             class: actions.banni ? '' : 'danger', type: 'button',
             text: actions.banni ? 'Autoriser' : 'Interdire',
             title: actions.banni
-              ? 'Rendre cette piece au solveur'
-              : 'Le solveur ne proposera plus cette piece',
+              ? 'Rendre cette pièce au solveur'
+              : 'Le solveur ne proposera plus cette pièce',
             onClick: () => { actions.onBan(); fermerFiche(); } })
         : null,
       // L'inventaire change ce qu'une proposition coute : une piece que vous
@@ -169,11 +169,11 @@ export function ouvrirFiche(item, actions = {}) {
       actions.onPosseder
         ? el('button', {
             class: actions.possedee ? 'possede' : '', type: 'button',
-            text: actions.possedee ? 'Je l\'ai deja ✓' : 'Je l\'ai deja',
+            text: actions.possedee ? 'Je l\'ai déjà ✓' : 'Je l\'ai déjà',
             title: actions.possedee
-              ? 'Enlever cette piece de votre inventaire'
-              : 'Cette piece dort dans votre banque : le solveur ne la comptera\n'
-                + 'plus parmi les pieces a acheter.',
+              ? 'Enlever cette pièce de votre inventaire'
+              : 'Cette pièce dort dans votre banque : le solveur ne la comptera\n'
+                + 'plus parmi les pièces à acheter.',
             onClick: () => { actions.onPosseder(); fermerFiche(); } })
         : null,
       el('button', { type: 'button', text: 'Fermer', onClick: fermerFiche }),

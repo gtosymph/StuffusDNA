@@ -22,7 +22,7 @@ const MESURES = [
 const COLONNES = [
   { nom: 'Porte', stats: { pa: 12, pm: 6, force: 900, sagesse: 300 } },
   { nom: 'Trouve 1', stats: { pa: 12, pm: 6, force: 980, sagesse: 300 } },
-  { nom: 'Trouve 2', stats: { pa: 11, pm: 6, force: 940, sagesse: 300 } },
+  { nom: 'Trouvé 2', stats: { pa: 11, pm: 6, force: 940, sagesse: 300 } },
 ];
 
 const cles = (r) => r.lignes.map((l) => l.cle);
@@ -84,5 +84,5 @@ test('les deux lectures', async (t) => {
 
 test('nom de colonne', () => {
   assert.equal(nomDeColonne(0), 'Porte');
-  assert.equal(nomDeColonne(2), 'Trouve 2');
+  assert.equal(nomDeColonne(2), 'Trouvé 2');
 });

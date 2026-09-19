@@ -97,7 +97,7 @@ export function ouvrirComparaison({ mesures, colonnes, minimums }) {
 
   const corps = lignes.length === 0
     ? el('p', { class: 'aide', style: 'padding:18px 16px',
-        text: 'Ces stuffs ont exactement les memes valeurs sur toutes les mesures.' })
+        text: 'Ces stuffs ont exactement les mêmes valeurs sur toutes les mesures.' })
     : el('table', { class: 'compare' },
         el('thead', {}, el('tr', {},
           el('th', { text: '' }),
@@ -113,7 +113,7 @@ export function ouvrirComparaison({ mesures, colonnes, minimums }) {
     el('div', { class: 'compare-tete' },
       el('h2', { text: 'Comparer' }),
       el('span', { class: 'aide',
-        text: 'Les ecarts se lisent face au stuff porte. Un minimum se lit en valeur.' }),
+        text: 'Les écarts se lisent face au stuff porté. Un minimum se lit en valeur.' }),
       el('div', { class: 'pousse' }),
       el('button', { class: 'btn fantome', type: 'button', text: 'Fermer',
         onClick: fermerComparaison })),

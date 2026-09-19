@@ -202,7 +202,7 @@ test('le contexte du rapport', async (t) => {
   });
 
   await t.test('il porte les quatre faits', () => {
-    for (const mot of ['Firefox 141', 'Xelor 196', '16 piece', '8 sort', 'exemple.test']) {
+    for (const mot of ['Firefox 141', 'Xelor 196', '16 pièce', '8 sort', 'exemple.test']) {
       assert.ok(CONTEXTE.includes(mot), `le contexte oublie ${mot}`);
     }
   });

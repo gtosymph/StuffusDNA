@@ -57,16 +57,16 @@ export function ouvrirCase({ etat, item, onChoisir }) {
     if (ev.target === racine) fermerCase();
   } },
     el('div', { class: 'feuille', role: 'dialog', 'aria-modal': 'true',
-      'aria-label': 'Quelle piece remplacer' },
+      'aria-label': 'Quelle pièce remplacer' },
       el('div', { class: 'feuille-tete' },
-        el('h2', { text: 'Quelle piece remplacer ?' }),
+        el('h2', { text: 'Quelle pièce remplacer ?' }),
         el('div', { class: 'pousse' }),
         el('button', { class: 'btn fantome', type: 'button', text: 'Annuler',
           onClick: fermerCase })),
       el('div', { class: 'feuille-corps' },
         el('p', { class: 'aide',
           text: `Toutes les cases de cette famille sont prises. « ${nom(item)} » `
-            + 'prendra la place de celle que vous designez.' }),
+            + 'prendra la place de celle que vous désignez.' }),
         el('div', { class: 'cases-choix' }, choix))));
 
   document.body.append(racine);

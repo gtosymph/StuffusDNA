@@ -72,16 +72,16 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
     const investi = allocation[cle] ?? 0;
     const total = stats?.[cle];
     const situation = Number.isFinite(total)
-      ? `\nLe build porte est a ${total} au total, dont ${investi} investis.`
+      ? `\nLe build porté est à ${total} au total, dont ${investi} investis.`
       : '';
 
     if (limite === null) {
       return `Limite de ${LIBELLES[cle]} : valeur maximale que la recherche investit.\n`
-        + `Champ vide : aucune limite. Zero : la recherche n'y met rien.\n`
-        + `Elle borne le curseur, pas son cout en points, et ne touche pas\n`
-        + `a ce que l'equipement apporte.\n`
-        + `Pour borner la caracteristique entiere, mettez un maximum a la condition.\n`
-        + `Votre saisie a la main reste libre.${situation}`;
+        + `Champ vide : aucune limite. Zéro : la recherche n'y met rien.\n`
+        + `Elle borne le curseur, pas son coût en points, et ne touche pas\n`
+        + `a ce que l'équipement apporte.\n`
+        + `Pour borner la caractéristique entière, mettez un maximum a la condition.\n`
+        + `Votre saisie à la main reste libre.${situation}`;
     }
     if (limite === 0) {
       return `La recherche n'investit rien en ${LIBELLES[cle]}.\n`
@@ -90,7 +90,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
     }
     return `La recherche n'investit pas plus de ${limite} en ${LIBELLES[cle]}.\n`
       + `${depasse(cle) ? `Votre saisie est a ${investi} : au-dessus de la limite.\n` : ''}`
-      + `La limite borne le curseur, pas son cout en points.${situation}`;
+      + `La limite borne le curseur, pas son coût en points.${situation}`;
   };
 
   const lignes = SCROLLABLE.map((cle) => {
@@ -108,7 +108,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
       el('input', {
         type: 'range', min: '0', max: String(Math.max(plafond, investi)), value: String(investi),
         class: 'curseur',
-        title: `${investi} points investis, ${cout} points depenses`,
+        title: `${investi} points investis, ${cout} points dépenses`,
         onInput: (ev) => actions.onPoints(cle, Number(ev.target.value)),
       }),
 
@@ -118,7 +118,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
         onChange: (ev) => actions.onPoints(cle, Math.max(0, Number(ev.target.value) || 0)),
       }),
 
-      el('span', { class: 'cout-point', title: 'Points depenses', text: `${cout}` }),
+      el('span', { class: 'cout-point', title: 'Points dépenses', text: `${cout}` }),
 
       // La limite bride la recherche, jamais la saisie : le joueur reste libre
       // de depasser a la main, et le champ le signale quand c'est le cas.
@@ -144,7 +144,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
       // caracteristique jusqu'a +101 en base, sans depenser de points.
       el('label', {
         class: `parcho ${scrolls[cle] ? 'pris' : ''}`.trim(),
-        title: `Personnage parchemine : +${SCROLL_BONUS} en base, sans depenser de points`,
+        title: `Personnage parchemine : +${SCROLL_BONUS} en base, sans dépenser de points`,
       },
         el('input', {
           type: 'checkbox', ...(scrolls[cle] ? { checked: true } : {}),
@@ -161,7 +161,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
         class: `jeton ${reste < 0 ? 'trop' : ''}`.trim(),
         text: reste < 0 ? `${-reste} en trop` : `${reste} restants`,
       }),
-      el('button', { class: 'mini', type: 'button', text: 'Remettre a zero',
+      el('button', { class: 'mini', type: 'button', text: 'Remettre a zéro',
         title: 'Enlever tous les points investis', onClick: actions.onReset }),
     ),
     el('div', { class: 'entete-points' },
@@ -170,7 +170,7 @@ export function renderPoints(root, { niveau, allocation, scrolls, limites = {}, 
       el('span', { text: 'Points' }),
       el('span', { text: 'Cout' }),
       el('span', { text: 'Limite',
-        title: 'Valeur maximale que la recherche investit.\nVide : aucune limite. Zero : rien du tout.' }),
+        title: 'Valeur maximale que la recherche investit.\nVide : aucune limite. Zéro : rien du tout.' }),
       el('span', { text: 'Parcho' })),
     ...lignes,
   );

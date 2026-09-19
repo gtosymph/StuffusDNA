@@ -84,8 +84,8 @@ export function ouvrirPoints({ lireEtat, setEtat, lireStats }) {
         onClick: fermerPoints })),
     el('div', { class: 'feuille-corps' }, corps,
       el('p', { class: 'aide',
-        text: 'Un parchemin monte la caracteristique de 100 sans couter de point. '
-          + 'Une limite empeche la recherche d\'aller au-dela ; elle ne bride '
+        text: 'Un parchemin monte la caractéristique de 100 sans coûter de point. '
+          + 'Une limite empeche la recherche d\'aller au-delà ; elle ne bride '
           + 'jamais votre saisie.' })),
   ));
 

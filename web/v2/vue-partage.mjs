@@ -86,7 +86,7 @@ export async function ouvrirPartage({ lireEtat, message }) {
       window.open(lienDofusbook(etat), '_blank', 'noopener');
       fermerPartage();
     } catch (erreur) {
-      message(`Dofusbook n'a pas pu etre ouvert : ${erreur.message}`, 'erreur');
+      message(`Dofusbook n'a pas pu être ouvert : ${erreur.message}`, 'erreur');
     }
   };
 
@@ -102,20 +102,20 @@ export async function ouvrirPartage({ lireEtat, message }) {
         onClick: fermerPartage })),
 
     el('div', { class: 'feuille-corps' },
-      el('h3', { class: 'titre-reglage', text: 'Le lien de ce reglage' }),
+      el('h3', { class: 'titre-reglage', text: 'Le lien de ce réglage' }),
       el('div', { class: 'ligne-lien' },
         champ,
         el('button', { class: 'btn premier', type: 'button', text: 'Copier',
           onClick: async (ev) => {
             const fait = await copier(lien, champ);
-            ev.target.textContent = fait ? 'Copie' : 'A copier a la main';
-            if (fait) message('Lien copie. Il porte tout votre reglage.');
+            ev.target.textContent = fait ? 'Copie' : 'A copier à la main';
+            if (fait) message('Lien copié. Il porte tout votre réglage.');
           } })),
       el('p', { class: 'aide',
-        text: 'Il porte le personnage, le stuff porte, les sorts, les minimums, '
-          + 'les options et les pieces interdites ou possedees. Celui qui '
-          + 'l\'ouvre peut relancer la meme recherche. Il ne porte aucun '
-          + 'resultat : ils se refabriquent en cherchant.' }),
+        text: 'Il porte le personnage, le stuff porté, les sorts, les minimums, '
+          + 'les options et les pièces interdites ou possédées. Celui qui '
+          + 'l\'ouvre peut relancer la même recherche. Il ne porte aucun '
+          + 'résultat : ils se refabriquent en cherchant.' }),
 
       el('h3', { class: 'titre-reglage', text: 'Chez Dofusbook' }),
       el('div', { class: 'ligne-lien' },
@@ -123,10 +123,10 @@ export async function ouvrirPartage({ lireEtat, message }) {
           text: 'Ouvrir le stuff chez Dofusbook', onClick: versDofusbook })),
       el('p', { class: 'aide',
         text: portees === 0
-          ? 'Aucune piece n\'est portee : il n\'y a rien a envoyer.'
-          : `Dofusbook recoit les ${portees} piece(s) portees, les points investis, `
-            + 'les parchemins et le niveau. Il ne connait ni nos sorts, ni nos '
-            + 'minimums, ni nos options : ces reglages-la ne passent que par le '
+          ? 'Aucune pièce n\'est portée : il n\'y a rien à envoyer.'
+          : `Dofusbook reçoit les ${portees} pièce(s) portées, les points investis, `
+            + 'les parchemins et le niveau. Il ne connaît ni nos sorts, ni nos '
+            + 'minimums, ni nos options : ces réglages-la ne passent que par le '
             + 'lien ci-dessus. La page s\'ouvre dans un autre onglet, sans compte.' }),
     ),
   ));
@@ -149,20 +149,20 @@ export async function ouvrirPartage({ lireEtat, message }) {
  */
 export function proposerReglage({ compte, nomDeClasse, onAdopter }) {
   const qui = compte.classe === null
-    ? 'Un reglage'
+    ? 'Un réglage'
     : `Un ${nomDeClasse(compte.classe)}${compte.niveau ? ` de niveau ${compte.niveau}` : ''}`;
 
   const porte = [
-    compte.pieces > 0 ? `${compte.pieces} piece(s) portees` : null,
+    compte.pieces > 0 ? `${compte.pieces} pièce(s) portées` : null,
     compte.sorts > 0 ? `${compte.sorts} sort(s)` : null,
     compte.minimums > 0 ? `${compte.minimums} minimum(s)` : null,
   ].filter(Boolean);
 
   fond().replaceChildren(el('div', {
-    class: 'feuille', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Reglage recu',
+    class: 'feuille', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Réglage reçu',
   },
     el('div', { class: 'feuille-tete' },
-      el('h2', { text: 'Un reglage vous a ete partage' }),
+      el('h2', { text: 'Un réglage vous a été partagé' }),
       el('div', { class: 'pousse' }),
       el('button', { class: 'btn fantome', type: 'button', text: 'Ignorer',
         onClick: fermerPartage })),
@@ -172,13 +172,13 @@ export function proposerReglage({ compte, nomDeClasse, onAdopter }) {
         text: `${qui} vous attend dans ce lien${porte.length > 0 ? `, avec ${porte.join(', ')}` : ''}.` }),
       ...(compte.inconnues > 0
         ? [el('p', { class: 'aide',
-          text: `${compte.inconnues} piece(s) du lien ne sont pas dans le catalogue : `
-            + 'elles ne seront pas posees.' })]
+          text: `${compte.inconnues} pièce(s) du lien ne sont pas dans le catalogue : `
+            + 'elles ne seront pas posées.' })]
         : []),
       el('p', { class: 'aide',
-        text: 'L\'adopter remplace ce qui est a l\'ecran. Ctrl+Z le rend.' }),
+        text: 'L\'adopter remplace ce qui est à l\'écran. Ctrl+Z le rend.' }),
       el('div', { class: 'ligne-lien' },
-        el('button', { class: 'btn premier', type: 'button', text: 'Adopter ce reglage',
+        el('button', { class: 'btn premier', type: 'button', text: 'Adopter ce réglage',
           onClick: () => { fermerPartage(); onAdopter(); } }),
         el('button', { class: 'btn fantome', type: 'button', text: 'Garder le mien',
           onClick: fermerPartage })),

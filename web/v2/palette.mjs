@@ -76,7 +76,7 @@ export function ouvrirPalette({ lireEtat, lireCatalogue, setEtat, onPiece }) {
   }
 
   const champ = el('input', {
-    type: 'search', id: 'palette-recherche', placeholder: 'Chercher une piece…',
+    type: 'search', id: 'palette-recherche', placeholder: 'Chercher une pièce…',
     value: depart.recherche, autocomplete: 'off',
     onInput: (ev) => { setEtat({ recherche: ev.target.value }); rafraichir(); },
   });
@@ -102,7 +102,7 @@ export function ouvrirPalette({ lireEtat, lireCatalogue, setEtat, onPiece }) {
       onChange: (ev) => poserFiltreStat({ valeur: Number(ev.target.value) || 0 }),
     }),
     el('label', { class: 'option',
-      title: 'Ne garder que les trophees dont la condition demande moins de trois bonus' },
+      title: 'Ne garder que les trophées dont la condition demande moins de trois bonus' },
       el('input', {
         type: 'checkbox', ...(depart.filtrePk ? { checked: true } : {}),
         onChange: (ev) => { setEtat({ filtrePk: ev.target.checked }); rafraichir(); },
@@ -110,7 +110,7 @@ export function ouvrirPalette({ lireEtat, lireCatalogue, setEtat, onPiece }) {
       ' Bonus de panoplie < 3'));
 
   racine.replaceChildren(el('div', {
-    class: 'palette', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Toutes les pieces',
+    class: 'palette', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Toutes les pièces',
   },
     el('div', { class: 'palette-tete' }, champ,
       el('button', { class: 'btn fantome', type: 'button', text: 'Fermer',
@@ -120,8 +120,8 @@ export function ouvrirPalette({ lireEtat, lireCatalogue, setEtat, onPiece }) {
     grille,
     el('div', { class: 'palette-pied' }, compte,
       el('span', { class: 'aide',
-        text: 'Cliquez une piece pour la poser. Sa fiche porte : interdire, '
-          + 'toujours garder, je l\'ai deja.' })),
+        text: 'Cliquez une pièce pour la poser. Sa fiche porte : interdire, '
+          + 'toujours garder, je l\'ai déjà.' })),
   ));
 
   rafraichir();

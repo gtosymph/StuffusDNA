@@ -47,7 +47,7 @@ export function contexteEnLigne({ navigateur, page, personnage, pieces, sorts })
   return [
     navigateur,
     personnage,
-    `${pieces} piece(s), ${sorts} sort(s)`,
+    `${pieces} pièce(s), ${sorts} sort(s)`,
     page,
   ].join(' · ');
 }
@@ -93,7 +93,7 @@ export function rapportACopier({ version, contexte, lien }) {
   return [
     `The Best Roxxeur ${version}`,
     contexte,
-    ...(lien ? [`Mon reglage : ${lien}`] : []),
+    ...(lien ? [`Mon réglage : ${lien}`] : []),
   ].join('\n');
 }
 

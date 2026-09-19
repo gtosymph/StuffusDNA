@@ -43,14 +43,14 @@ function garnir(panneau, message) {
 
   const place = el('div', 'profil-place');
   place.append(
-    el('span', null, 'Place occupee'),
+    el('span', null, 'Place occupée'),
     el('strong', occupation.sature ? 'alerte' : null, occupation.texte),
   );
 
   const explication = disponible()
     ? 'Votre profil vit dans ce navigateur, sur cette machine. Un nettoyage des '
-      + 'donnees de navigation, la navigation privee ou un autre appareil ne le '
-      + 'retrouveront pas. Le fichier exporte, lui, vous suit partout.'
+      + 'données de navigation, la navigation privée ou un autre appareil ne le '
+      + 'retrouveront pas. Le fichier exporté, lui, vous suit partout.'
     : 'Ce navigateur refuse d\'enregistrer : votre travail ne survivra pas au '
       + 'rechargement. Exportez-le avant de fermer la page.';
 
@@ -60,8 +60,8 @@ function garnir(panneau, message) {
     place,
     occupation.sature
       ? el('div', 'profil-alerte',
-          'Le rangement approche de sa limite. Enlevez des simulations gardees, '
-          + 'sinon les prochains enregistrements seront refuses.')
+          'Le rangement approche de sa limite. Enlevez des simulations gardées, '
+          + 'sinon les prochains enregistrements seront refusés.')
       : null,
     el('p', 'profil-note', explication),
     el('div', 'profil-actions'),
@@ -99,25 +99,25 @@ export function installerProfil(hote) {
 
     const exporter = el('button', 'primaire', 'Exporter');
     exporter.type = 'button';
-    exporter.title = 'Ecrit tout votre profil dans un fichier a garder';
+    exporter.title = 'Ecrit tout votre profil dans un fichier à garder';
     exporter.addEventListener('click', () => {
       telecharger(nomFichier(), `${JSON.stringify(lireProfil(), null, 2)}\n`);
-      message = { texte: 'Profil exporte. Gardez ce fichier : il vous rend tout.' };
+      message = { texte: 'Profil exporté. Gardez ce fichier : il vous rend tout.' };
       dessiner();
     });
 
     const importer = el('button', null, 'Importer');
     importer.type = 'button';
-    importer.title = 'Reprend un profil exporte. Le profil de ce navigateur est remplace.';
+    importer.title = 'Reprend un profil exporté. Le profil de ce navigateur est remplacé.';
     importer.addEventListener('click', () => fichier.click());
 
     const effacer = el('button', 'danger', 'Tout effacer');
     effacer.type = 'button';
-    effacer.title = 'Enleve build, simulations, jeux et reglages de ce navigateur';
+    effacer.title = 'Enleve build, simulations, jeux et réglages de ce navigateur';
     effacer.addEventListener('click', () => {
       const sur = window.confirm(
         'Effacer tout le profil de ce navigateur ?\n\n'
-        + 'Build, simulations gardees, jeux de sorts et de conditions, reglages : '
+        + 'Build, simulations gardées, jeux de sorts et de conditions, réglages : '
         + 'tout part. Cette action ne se defait pas.\n\n'
         + 'Exportez d\'abord si vous voulez pouvoir revenir.',
       );
@@ -139,7 +139,7 @@ export function installerProfil(hote) {
       if (rapport.refusees.length > 0) {
         message = {
           erreur: true,
-          texte: `Profil repris en partie. Refuse par le rangement : ${rapport.refusees.join(', ')}.`,
+          texte: `Profil repris en partie. Refusé par le rangement : ${rapport.refusees.join(', ')}.`,
         };
         dessiner();
         return;
@@ -177,12 +177,12 @@ export function installerProfil(hote) {
   const arreter = surEchec((echec) => {
     bouton.classList.add('alerte');
     bouton.title = echec.sature
-      ? 'Le rangement du navigateur est plein : vos derniers changements ne sont pas gardes.'
-      : 'Ce navigateur refuse d\'enregistrer : vos derniers changements ne sont pas gardes.';
+      ? 'Le rangement du navigateur est plein : vos derniers changements ne sont pas gardés.'
+      : 'Ce navigateur refuse d\'enregistrer : vos derniers changements ne sont pas gardés.';
     message = {
       erreur: true,
       texte: echec.sature
-        ? 'Le rangement est plein. Exportez votre profil, puis enlevez des simulations gardees.'
+        ? 'Le rangement est plein. Exportez votre profil, puis enlevez des simulations gardées.'
         : 'Ce navigateur refuse d\'enregistrer. Exportez votre profil avant de fermer la page.',
     };
     if (!panneau.hidden) dessiner();

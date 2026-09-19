@@ -118,7 +118,7 @@ export function lignesEssentielles(stats, minimums, mesures) {
   const libelle = (cle) => LIBELLES.get(cle) ?? cle;
 
   const tetes = [
-    { cle: 'degatsTotaux', libelle: 'Degats', valeur: mesures.degats, muet: mesures.degats === null },
+    { cle: 'degatsTotaux', libelle: 'Dégâts', valeur: mesures.degats, muet: mesures.degats === null },
     { cle: 'pdvEffectifs', libelle: 'Pdv effectifs', valeur: mesures.pdvEffectifs },
   ];
 

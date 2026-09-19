@@ -115,7 +115,7 @@ export function ouvrirIdentite({ lireEtat, setEtat }) {
         el('span', { text: 'Sexe' }), sexe),
 
       el('p', { class: 'aide',
-        text: 'Le niveau commande vos points de caracteristique et les pieces '
+        text: 'Le niveau commande vos points de caractéristique et les pièces '
           + 'que vous pouvez porter. La classe commande vos sorts.' })),
   ));
 

@@ -89,4 +89,4 @@ export function grouperParFamille(lignes) {
  *
  * @param {number} rang Zero pour le stuff porte.
  */
-export const nomDeColonne = (rang) => (rang === 0 ? 'Porte' : `Trouve ${rang}`);
+export const nomDeColonne = (rang) => (rang === 0 ? 'Porte' : `Trouvé ${rang}`);

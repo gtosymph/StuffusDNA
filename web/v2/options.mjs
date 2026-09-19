@@ -73,12 +73,12 @@ export function resumeCombo(options) {
 
   const restrictions = [];
   const reserves = Math.max(0, Math.trunc(Number(valeurs.paReserves) || 0));
-  if (reserves > 0) restrictions.push(`${reserves} PA gardes`);
+  if (reserves > 0) restrictions.push(`${reserves} PA gardés`);
   const elements = Math.max(0, Math.trunc(Number(valeurs.comboElements) || 0));
-  if (elements > 0) restrictions.push(`${elements} elements au moins`);
+  if (elements > 0) restrictions.push(`${elements} éléments au moins`);
   if (valeurs.comboUnLancer) restrictions.push('1 lancer par sort');
 
   return restrictions.length === 0
-    ? 'Meilleur enchainement'
-    : `Meilleur enchainement · ${restrictions.join(' · ')}`;
+    ? 'Meilleur enchaînement'
+    : `Meilleur enchaînement · ${restrictions.join(' · ')}`;
 }

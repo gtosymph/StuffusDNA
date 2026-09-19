@@ -15,14 +15,54 @@
 import {
   CARACTERISTIQUES, DOMMAGES, PRINCIPALES, RESISTANCES, SECONDAIRES,
 } from '../layout.mjs';
+import { pointCost, SCROLLABLE } from '../../src/engine/characteristics.mjs';
+
+/** Les seules mesures ou des points de caracteristique peuvent aller. */
+const RECOIT_DES_POINTS = new Set(SCROLLABLE);
+
+/**
+ * Ce que la repartition des points apporte a une mesure.
+ *
+ * C'est la VALEUR gagnee qui se montre, pas le cout : « +150 de Force » se
+ * compare au 520 de la ligne, alors que les 300 points qu'elle coute ne se
+ * comparent a rien de ce qui est ecrit la. Le cout suit quand meme, pour
+ * l'infobulle — c'est lui qui repond a « combien m'a coute ce stuff ».
+ *
+ * Zero point n'est pas « (0) » : c'est l'absence de parenthese. Une ligne qui
+ * annonce zero fait lire un chiffre pour rien.
+ *
+ * @param {string} cle
+ * @param {Record<string, number>|null|undefined} allocation Valeur VISEE par
+ *   caracteristique, telle que le moteur l'entend.
+ * @returns {{investi: number|null, coutInvesti: number|null}}
+ */
+function partInvestie(cle, allocation) {
+  if (!allocation || !RECOIT_DES_POINTS.has(cle)) return { investi: null, coutInvesti: null };
+  const valeur = Math.trunc(Number(allocation[cle]) || 0);
+  if (valeur <= 0) return { investi: null, coutInvesti: null };
+  return { investi: valeur, coutInvesti: pointCost(cle, valeur) };
+}
+
+/*
+ * Les intitules de famille sont a la fois un TEXTE et une CLE : ils se lisent
+ * a l'ecran, et deux endroits du code s'en servent pour reconnaitre une
+ * famille. Les nommer ici ferme la porte au defaut evident — accentuer le
+ * texte sans toucher a la comparaison, et perdre en silence le traitement
+ * propre a une famille.
+ */
+export const FAMILLE_PRINCIPALES = 'Principales';
+export const FAMILLE_CARACTERISTIQUES = 'Caractéristiques';
+export const FAMILLE_SECONDAIRES = 'Secondaires';
+export const FAMILLE_DOMMAGES = 'Dommages';
+export const FAMILLE_RESISTANCES = 'Résistances';
 
 /** Les familles de la fiche, dans l'ordre ou le jeu les montre. */
 export const FAMILLES = Object.freeze([
-  ['Principales', PRINCIPALES],
-  ['Caracteristiques', CARACTERISTIQUES],
-  ['Secondaires', SECONDAIRES],
-  ['Dommages', DOMMAGES],
-  ['Resistances', RESISTANCES],
+  [FAMILLE_PRINCIPALES, PRINCIPALES],
+  [FAMILLE_CARACTERISTIQUES, CARACTERISTIQUES],
+  [FAMILLE_SECONDAIRES, SECONDAIRES],
+  [FAMILLE_DOMMAGES, DOMMAGES],
+  [FAMILLE_RESISTANCES, RESISTANCES],
 ]);
 
 /**
@@ -68,6 +108,8 @@ function lignesResistances(stats, minimums) {
       pourcent: pct && stats?.[pct] !== undefined ? Number(stats[pct]) || 0 : null,
       sansBrut: !brut,
       sousMinimum: minimums.has(brut) || minimums.has(pct),
+      investi: null,
+      coutInvesti: null,
     }));
 }
 
@@ -85,12 +127,14 @@ const ESSENTIEL_MAX = 8;
  *
  * @param {Record<string, number>} stats
  * @param {Set<string>} minimums Statistiques deja sous minimum.
+ * @param {Record<string, number>|null} [allocation] Repartition des points,
+ *   pour dire ce que chaque caracteristique doit au joueur plutot qu'au stuff.
  * @returns {({famille: string}|{cle: string, libelle: string, valeur: number,
- *            sousMinimum: boolean})[]}
+ *            sousMinimum: boolean, investi: number|null})[]}
  */
-export function lignesCompletes(stats, minimums = new Set()) {
+export function lignesCompletes(stats, minimums = new Set(), allocation = null) {
   return FAMILLES.flatMap(([famille, paires]) => {
-    const dedans = famille === 'Resistances'
+    const dedans = famille === FAMILLE_RESISTANCES
       ? lignesResistances(stats, minimums)
       : paires
         .filter(([cle]) => stats?.[cle] !== undefined)
@@ -98,6 +142,7 @@ export function lignesCompletes(stats, minimums = new Set()) {
           cle, libelle,
           valeur: Number(stats[cle]) || 0,
           sousMinimum: minimums.has(cle),
+          ...partInvestie(cle, allocation),
         }));
     return dedans.length ? [{ famille }, ...dedans] : [];
   });
@@ -113,8 +158,9 @@ export function lignesCompletes(stats, minimums = new Set()) {
  * @param {Record<string, number>} stats
  * @param {string[]} minimums Statistiques sous minimum, dans l'ordre de pose.
  * @param {{degats: number|null, pdvEffectifs: number}} mesures
+ * @param {Record<string, number>|null} [allocation] Repartition des points.
  */
-export function lignesEssentielles(stats, minimums, mesures) {
+export function lignesEssentielles(stats, minimums, mesures, allocation = null) {
   const libelle = (cle) => LIBELLES.get(cle) ?? cle;
 
   const tetes = [
@@ -125,13 +171,19 @@ export function lignesEssentielles(stats, minimums, mesures) {
   const vus = new Set(['degatsTotaux', 'pdvEffectifs', ...minimums]);
   const exigences = minimums
     .filter((cle) => stats?.[cle] !== undefined)
-    .map((cle) => ({ cle, libelle: libelle(cle), valeur: Number(stats[cle]) || 0, exigee: true }));
+    .map((cle) => ({
+      cle, libelle: libelle(cle), valeur: Number(stats[cle]) || 0, exigee: true,
+      ...partInvestie(cle, allocation),
+    }));
 
   const place = Math.max(0, ESSENTIEL_MAX - tetes.length - exigences.length);
   const appoint = APPOINT
     .filter((cle) => !vus.has(cle) && stats?.[cle] !== undefined)
     .slice(0, place)
-    .map((cle) => ({ cle, libelle: libelle(cle), valeur: Number(stats[cle]) || 0 }));
+    .map((cle) => ({
+      cle, libelle: libelle(cle), valeur: Number(stats[cle]) || 0,
+      ...partInvestie(cle, allocation),
+    }));
 
   return [
     ...tetes,

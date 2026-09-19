@@ -20,9 +20,9 @@ export const PRINCIPALES = Object.freeze([
 
 /** Statistiques du panneau "Caracteristiques". */
 export const CARACTERISTIQUES = Object.freeze([
-  ['vitalite', 'Vitalite'], ['sagesse', 'Sagesse'],
+  ['vitalite', 'Vitalité'], ['sagesse', 'Sagesse'],
   ['force', 'Force'], ['intelligence', 'Intelligence'],
-  ['chance', 'Chance'], ['agilite', 'Agilite'],
+  ['chance', 'Chance'], ['agilite', 'Agilité'],
   ['puissance', 'Puissance'], ['pctDommagesFinaux', '% Dommages finaux'],
 ]);
 
@@ -48,20 +48,20 @@ export const DOMMAGES = Object.freeze([
   ['dommages', 'Dommages'], ['dommagesNeutre', 'Dommages Neutre'],
   ['dommagesTerre', 'Dommages Terre'], ['dommagesFeu', 'Dommages Feu'],
   ['dommagesEau', 'Dommages Eau'], ['dommagesAir', 'Dommages Air'],
-  ['dommagesCritiques', 'Dommages Critiques'], ['dommagesPoussee', 'Dommages Poussee'],
+  ['dommagesCritiques', 'Dommages Critiques'], ['dommagesPoussee', 'Dommages Poussée'],
   ['pctDommagesArmes', '% Dommages Armes'], ['pctDommagesSorts', '% Dommages Sorts'],
-  ['pctDommagesMelee', '% Dommages Melee'], ['pctDommagesDistance', '% Dommages Distance'],
+  ['pctDommagesMelee', '% Dommages Mêlée'], ['pctDommagesDistance', '% Dommages Distance'],
 ]);
 
 /** Statistiques du panneau "Resistances". */
 export const RESISTANCES = Object.freeze([
-  ['resNeutre', 'Res. Neutre'], ['pctResNeutre', '% Res. Neutre'],
-  ['resTerre', 'Res. Terre'], ['pctResTerre', '% Res. Terre'],
-  ['resFeu', 'Res. Feu'], ['pctResFeu', '% Res. Feu'],
-  ['resEau', 'Res. Eau'], ['pctResEau', '% Res. Eau'],
-  ['resAir', 'Res. Air'], ['pctResAir', '% Res. Air'],
-  ['resCritique', 'Res. Critique'], ['pctResMelee', '% Res. Melee'],
-  ['resPoussee', 'Res. Poussee'], ['pctResDistance', '% Res. Distance'],
+  ['resNeutre', 'Rés. Neutre'], ['pctResNeutre', '% Rés. Neutre'],
+  ['resTerre', 'Rés. Terre'], ['pctResTerre', '% Rés. Terre'],
+  ['resFeu', 'Rés. Feu'], ['pctResFeu', '% Rés. Feu'],
+  ['resEau', 'Rés. Eau'], ['pctResEau', '% Rés. Eau'],
+  ['resAir', 'Rés. Air'], ['pctResAir', '% Rés. Air'],
+  ['resCritique', 'Rés. Critique'], ['pctResMelee', '% Rés. Mêlée'],
+  ['resPoussee', 'Rés. Poussée'], ['pctResDistance', '% Rés. Distance'],
 ]);
 
 /** Cases posees a gauche du personnage, de haut en bas. */

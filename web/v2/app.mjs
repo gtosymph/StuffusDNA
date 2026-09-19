@@ -50,7 +50,7 @@ import { creerGestesReference } from '../gestes-reference.mjs';
 import { creerPont } from './pont.mjs';
 import { icone } from './icones.mjs';
 import { renderClasses } from './accueil.mjs';
-import { lignesCompletes, lignesEssentielles } from './fiche.mjs';
+import { FAMILLE_CARACTERISTIQUES, lignesCompletes, lignesEssentielles } from './fiche.mjs';
 import { garderSignature, reglagesChanges, reprendreSignature } from './peremption.mjs';
 import { ouvrirIdentite } from './identite.mjs';
 import { basculerPalette, fermerPalette, paletteOuverte } from './palette.mjs';
@@ -629,17 +629,18 @@ function renderAnalyseDuStuff(bilan, stats) {
 function renderInspecteur(stats, degats) {
   const minimums = etat.conditions.map((c) => c.stat);
   const lignes = toutVoir
-    ? lignesCompletes(stats, new Set(minimums))
-    : lignesEssentielles(stats, minimums, { degats, pdvEffectifs: Number(stats.pdvEffectifs) || 0 });
+    ? lignesCompletes(stats, new Set(minimums), etat.allocation)
+    : lignesEssentielles(stats, minimums,
+        { degats, pdvEffectifs: Number(stats.pdvEffectifs) || 0 }, etat.allocation);
 
   $('tete-quoi').textContent = toutVoir ? 'Tout voir' : 'La fiche';
   $('tete-note').textContent = 'stuff porté';
 
   const noeud = (l) => (l.famille
     ? el('p', { class: 'famille' }, l.famille,
-        l.famille === 'Caracteristiques'
+        l.famille === FAMILLE_CARACTERISTIQUES
           ? el('button', {
-              class: 'btn mini fantome', type: 'button', text: 'Repartir mes points',
+              class: 'btn mini fantome', type: 'button', text: 'Répartir mes points',
               onClick: () => ouvrirPoints({
                 lireEtat, setEtat, lireStats: () => buildCourant(etat, catalogue)?.stats ?? null,
               }),
@@ -658,6 +659,19 @@ function renderInspecteur(stats, degats) {
       },
         el('img', { class: 'ligne-icone', src: iconeStat(l.cle) ?? '', alt: '', decoding: 'async' }),
         el('span', { class: 'ligne-nom', text: l.libelle }),
+        // Ce que la repartition des points apporte, juste devant le total.
+        // Une Force a 520 ne dit pas d'ou elle vient : le stuff en donne une
+        // part, les parchemins une autre, et les points le reste — et c'est
+        // ce dernier que le joueur a choisi, donc le seul qu'il peut reprendre.
+        // La colonne existe meme vide : sans elle, les totaux des lignes sans
+        // parenthese se calent une colonne plus tot, et la fiche perd son
+        // alignement au premier point investi.
+        el('span', { class: 'ligne-investi n',
+          ...(l.investi ? {
+            text: `(${nombre(l.investi)})`,
+            title: `${nombre(l.investi)} de ${l.libelle.toLowerCase()} viennent de `
+              + `votre répartition, pour ${nombre(l.coutInvesti)} point(s) dépensés.`,
+          } : {}) }),
         // Une resistance porte deux chiffres : le brut et le pourcentage. Ils
         // ne se lisent jamais l'un sans l'autre.
         l.pourcent === null || l.pourcent === undefined

@@ -553,6 +553,14 @@ tr.titre th, tr.titre td {
 .ligne:disabled { cursor: default; }
 .ligne.exigee .ligne-nom { color: var(--texte); }
 
+/* Ce que la repartition des points apporte, juste devant le total.
+   Discret : c'est une provenance, pas une mesure. La colonne reste en place
+   quand elle est vide, pour que les totaux s'alignent d'une ligne a l'autre. */
+.ligne-investi {
+  font: 11px/1 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--texte-3); white-space: nowrap;
+}
+
 /* Le « × » d'un minimum ne se voit qu'au survol de sa ligne : quatre croix
    permanentes tirent l'oeil plus que les valeurs qu'elles accompagnent. */
 .limite .oter {

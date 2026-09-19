@@ -75,10 +75,10 @@ export function ouvrirPoints({ lireEtat, setEtat, lireStats }) {
 
   racine.replaceChildren(el('div', {
     class: 'feuille large', role: 'dialog', 'aria-modal': 'true',
-    'aria-label': 'Repartir mes points',
+    'aria-label': 'Répartir mes points',
   },
     el('div', { class: 'feuille-tete' },
-      el('h2', { text: 'Repartir mes points' }),
+      el('h2', { text: 'Répartir mes points' }),
       el('div', { class: 'pousse' }),
       el('button', { class: 'btn fantome', type: 'button', text: 'Fermer',
         onClick: fermerPoints })),

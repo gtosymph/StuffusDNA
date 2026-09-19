@@ -101,6 +101,29 @@ export function consequenceDe(lignes, rang) {
 }
 
 /**
+ * Rang d'un palier dans une courbe, retrouve par ses deux mesures.
+ *
+ * Le rang ne survit pas a un clic. Poser un stuff change le build porte, et
+ * `lignesSurvie` ecarte alors les paliers que ce nouveau build domine : la
+ * courbe se recalcule, les rangs glissent, et le rang 5 d'avant designe un
+ * autre stuff apres. Ce qui traverse un recalcul, c'est le palier lui-meme.
+ *
+ * Les deux mesures suffisent a le nommer : deux stuffs qui frappent et
+ * encaissent exactement pareil sont interchangeables pour tout ce que cette
+ * courbe montre.
+ *
+ * @param {{palier: {damage: number, endurance: number}}[]} lignes
+ * @param {{damage: number, endurance: number}|null} palier
+ * @returns {number|null} Rang, ou null si ce palier n'est plus la.
+ */
+export function rangDuPalier(lignes, palier) {
+  if (!palier || !Array.isArray(lignes)) return null;
+  const rang = lignes.findIndex((l) => l?.palier?.damage === palier.damage
+    && l?.palier?.endurance === palier.endurance);
+  return rang === -1 ? null : rang;
+}
+
+/**
  * Signature d'une courbe : deux courbes sont la meme si elles portent les
  * memes paliers, dans le meme ordre.
  *

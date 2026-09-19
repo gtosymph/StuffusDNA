@@ -27,7 +27,7 @@ import { lignesSurvie, palierRetenu } from '../survie-panel.mjs';
 import { dessinerCourbe, pointLePlusProche } from '../courbe-survie.mjs';
 import { AXE_ENDURANCE } from '../../src/solver/survie.mjs';
 import {
-  bornesEnPourcent, choixAuClic, consequenceDe, signatureCourbe,
+  bornesEnPourcent, choixAuClic, consequenceDe, rangDuPalier, signatureCourbe,
 } from './melange.mjs';
 
 const nombre = (n) => Math.round(n).toLocaleString('fr-FR');
@@ -62,14 +62,36 @@ export function renderMelange(racine, { paliers, porte, part, onPart, onChoisir 
 
 /** Monte le bloc une fois, et rend de quoi le mettre a jour. */
 function construire(racine, lignes, signature, onPart, onChoisir) {
+  /**
+   * Le palier pose au dernier clic, ou null.
+   *
+   * Il prime sur le palier que le curseur retient, et c'est necessaire : tous
+   * les points de la courbe ne se laissent pas retenir. Un palier creuse —
+   * sous la corde tendue entre ses voisins — ne gagne pour AUCUN reglage.
+   * Cliquer un tel point posait bien son stuff, mais le reglage tombait a la
+   * moitie faute de mieux, et la moitie designe un tout autre stuff : le
+   * point clique virait au cyan, un point sans rapport virait a l'ambre, et
+   * la bande annoncait les chiffres de ce dernier pendant que le message
+   * annoncait ceux du premier.
+   *
+   * On garde donc le PALIER, pas son rang : poser un stuff recalcule la
+   * courbe et fait glisser les rangs.
+   */
+  let choisi = null;
+
   // Le cran lu est une part d'ENCAISSE : la part des degats est son
   // complement. Tout le reste de l'application raisonne en part de degats,
   // la conversion tient donc en un seul endroit, ici.
   const curseur = el('input', {
     type: 'range', class: 'melange-curseur',
     min: '0', max: String(CRANS), value: '50',
-    'aria-label': 'Equilibre entre frapper et encaisser',
-    onInput: (ev) => onPart(1 - (Number(ev.target.value) / CRANS)),
+    'aria-label': 'Équilibre entre frapper et encaisser',
+    onInput: (ev) => {
+      // Regler, c'est reprendre la main : le point pose au clic precedent
+      // cesse d'etre celui qu'on montre.
+      choisi = null;
+      onPart(1 - (Number(ev.target.value) / CRANS));
+    },
   });
 
   // Sans recherche, il n'y a pas de courbe : le curseur reste utile, mais il
@@ -89,8 +111,8 @@ function construire(racine, lignes, signature, onPart, onChoisir) {
   if (lignes.length === 0) {
     racine.replaceChildren(curseur, bornes,
       el('p', { class: 'aide',
-        text: 'Lancez une recherche : la courbe montrera ce que chaque reglage '
-          + 'vous coute et vous rapporte.' }));
+        text: 'Lancez une recherche : la courbe montrera ce que chaque réglage '
+          + 'vous coûte et vous rapporte.' }));
 
     return {
       racine, signature,
@@ -106,7 +128,7 @@ function construire(racine, lignes, signature, onPart, onChoisir) {
 
   racine.replaceChildren(consequence, curseur, bornes, toile,
     el('p', { class: 'aide',
-      text: 'Chaque point est le meilleur stuff a ce niveau d\'encaisse. '
+      text: 'Chaque point est le meilleur stuff à ce niveau d\'encaisse. '
         + 'Cliquez-en un pour le porter.' }));
 
   let traces = [];
@@ -157,22 +179,36 @@ function construire(racine, lignes, signature, onPart, onChoisir) {
   toile.addEventListener('click', (ev) => {
     const point = sous(ev);
     if (!point) return;
-    const choix = choixAuClic(lignes, point.rang);
+    const choix = choixAuClic(vue.courantes, point.rang);
     if (!choix) return;
 
     if (onChoisir && choix.palier) {
-      onChoisir(choix.palier, choix.part ?? 0.5);
+      choisi = choix.palier;
+      // La part part telle quelle, nulle comprise : inventer un reglage pour
+      // un palier qu'aucun reglage ne retient revient a designer un autre
+      // stuff que celui qu'on vient de poser.
+      onChoisir(choix.palier, choix.part);
       return;
     }
-    if (choix.part !== null) onPart(choix.part);
+    if (choix.part !== null) { choisi = null; onPart(choix.part); }
   });
 
   /** Dernier etat montre, pour pouvoir redessiner au seul survol. */
   let vue = { courantes: lignes, retenu: null };
 
+  /**
+   * Le point que la courbe marque et que la bande annonce.
+   *
+   * Trois reponses possibles, dans cet ordre : ce que le pointeur designe,
+   * ce que le dernier clic a pose, ce que le curseur retient. Le clic passe
+   * devant le curseur parce qu'il est plus recent et plus precis — et parce
+   * qu'un palier creuse n'a pas de reglage qui le retienne.
+   */
+  const rangMontre = () => survole ?? rangDuPalier(vue.courantes, choisi) ?? vue.retenu;
+
   /** Ce que montre la consequence : le point survole prime sur le retenu. */
   function majConsequence() {
-    const rang = survole ?? vue.retenu;
+    const rang = rangMontre();
     const quoi = consequenceDe(vue.courantes, rang);
     consequence.classList.toggle('survolee', survole !== null);
     consequence.replaceChildren(...(quoi ? [
@@ -193,7 +229,7 @@ function construire(racine, lignes, signature, onPart, onChoisir) {
     majConsequence();
     requestAnimationFrame(() => {
       traces = dessinerCourbe(toile, {
-        lignes: vue.courantes, axe: AXE_ENDURANCE, retenu: vue.retenu, survole,
+        lignes: vue.courantes, axe: AXE_ENDURANCE, retenu: rangMontre(), survole,
         libelles: { x: 'pdv effectifs', y: 'degats' },
       });
     });
